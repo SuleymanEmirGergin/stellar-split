@@ -1,0 +1,17 @@
+{
+  "short_name": "StellarSplit",
+  "name": "StellarSplit - Social Settlements",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#6366f1",
+  "background_color": "#000000"
+}
