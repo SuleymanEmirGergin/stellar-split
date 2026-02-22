@@ -177,29 +177,25 @@ When moving from Testnet to Mainnet:
 
 ## 📋 Level 2 Submission (Multi-wallet, Contract, Events)
 
-| Gereksinim | Durum | Açıklama |
-|------------|--------|----------|
-| **3 error types** | ✅ | **Rejected** (imza reddedildi), **Wallet not found** (cüzdan yok/bağlantı başarısız), **Insufficient balance** (yetersiz bakiye) — `frontend/src/lib/errors.ts`, toast ile gösteriliyor. |
-| **Contract on testnet** | ✅ | Aşağıdaki contract adresi Testnet’te deploy edilmiş. |
-| **Contract called from frontend** | ✅ | `create_group`, `add_expense`, `settle_group`, `get_group`, `get_expense`, `get_balances` vb. `frontend/src/lib/contract.ts` üzerinden çağrılıyor. |
-| **Transaction status visible** | ✅ | TxHistory, ActivityFeed, başarı/hata toast’ları; işlem hash’i ve Stellar Expert linki gösteriliyor. |
-| **Event listening** | ✅ | `subscribeGroupEvents` (`frontend/src/lib/events.ts`) — grup sayfasında `expense_added`, `group_settled` vb. için polling ile state senkronizasyonu. |
-| **Min 2+ commits** | ⚠️ | Repo’da anlamlı commit sayısı 2+ olmalı. |
+| Gereksinim                        | Durum | Açıklama                                                                                                                                                                                 |
+| --------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **3 error types**                 | ✅    | **Rejected** (imza reddedildi), **Wallet not found** (cüzdan yok/bağlantı başarısız), **Insufficient balance** (yetersiz bakiye) — `frontend/src/lib/errors.ts`, toast ile gösteriliyor. |
+| **Contract on testnet**           | ✅    | Aşağıdaki contract adresi Testnet’te deploy edilmiş.                                                                                                                                     |
+| **Contract called from frontend** | ✅    | `create_group`, `add_expense`, `settle_group`, `get_group`, `get_expense`, `get_balances` vb. `frontend/src/lib/contract.ts` üzerinden çağrılıyor.                                       |
+| **Transaction status visible**    | ✅    | TxHistory, ActivityFeed, başarı/hata toast’ları; işlem hash’i ve Stellar Expert linki gösteriliyor.                                                                                      |
+| **Event listening**               | ✅    | `subscribeGroupEvents` (`frontend/src/lib/events.ts`) — grup sayfasında `expense_added`, `group_settled` vb. için polling ile state senkronizasyonu.                                     |
+| **Min 2+ commits**                | ⚠️    | Repo’da anlamlı commit sayısı 2+ olmalı.                                                                                                                                                 |
 
 ### Deployed contract (Testnet)
 
 - **Contract ID:** `CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K`
-- **Network:** Stellar Testnet  
+- **Network:** Stellar Testnet
 - **Explorer:** [Stellar Expert (Testnet)](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K)
 
 ### Örnek işlem hash’i (contract call)
 
-Gönderim öncesi **gerçek bir contract çağrısı** (grup oluşturma, harcama ekleme veya settle) yapıp aşağıyı Stellar Explorer’da doğrulanabilir hash ile güncelleyin:
-
-- **Transaction hash (örnek):** `REPLACE_WITH_REAL_TX_HASH`  
-- **Doğrulama:** [Stellar Expert Testnet – Transaction](https://stellar.expert/explorer/testnet/tx/REPLACE_WITH_REAL_TX_HASH)
-
-*(Uygulamada bir işlem yapın, TxHistory/ActivityFeed veya toast’taki hash’i kopyalayıp yukarıdaki `REPLACE_WITH_REAL_TX_HASH` yerine yapıştırın.)*
+- **Transaction hash:** `c4b13aaf245715d0ca8b1b721fb54043ec12eb097a91da384e7c89d381adc2bc`
+- **Doğrulama:** [Stellar Expert Testnet – Transaction](https://stellar.expert/explorer/testnet/tx/c4b13aaf245715d0ca8b1b721fb54043ec12eb097a91da384e7c89d381adc2bc)
 
 ### Wallet options screenshot
 
