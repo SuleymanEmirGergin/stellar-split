@@ -197,21 +197,23 @@ When moving from Testnet to Mainnet:
 - **Transaction hash:** `c4b13aaf245715d0ca8b1b721fb54043ec12eb097a91da384e7c89d381adc2bc`
 - **Doğrulama:** [Stellar Expert Testnet – Transaction](https://stellar.expert/explorer/testnet/tx/c4b13aaf245715d0ca8b1b721fb54043ec12eb097a91da384e7c89d381adc2bc)
 
-### Wallet options screenshot
+### Wallet Options Screenshot
 
-README’deki **Screenshots** bölümünde “wallet options” için: Cüzdan bağlama ekranı (Freighter ile “Cüzdanı Bağla”) `docs/screenshots/01-wallet-connected.png` ile gösteriliyor. Birden fazla cüzdan seçeneği eklenirse ek ekran görüntüsü eklenebilir.
+![Wallet Options](docs/screenshots/05-wallet-options.png)
+
+Freighter wallet connection popup — shows wallet address (`GBEO...25H7`), network (`Test Net`), and the Connect / Cancel flow.
 
 ---
 
 ## 📸 Screenshots
 
-### Wallet Connected & XLM Balance
+### Wallet Connection & XLM Balance
 
-Demo Mode active — wallet address (`GBEOHD...II25H7`) shown in header alongside live XLM balance (`1250.45 XLM`), real-time price ticker, and network status bar.
+Freighter wallet connection request popup and dashboard with live XLM balance.
 
-| Connected Wallet (header)                                     | Dashboard & Balance                                     |
-| ------------------------------------------------------------- | ------------------------------------------------------- |
-| ![Wallet Connected](docs/screenshots/01-wallet-connected.png) | ![Balance & Dashboard](docs/screenshots/02-balance.png) |
+| Wallet Options (Freighter popup)                          | Connected Wallet (header)                                     | Dashboard & Balance                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
+| ![Wallet Options](docs/screenshots/05-wallet-options.png) | ![Wallet Connected](docs/screenshots/01-wallet-connected.png) | ![Balance & Dashboard](docs/screenshots/02-balance.png) |
 
 ### Group Management & On-chain Settlements
 
