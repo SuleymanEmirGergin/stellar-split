@@ -245,10 +245,10 @@ Balance breakdown per member (you vs. demo members) and the Insights tab showing
 | Gereksinim                                 | Durum | Not                                                                                          |
 | ------------------------------------------ | ----- | -------------------------------------------------------------------------------------------- |
 | Mini-dApp tam fonksiyonel                  | ✅    | Grup, harcama, settle, Demo Mode, cüzdan, Testnet contract.                                  |
-| En az 3 test geçiyor                       | ✅    | Vitest: `format`, `motion`, `contract` (toplam 15 unit test).                                |
+| En az 3 test geçiyor                       | ✅    | Vitest: `format`, `motion`, `contract`, `errors` (toplam 26 unit test).                      |
 | README tam                                 | ✅    | Bu doküman + Level 1–2–3 checklist, ekran görüntüleri, mimari.                               |
 | **Live demo linki**                        | ✅    | [stellar-split (Vercel)](https://stellar-split-ty4v-eyl42ji23-plutazoms-projects.vercel.app) |
-| **Test çıktısı ekran görüntüsü (3+ test)** | ✅    | Aşağıda — 15 test, 3 dosya.                                                                  |
+| **Test çıktısı ekran görüntüsü (3+ test)** | ✅    | Aşağıda — 26 test, 4 dosya.                                                                  |
 | **Demo video (1 dk)**                      | ⬜    | _(Video yükleyip buraya link ekleyin.)_                                                      |
 | En az 3+ anlamlı commit                    | ✅    | GitHub commit geçmişinde görülebilir (feat, docs, test, fix commit'leri).                    |
 
@@ -262,13 +262,14 @@ Balance breakdown per member (you vs. demo members) and the Insights tab showing
 `npm run test:run` çıktısı (frontend/`vitest run`):
 
 ```
-✓ src/lib/contract.test.ts (4 tests) 1518ms
+✓ src/lib/contract.test.ts (4 tests) 1513ms
+✓ src/lib/errors.test.ts (11 tests)
 ✓ src/lib/format.test.ts (7 tests)
 ✓ src/lib/motion.test.ts (4 tests)
 
-Test Files  3 passed (3)
-     Tests  15 passed (15)
-  Duration  ~2s
+Test Files  4 passed (4)
+     Tests  26 passed (26)
+  Duration  ~6s
 ```
 
 ![Tests passing](docs/screenshots/06-tests-passing.png)
