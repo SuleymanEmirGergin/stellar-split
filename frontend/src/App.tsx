@@ -35,6 +35,7 @@ import { translateError } from './lib/errors';
 import { useOffline } from './lib/network';
 import { useAppStore } from './store/useAppStore';
 import { useXlmPriceWithChange } from './lib/xlmPrice';
+import { getSPLTBalance } from './lib/contract';
 
 // ── Wallet Balance Hook ──────────────────────────────────────
 function useWalletBalance(address: string | null, isDemo: boolean) {
@@ -97,6 +98,27 @@ function useTheme() {
   return { dark, toggle };
 }
 
+// ── SPLT Balance Hook ──────────────────────────────────────
+function useSPLTBalance(address: string | null, isDemo: boolean) {
+  const [balance, setBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!address) {
+      setBalance(null);
+      return;
+    }
+    const fetchBalance = async () => {
+      const b = await getSPLTBalance(address);
+      setBalance(b);
+    };
+    fetchBalance();
+    const iv = setInterval(fetchBalance, 20000);
+    return () => clearInterval(iv);
+  }, [address, isDemo]);
+
+  return balance;
+}
+
 // ── Main ────────────────────────────────────────────────
 function AppContent() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -104,6 +126,7 @@ function AppContent() {
   const [connecting, setConnecting] = useState(false);
   const [demoMode, setDemoMode] = useState(() => localStorage.getItem('stellarsplit_demo_mode') === 'true');
   const walletBalance = useWalletBalance(walletAddress, demoMode);
+  const spltBalance = useSPLTBalance(walletAddress, demoMode);
   const { addToast } = useToast();
   const { price, change } = useXlmPrice();
   const { dark, toggle: toggleTheme } = useTheme();
@@ -380,11 +403,20 @@ function AppContent() {
                   Mainnet
                 </span>
               )}
-              <div className="hidden sm:flex items-center px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-100 text-xs font-bold gap-1.5 shadow-sm">
-                <Zap size={14} className="text-amber-400" />
-                <span className="font-mono tracking-tight">
-                  <BalanceMetric value={walletBalance != null ? parseFloat(walletBalance) : null} suffix="XLM" />
-                </span>
+              <div className="hidden sm:flex items-center px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-100 text-xs font-bold gap-3 shadow-sm">
+                <div className="flex items-center gap-1.5">
+                  <Zap size={14} className="text-amber-400" />
+                  <span className="font-mono tracking-tight">
+                    <BalanceMetric value={walletBalance != null ? parseFloat(walletBalance) : null} suffix="XLM" />
+                  </span>
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex items-center gap-1.5 text-purple-400">
+                  <Shield size={14} />
+                  <span className="font-mono tracking-tight text-white">
+                    <BalanceMetric value={spltBalance} suffix="SPLT" />
+                  </span>
+                </div>
               </div>
               <CopyButton text={walletAddress} onCopy={() => addToast(t('common.copied') || 'Copied')} />
               <button

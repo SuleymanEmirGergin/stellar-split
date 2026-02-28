@@ -388,8 +388,7 @@ export async function addExpense(
   amount: number,
   splitAmong: string[],
   description: string,
-  category: string = '',
-  _attachmentUrl?: string
+  category: string = ''
 ): Promise<number> {
 
   if (isDemoMode()) {
@@ -663,7 +662,7 @@ export async function settleGroup(
   if (!returnVal) throw new Error('No return value');
 
   const native = StellarSdk.scValToNative(returnVal);
-  if (!Array.isArray(native)) return { settlements: [], txHash: result.hash };
+  if (!Array.isArray(native)) return { settlements: [], txHash: (result as any).id || (result as any).hash || '' };
 
   return {
     settlements: native.map((s: Record<string, unknown>) => ({
@@ -671,7 +670,7 @@ export async function settleGroup(
       to: String(s.to),
       amount: Number(s.amount),
     })),
-    txHash: result.hash,
+    txHash: (result as any).id || (result as any).hash || '',
   };
 }
 
