@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["contracts/stellar_split"]
+members = ["contracts/stellar_split", "contracts/stellar_split_token"]
 
 [profile.release]
 opt-level = "z"
