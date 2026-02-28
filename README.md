@@ -188,9 +188,22 @@ When moving from Testnet to Mainnet:
 
 ### Deployed contract (Testnet)
 
-- **Contract ID:** `CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K`
+- **Contract ID:** `GBEOHD44Y2ON4HEODWMAAIP2ZCCWG5E355OFYIMVNBUKPL6T3LII25H7`
 - **Network:** Stellar Testnet
-- **Explorer:** [Stellar Expert (Testnet)](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K)
+- **Explorer:** [Stellar Expert (Testnet)](https://stellar.expert/explorer/testnet/contract/GBEOHD44Y2ON4HEODWMAAIP2ZCCWG5E355OFYIMVNBUKPL6T3LII25H7)
+
+### VITE_CONTRACT_ID nasıl alınır?
+
+**Contract ID**, Soroban kontratını Stellar Testnet’e deploy ettikten sonra dönen değerdir. **"C"** ile başlar (56 karakter); **G** ile başlayan cüzdan adresi değildir.
+
+1. **Stellar CLI kurun:** [Stellar CLI](https://developers.stellar.org/docs/tooling/stellar-cli/install) (örn. `curl -sSLO https://github.com/stellar/soroban-tools/releases/download/v21.0.0/soroban-21.0.0-x86_64-unknown-linux-gnu.tar.gz` veya macOS/Windows için ilgili paket).
+2. **Kontratı build edin:** Proje kökünde `cargo build --target wasm32-unknown-unknown --release`. Çıktı: `target/wasm32-unknown-unknown/release/stellar_split.wasm`.
+3. **Deploy edin:**
+   - **Otomatik:** `./deploy.sh` (veya `bash scripts/deploy.sh`). Script deploy sonrası **Contract ID**’yi yazar; bunu kopyalayın.
+   - **Manuel:** `stellar contract deploy --wasm target/wasm32-unknown-unknown/release/stellar_split.wasm --network testnet --source-account <identity>`. Komut çıktısı = Contract ID (tek satır, **C** ile başlar).
+4. **Frontend / Vercel:** Bu ID’yi `VITE_CONTRACT_ID` olarak `frontend/.env` veya Vercel Environment Variables’a ekleyin.
+
+Yeni deploy yaptığınızda her seferinde yeni bir Contract ID alırsınız; frontend’teki ve Vercel’deki `VITE_CONTRACT_ID`’yi güncellemeniz gerekir.
 
 ### Örnek işlem hash’i (contract call)
 
@@ -222,6 +235,49 @@ Balance breakdown per member (you vs. demo members) and the Insights tab showing
 | Net Balances (Settle tab)                       | Insights, AI Analysis & Activity Feed                       |
 | ----------------------------------------------- | ----------------------------------------------------------- |
 | ![Balances](docs/screenshots/03-success-tx.png) | ![Insights & Tx History](docs/screenshots/04-tx-result.png) |
+
+---
+
+---
+
+## 📋 Level 3 Submission (Mini-dApp, Tests, Demo)
+
+| Gereksinim                                 | Durum | Not                                                                                          |
+| ------------------------------------------ | ----- | -------------------------------------------------------------------------------------------- |
+| Mini-dApp tam fonksiyonel                  | ✅    | Grup, harcama, settle, Demo Mode, cüzdan, Testnet contract.                                  |
+| En az 3 test geçiyor                       | ✅    | Vitest: `format`, `motion`, `contract` (toplam 15 unit test).                                |
+| README tam                                 | ✅    | Bu doküman + Level 1–2–3 checklist, ekran görüntüleri, mimari.                               |
+| **Live demo linki**                        | ✅    | [stellar-split (Vercel)](https://stellar-split-ty4v-eyl42ji23-plutazoms-projects.vercel.app) |
+| **Test çıktısı ekran görüntüsü (3+ test)** | ✅    | Aşağıda — 15 test, 3 dosya.                                                                  |
+| **Demo video (1 dk)**                      | ⬜    | _(Video yükleyip buraya link ekleyin.)_                                                      |
+| En az 3+ anlamlı commit                    | ✅    | GitHub commit geçmişinde görülebilir (feat, docs, test, fix commit'leri).                    |
+
+### Live Demo
+
+- **Link:** [https://stellar-split-ty4v-eyl42ji23-plutazoms-projects.vercel.app](https://stellar-split-ty4v-eyl42ji23-plutazoms-projects.vercel.app)
+- **Deploy:** Repoyu [Vercel](https://vercel.com) veya [Netlify](https://netlify.com) ile bağlayın. Vercel’de Root Directory = `frontend` seçin. Netlify için `netlify.toml` kullanılır (base: `frontend`). Testnet için gerekli env değişkenleri: `frontend/.env.example` içindeki `VITE_CONTRACT_ID`, `VITE_SOROBAN_RPC_URL`, `VITE_NETWORK_PASSPHRASE`, `VITE_HORIZON_URL`.
+
+### Test output (3+ tests passing)
+
+`npm run test:run` çıktısı (frontend/`vitest run`):
+
+```
+✓ src/lib/contract.test.ts (4 tests) 1518ms
+✓ src/lib/format.test.ts (7 tests)
+✓ src/lib/motion.test.ts (4 tests)
+
+Test Files  3 passed (3)
+     Tests  15 passed (15)
+  Duration  ~2s
+```
+
+![Tests passing](docs/screenshots/06-tests-passing.png)
+
+### Demo video (1 minute)
+
+- **Link:** _(YouTube / Loom vb. 1 dk demo linki)_
+
+Detaylı adımlar ve yol haritası: [docs/LEVEL3-ROADMAP.md](docs/LEVEL3-ROADMAP.md).
 
 ---
 
