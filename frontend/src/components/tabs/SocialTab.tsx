@@ -1,4 +1,4 @@
-import { Bell, Share2 } from 'lucide-react';
+import { Bell, Share2, Check } from 'lucide-react';
 import { generateTelegramShareUrl } from '../../lib/notifications';
 import type { TranslationKey } from '../../lib/i18n';
 
@@ -41,11 +41,18 @@ export default function SocialTab({
          <p className="mt-2 text-[10px] text-muted-foreground font-medium">
            <strong>Slack:</strong> Kanal → Ayarlar → Uygulamalar Ekle → Incoming Webhooks → Webhook URL kopyala. <strong>Discord:</strong> Sunucu Ayarları → Entegrasyonlar → Webhooks → Yeni Webhook → URL&#39;yi kopyala.
          </p>
-         <div className="mt-4 space-y-3">
-           <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Bildirim gönder</label>
-           <div className="flex flex-wrap gap-3">
+         <div className="mt-4 space-y-4">
+           <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block px-1">Bildirim gönder</label>
+           <div className="flex flex-wrap gap-2">
              {(['all', 'mine', 'off'] as const).map((pref) => (
-               <label key={pref} className="flex items-center gap-2 cursor-pointer">
+               <label
+                 key={pref}
+                 className={`flex items-center gap-3 cursor-pointer px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+                   webhookNotifyPref === pref
+                     ? 'border-indigo-500/60 bg-indigo-500/10 text-foreground'
+                     : 'border-white/10 bg-secondary/30 text-muted-foreground hover:border-white/20 hover:bg-white/5'
+                 }`}
+               >
                  <input
                    type="radio"
                    name={`webhook_pref_${groupId}`}
@@ -54,13 +61,24 @@ export default function SocialTab({
                      setWebhookNotifyPref(pref);
                      localStorage.setItem(`webhook_pref_${groupId}`, pref);
                    }}
-                   className="rounded-full border-white/20 text-indigo-500 focus:ring-indigo-500"
+                   className="sr-only"
                  />
-                 <span className="text-xs font-bold">{t(`group.webhook_pref_${pref}`)}</span>
+                 <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                   webhookNotifyPref === pref ? 'border-indigo-500 bg-indigo-500' : 'border-white/30'
+                 }`}>
+                   {webhookNotifyPref === pref && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                 </span>
+                 <span className="text-sm font-bold">{t(`group.webhook_pref_${pref}`)}</span>
                </label>
              ))}
            </div>
-           <label className="flex items-center gap-2 cursor-pointer mt-2">
+           <label
+             className={`flex items-center gap-3 cursor-pointer px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
+               webhookNotifySettlement
+                 ? 'border-indigo-500/60 bg-indigo-500/10'
+                 : 'border-white/10 bg-secondary/30 hover:border-white/20 hover:bg-white/5'
+             }`}
+           >
              <input
                type="checkbox"
                checked={webhookNotifySettlement}
@@ -69,9 +87,14 @@ export default function SocialTab({
                  setWebhookNotifySettlement(v);
                  localStorage.setItem(`webhook_settlement_${groupId}`, String(v));
                }}
-               className="rounded border-white/20 text-indigo-500 focus:ring-indigo-500"
+               className="sr-only"
              />
-             <span className="text-xs font-bold">{t('group.webhook_pref_settlement')}</span>
+             <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+               webhookNotifySettlement ? 'border-indigo-500 bg-indigo-500' : 'border-white/30 bg-transparent'
+             }`}>
+               {webhookNotifySettlement && <Check size={12} className="text-white" strokeWidth={3} />}
+             </span>
+             <span className="text-sm font-bold text-foreground">{t('group.webhook_pref_settlement')}</span>
            </label>
          </div>
        </div>

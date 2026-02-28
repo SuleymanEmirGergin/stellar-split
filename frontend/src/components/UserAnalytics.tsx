@@ -52,7 +52,7 @@ export default function UserAnalytics({ walletAddress, groups }: Props) {
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-indigo-500/30 transition-colors"
+        className="glass-panel rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-500/30 transition-colors"
       >
         <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-colors" />
         <div className="relative z-10">
@@ -74,7 +74,7 @@ export default function UserAnalytics({ walletAddress, groups }: Props) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-emerald-500/30 transition-colors"
+        className="glass-panel rounded-2xl p-5 relative overflow-hidden group hover:border-emerald-500/30 transition-colors"
       >
         <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-colors" />
         <div className="relative z-10">
@@ -93,7 +93,7 @@ export default function UserAnalytics({ walletAddress, groups }: Props) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-card border border-border rounded-2xl p-5 shadow-sm relative overflow-hidden group hover:border-amber-500/30 transition-colors"
+        className="glass-panel rounded-2xl p-5 relative overflow-hidden group hover:border-amber-500/30 transition-colors"
       >
         <div className="absolute -right-4 -top-4 w-16 h-16 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-colors" />
         <div className="relative z-10">

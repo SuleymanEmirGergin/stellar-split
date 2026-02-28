@@ -70,7 +70,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             className={`flex items-center gap-2.5 px-5 py-3 rounded-lg text-sm font-medium text-white pointer-events-auto cursor-pointer backdrop-blur-xl shadow-lg max-w-[400px] border ${
               typeStyles[toast.type]
-            } ${toast.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
+            } ${toast.type === 'success' && !toast.exiting ? 'toast-success-pulse' : ''} ${toast.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
             onClick={() => dismissToast(toast.id)}
           >
             <span className="text-base shrink-0">{icons[toast.type]}</span>

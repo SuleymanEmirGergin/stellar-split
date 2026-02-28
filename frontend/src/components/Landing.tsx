@@ -1,5 +1,5 @@
 import { motion, type Variants, type Easing } from 'framer-motion';
-import { Zap, Users, Percent, Shield, Cpu, Globe, Rocket, ChevronRight, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Zap, Users, Percent, Shield, Cpu, Globe, Rocket, ChevronRight, ArrowRight, AlertTriangle, CreditCard, Coins, Lock } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import Logo from './Logo';
 
@@ -36,12 +36,21 @@ export default function Landing({ onConnect, freighterAvailable, connecting, isD
       initial="hidden"
       animate="visible"
       variants={containerVars}
-      className="relative"
+      className="relative min-h-full overflow-hidden"
     >
-      {/* Decorative Blur Backgrounds */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-20 -right-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Wallet-themed background layer */}
+      <div className="absolute inset-0 pointer-events-none z-0 bg-wallet-mesh bg-wallet-grid" />
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+      <div className="absolute top-20 -right-20 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
+      <div className="absolute top-1/2 -left-20 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-teal-500/10 rounded-full blur-[70px] pointer-events-none z-0" />
+      <CreditCard className="absolute top-24 left-[12%] w-16 h-16 text-foreground/5 pointer-events-none z-0" strokeWidth={1.5} aria-hidden />
+      <Coins className="absolute top-32 right-[15%] w-14 h-14 text-foreground/6 pointer-events-none z-0" strokeWidth={1.5} aria-hidden />
+      <Coins className="absolute top-[55%] left-[8%] w-12 h-12 text-foreground/5 pointer-events-none z-0" strokeWidth={1.5} aria-hidden />
+      <Lock className="absolute bottom-40 left-[10%] w-14 h-14 text-foreground/5 pointer-events-none z-0" strokeWidth={1.5} aria-hidden />
+      <CreditCard className="absolute bottom-32 right-[12%] w-16 h-16 text-foreground/5 pointer-events-none z-0 rotate-12" strokeWidth={1.5} aria-hidden />
 
+      <div className="relative z-10">
       {/* Hero Section */}
       <div className="text-center py-20 pb-16 relative">
         <motion.div variants={itemVars} className="flex flex-col items-center gap-6 mb-10">
@@ -146,8 +155,9 @@ export default function Landing({ onConnect, freighterAvailable, connecting, isD
       </div>
 
       {/* Step Progress Section */}
-      <motion.div variants={itemVars} className="max-w-[700px] mx-auto py-20 px-8 bg-secondary/20 rounded-[40px] border border-white/5 relative overflow-hidden mb-24">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-3xl rounded-full" />
+      <motion.div variants={itemVars} className="max-w-[700px] mx-auto py-20 px-8 bg-gradient-to-br from-secondary/30 via-secondary/20 to-indigo-500/10 dark:to-indigo-500/15 rounded-[40px] border border-white/5 relative overflow-hidden mb-24">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/15 blur-3xl rounded-full" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/8 dark:bg-purple-500/12 blur-3xl rounded-full" />
         <h2 className="text-3xl font-black text-center mb-12 tracking-tighter">How it Works</h2>
         <div className="space-y-4">
           {[
@@ -175,8 +185,9 @@ export default function Landing({ onConnect, freighterAvailable, connecting, isD
 
       {/* Bottom CTA */}
       <div className="text-center pb-20">
-        <motion.div variants={itemVars} className="inline-block p-12 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-white/5 rounded-[40px] relative overflow-hidden">
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-500/10 blur-3xl rounded-full" />
+        <motion.div variants={itemVars} className="inline-block p-12 bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-purple-500/10 dark:from-indigo-500/15 dark:to-purple-500/15 border border-white/10 rounded-[40px] relative overflow-hidden">
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-500/15 dark:bg-indigo-500/20 blur-3xl rounded-full" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 dark:bg-purple-500/15 blur-3xl rounded-full" />
           <p className="text-2xl font-black mb-3 tracking-tight">Ready to optimize?</p>
           <p className="text-sm text-muted-foreground mb-8 font-medium">Join the fast lane of peer-to-peer settlements.</p>
           <button
@@ -187,6 +198,7 @@ export default function Landing({ onConnect, freighterAvailable, connecting, isD
             <Rocket size={20} /> Let's Go
           </button>
         </motion.div>
+      </div>
       </div>
     </motion.div>
   );

@@ -45,7 +45,7 @@ export default function ImpactPanel({ expensesCount, totalVolume, isDemo }: Prop
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/10 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden group shadow-2xl"
+      className="glass-panel bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-2xl p-6 relative overflow-hidden group"
     >
       {/* Decorative pulse */}
       <div className="absolute -right-4 -top-4 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />

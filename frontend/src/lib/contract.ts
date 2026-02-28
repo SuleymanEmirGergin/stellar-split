@@ -628,16 +628,24 @@ export async function getExpense(
  * Requires all debtors to have sufficient XLM and approve the transaction.
  * @param tokenAddress - The XLM SAC address on testnet
  */
+export interface SettleGroupResult {
+  settlements: Settlement[];
+  txHash: string;
+}
+
 export async function settleGroup(
   callerAddress: string,
   groupId: number
-): Promise<Settlement[]> {
+): Promise<SettleGroupResult> {
   if (isDemoMode()) {
     await demoDelay(2000);
-    return [
-      { from: callerAddress, to: 'GBR3...DEMO1', amount: 150 },
-      { from: 'GAV2...DEMO2', to: 'GBR3...DEMO1', amount: 100 },
-    ];
+    return {
+      settlements: [
+        { from: callerAddress, to: 'GBR3...DEMO1', amount: 150 },
+        { from: 'GAV2...DEMO2', to: 'GBR3...DEMO1', amount: 100 },
+      ],
+      txHash: 'demo-tx-hash-' + Date.now(),
+    };
   }
 
   const tx = await buildTx(
@@ -652,13 +660,16 @@ export async function settleGroup(
   if (!returnVal) throw new Error('No return value');
 
   const native = StellarSdk.scValToNative(returnVal);
-  if (!Array.isArray(native)) return [];
+  if (!Array.isArray(native)) return { settlements: [], txHash: result.hash };
 
-  return native.map((s: Record<string, unknown>) => ({
-    from: String(s.from),
-    to: String(s.to),
-    amount: Number(s.amount),
-  }));
+  return {
+    settlements: native.map((s: Record<string, unknown>) => ({
+      from: String(s.from),
+      to: String(s.to),
+      amount: Number(s.amount),
+    })),
+    txHash: result.hash,
+  };
 }
 
 /**

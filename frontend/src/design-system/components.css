@@ -1,0 +1,277 @@
+/**
+ * Web3 Fintech — Component recipes (Tailwind-ish classes)
+ * Surfaces, buttons, inputs, cards, toasts. Focus / hover / disabled.
+ */
+
+@layer components {
+  /* —— Surfaces —— */
+  .surface-base {
+    background-color: hsl(var(--color-bg));
+    color: hsl(var(--color-text));
+  }
+
+  .surface-panel {
+    background-color: hsl(var(--color-surface));
+    border: var(--border-width-hair) solid hsl(var(--color-border));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+  }
+
+  .surface-elevated {
+    background-color: hsl(var(--color-elevated));
+    border: var(--border-width-hair) solid hsl(var(--color-border));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+  }
+
+  .surface-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border: var(--border-width-hair) solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2);
+  }
+
+  /* —— Wallet balance card —— */
+  .card-balance {
+    position: relative;
+    overflow: hidden;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-2);
+  }
+
+  .card-balance::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-glow-card-1);
+    pointer-events: none;
+  }
+
+  .card-balance .balance-metric {
+    font-size: var(--text-metric);
+    font-variant-numeric: var(--tabular-nums);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    color: hsl(var(--color-text));
+  }
+
+  .card-balance .balance-label {
+    font-size: var(--text-label);
+    color: hsl(var(--color-muted));
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* —— Transaction list row —— */
+  .tx-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border-bottom: 1px solid hsl(var(--color-border) / 0.6);
+    transition: background-color var(--motion-duration-fast) var(--motion-ease);
+  }
+
+  .tx-row:hover {
+    background-color: hsl(var(--color-surface) / 0.8);
+  }
+
+  .tx-row .tx-amount {
+    font-variant-numeric: var(--tabular-nums);
+    font-size: var(--text-body);
+    font-weight: 500;
+  }
+
+  .tx-row .tx-amount.credit {
+    color: hsl(var(--color-success));
+  }
+
+  .tx-row .tx-amount.debit {
+    color: hsl(var(--color-text));
+  }
+
+  .tx-row .tx-meta {
+    font-size: var(--text-body-sm);
+    color: hsl(var(--color-muted));
+  }
+
+  /* —— Buttons —— */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-body-sm);
+    font-weight: 500;
+    color: hsl(var(--color-primary-foreground));
+    background: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-1);
+    cursor: pointer;
+    transition: filter var(--motion-duration-fast) var(--motion-ease), box-shadow var(--motion-duration-fast) var(--motion-ease);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: var(--shadow-2);
+  }
+
+  .btn-primary:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-body-sm);
+    font-weight: 500;
+    color: hsl(var(--color-secondary-foreground));
+    background: hsl(var(--color-secondary));
+    border: var(--border-width-hair) solid hsl(var(--color-border));
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--motion-duration-fast) var(--motion-ease), border-color var(--motion-duration-fast) var(--motion-ease);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background-color: hsl(var(--color-border) / 0.3);
+  }
+
+  .btn-secondary:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* —— Input field —— */
+  .input-field {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-body);
+    font-variant-numeric: var(--tabular-nums);
+    color: hsl(var(--color-text));
+    background: hsl(var(--color-surface));
+    border: var(--border-width-hair) solid hsl(var(--color-border));
+    border-radius: var(--radius-md);
+    transition: border-color var(--motion-duration-fast) var(--motion-ease), box-shadow var(--motion-duration-fast) var(--motion-ease);
+  }
+
+  .input-field::placeholder {
+    color: hsl(var(--color-muted));
+  }
+
+  .input-field:hover:not(:disabled) {
+    border-color: hsl(var(--color-muted) / 0.8);
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+  }
+
+  .input-field:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* —— Toast / status pill —— */
+  .toast-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-label);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-2);
+  }
+
+  .toast-pill.success {
+    background: hsl(var(--color-success) / 0.15);
+    color: hsl(var(--color-success));
+    border: 1px solid hsl(var(--color-success) / 0.3);
+  }
+
+  .toast-pill.error {
+    background: hsl(var(--color-error) / 0.15);
+    color: hsl(var(--color-error));
+    border: 1px solid hsl(var(--color-error) / 0.3);
+  }
+
+  .toast-pill.warn {
+    background: hsl(var(--color-warn) / 0.15);
+    color: hsl(var(--color-warn));
+    border: 1px solid hsl(var(--color-warn) / 0.3);
+  }
+
+  .toast-pill.info {
+    background: hsl(var(--color-info) / 0.15);
+    color: hsl(var(--color-info));
+    border: 1px solid hsl(var(--color-info) / 0.3);
+  }
+
+  /* —— Hairline border utility —— */
+  .border-hairline {
+    border-width: var(--border-width-hair);
+    border-color: hsl(var(--color-border));
+  }
+
+  /* —— Gradient border (subtle) —— */
+  .border-gradient-wrap {
+    position: relative;
+    border-radius: var(--radius-lg);
+    background: hsl(var(--color-surface));
+    padding: 1px;
+    background-clip: padding-box;
+  }
+
+  .border-gradient-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--border-gradient);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Typography utility classes (for use without Tailwind extend) */
+  .text-ds-title-xl { font-size: var(--text-title-xl); }
+  .text-ds-title-lg { font-size: var(--text-title-lg); }
+  .text-ds-title-md { font-size: var(--text-title-md); }
+  .text-ds-metric { font-size: var(--text-metric); }
+  .text-ds-metric-sm { font-size: var(--text-metric-sm); }
+  .text-ds-body { font-size: var(--text-body); }
+  .text-ds-body-sm { font-size: var(--text-body-sm); }
+  .text-ds-label { font-size: var(--text-label); }
+  .text-ds-caption { font-size: var(--text-caption); }
+}

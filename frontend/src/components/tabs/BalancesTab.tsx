@@ -74,7 +74,7 @@ export default function BalancesTab({
             />
           </motion.div>
         ) : (
-          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-secondary/20 border border-white/5 rounded-[32px] overflow-hidden divide-y divide-white/5">
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass-panel rounded-[32px] overflow-hidden divide-y divide-white/5">
             {group.members.map((member: string) => {
               const balance = balances.get(member) || 0;
               const bEarned = calculateBadges(member, expenses);

@@ -7,6 +7,7 @@ import { formatStroopsWithUsd } from '../../lib/xlmPrice';
 import Avatar from '../Avatar';
 import QRCode from '../QRCode';
 import ImpactPanel from '../ImpactPanel';
+import { Glow } from '../ui/Glow';
 import type { TranslationKey } from '../../lib/i18n';
 
 interface SettleTabProps {
@@ -23,6 +24,7 @@ interface SettleTabProps {
   handleSettle: () => void;
   estimatedSettleFee?: EstimatedFee | null;
   t: (key: TranslationKey) => string;
+  isOffline?: boolean;
 }
 
 export default function SettleTab({
@@ -38,7 +40,8 @@ export default function SettleTab({
   settling,
   handleSettle,
   estimatedSettleFee,
-  t
+  t,
+  isOffline = false,
 }: SettleTabProps) {
   const [pathPayIndex, setPathPayIndex] = useState<number | null>(null);
   const [simulatingPath, setSimulatingPath] = useState(false);
@@ -78,7 +81,7 @@ export default function SettleTab({
           const amountXlm = (s.amount / 10_000_000).toFixed(2);
           const amountDisplay = currencyLabel === 'XLM' ? formatStroopsWithUsd(s.amount, xlmUsd) : `${amountXlm} ${currencyLabel}`;
           return (
-            <div key={i} className="p-6 bg-secondary/30 border border-white/5 rounded-3xl space-y-4">
+            <div key={i} className="relative overflow-hidden p-6 bg-secondary/30 border border-white/5 rounded-3xl space-y-4 card-glass-hover">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <Avatar address={s.from} size={28} />
@@ -173,14 +176,24 @@ export default function SettleTab({
               })()}
             </p>
           )}
-          <button 
-            onClick={handleSettle} 
-            disabled={settling} 
-            className="w-full py-5 bg-emerald-600 text-white font-black rounded-3xl shadow-xl shadow-emerald-600/20 hover:shadow-emerald-600/30 hover:-translate-y-1 transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            {settling ? <Zap className="animate-spin" /> : <Zap />}
-            {settling ? t('group.settling') : t('group.mark_group_settled')}
-          </button>
+          <div className="relative rounded-3xl">
+            {settling && (
+              <Glow intensity="subtle" color="success" className="rounded-3xl" />
+            )}
+            <button 
+              onClick={handleSettle} 
+              disabled={settling || isOffline} 
+              className={`relative w-full py-5 bg-emerald-600 text-white font-black rounded-3xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                settling 
+                  ? 'shadow-emerald-500/40 ring-2 ring-emerald-400/50 ring-offset-2 ring-offset-background' 
+                  : 'shadow-emerald-600/20 hover:shadow-emerald-600/30 hover:-translate-y-1'
+              } disabled:opacity-90`}
+              title={isOffline ? (t('network.offline') || 'You\'re offline') : undefined}
+            >
+              {settling ? <Zap className="animate-spin" /> : <Zap />}
+              {settling ? t('group.settling') : t('group.mark_group_settled')}
+            </button>
+          </div>
         </>
       )}
     </div>

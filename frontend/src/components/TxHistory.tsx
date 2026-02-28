@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { truncateAddress } from '../lib/stellar';
+import { truncateAddress, getExplorerTxUrl } from '../lib/stellar';
+import { SkeletonShimmer } from './ui';
 
 interface TxRecord {
   id: string;
@@ -93,9 +94,16 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
 
       {/* Loading */}
       {loading && (
-        <div className="text-center py-6 text-muted-foreground text-sm">
-          <span className="w-4 h-4 border-2 border-border border-t-primary rounded-full animate-spin inline-block mr-2" />
-          İşlemler yükleniyor...
+        <div className="flex flex-col gap-1.5">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center justify-between p-3 bg-card border border-border rounded-lg">
+              <div className="flex flex-col gap-2">
+                <SkeletonShimmer className="h-4 w-32" />
+                <SkeletonShimmer className="h-3 w-24" />
+              </div>
+              <SkeletonShimmer className="h-3 w-16" />
+            </div>
+          ))}
         </div>
       )}
 
@@ -106,7 +114,10 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
 
       {/* Empty */}
       {!loading && !error && transactions.length === 0 && (
-        <div className="text-center py-6 text-muted-foreground text-sm">Henüz işlem yok.</div>
+        <div className="text-center py-8 rounded-2xl border border-dashed border-white/10 bg-white/5">
+          <p className="text-sm font-medium text-muted-foreground">No transactions yet.</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-[260px] mx-auto">Make your first testnet transaction from the Settle tab or by adding an expense.</p>
+        </div>
       )}
 
       {/* List */}
@@ -116,7 +127,7 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
             <a
               key={tx.id}
               className="flex items-center justify-between p-3 bg-card border border-border rounded-lg no-underline text-foreground hover:border-primary/30 hover:bg-muted/50 transition-all group"
-              href={`https://stellar.expert/explorer/testnet/tx/${tx.transaction_hash}`}
+              href={getExplorerTxUrl(tx.transaction_hash)}
               target="_blank"
               rel="noopener noreferrer"
             >

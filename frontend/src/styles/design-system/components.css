@@ -1,0 +1,225 @@
+/**
+ * Web3 / Fintech Design System — Component Recipes
+ * Tailwind-ish class strings; use with @apply or as utility classes
+ */
+
+@layer components {
+  /* ── Surfaces ── */
+  .surface-base {
+    background-color: hsl(var(--color-bg-hsl));
+    color: hsl(var(--color-text-hsl));
+  }
+  .surface-panel {
+    background-color: hsl(var(--color-surface-hsl));
+    border: var(--border-width-hair) solid hsl(var(--color-border-hsl));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+  }
+  .surface-elevated {
+    background-color: hsl(var(--color-elevated-hsl));
+    border: var(--border-width-hair) solid hsl(var(--color-border-hsl));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+  }
+  .surface-glass {
+    background: hsl(var(--color-surface-hsl) / 0.72);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border: var(--border-width-hair) solid hsl(var(--color-border-hsl) / 0.6);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+  }
+
+  /* ── Wallet balance card ── */
+  .card-balance {
+    @apply surface-glass relative overflow-hidden;
+    padding: var(--space-6);
+    min-height: 140px;
+  }
+  .card-balance::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-glow-1);
+    --glow-opacity: var(--glow-opacity-soft);
+    pointer-events: none;
+  }
+  .card-balance .balance-metric {
+    font-size: var(--text-metric);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+    color: hsl(var(--color-text-hsl));
+  }
+  .card-balance .balance-label {
+    font-size: var(--text-label);
+    color: hsl(var(--color-text-muted-hsl));
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    margin-top: var(--space-1);
+  }
+
+  /* ── Transaction list row ── */
+  .tx-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: var(--border-width-hair) solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .tx-row:hover {
+    background-color: hsl(var(--color-elevated-hsl) / 0.6);
+  }
+  .tx-row:focus-visible {
+    outline: 2px solid hsl(var(--color-primary-hsl));
+    outline-offset: 2px;
+  }
+  .tx-row .tx-amount {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    font-size: var(--text-body);
+  }
+  .tx-row .tx-amount.credit {
+    color: hsl(var(--color-success-hsl));
+  }
+  .tx-row .tx-amount.debit {
+    color: hsl(var(--color-text-hsl));
+  }
+  .tx-row .tx-meta {
+    font-size: var(--text-body-sm);
+    color: hsl(var(--color-text-muted-hsl));
+  }
+
+  /* ── Buttons ── */
+  .btn-base {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    font-weight: 500;
+    font-size: var(--text-body-sm);
+    line-height: 1.25;
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-4);
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    cursor: pointer;
+    border: var(--border-width-hair) solid transparent;
+  }
+  .btn-base:focus-visible {
+    outline: 2px solid hsl(var(--color-primary-hsl));
+    outline-offset: 2px;
+  }
+  .btn-base:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn-base:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn-primary {
+    background: var(--gradient-hero-1);
+    color: hsl(var(--color-primary-foreground-hsl));
+    border: none;
+    box-shadow: var(--shadow-1);
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+    box-shadow: var(--shadow-2);
+  }
+
+  .btn-secondary {
+    background-color: hsl(var(--color-secondary-hsl));
+    color: hsl(var(--color-secondary-foreground-hsl));
+    border: var(--border-width-hair) solid hsl(var(--color-border-hsl));
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: hsl(var(--color-elevated-hsl));
+    border-color: hsl(var(--color-primary-hsl) / 0.3);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: hsl(var(--color-text-hsl));
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: hsl(var(--color-elevated-hsl) / 0.6);
+  }
+
+  /* ── Input field ── */
+  .input-field {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-body);
+    font-variant-numeric: tabular-nums;
+    color: hsl(var(--color-text-hsl));
+    background-color: hsl(var(--color-surface-hsl));
+    border: var(--border-width-hair) solid hsl(var(--color-border-hsl));
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input-field::placeholder {
+    color: hsl(var(--color-text-muted-hsl));
+  }
+  .input-field:hover:not(:disabled) {
+    border-color: hsl(var(--color-border-hsl) / 0.8);
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: hsl(var(--color-primary-hsl));
+    box-shadow: 0 0 0 3px hsl(var(--color-primary-hsl) / 0.2);
+  }
+  .input-field:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* ── Toast / status pill ── */
+  .pill-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-label);
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    border: var(--border-width-hair) solid transparent;
+  }
+  .pill-status-success {
+    background: var(--gradient-success-2);
+    color: hsl(var(--color-success-hsl));
+    border-color: hsl(var(--color-success-hsl) / 0.3);
+  }
+  .pill-status-warn {
+    background: var(--gradient-warn-1);
+    color: hsl(var(--color-warn-hsl));
+    border-color: hsl(var(--color-warn-hsl) / 0.3);
+  }
+  .pill-status-error {
+    background: var(--gradient-error-1);
+    color: hsl(var(--color-error-hsl));
+    border-color: hsl(var(--color-error-hsl) / 0.3);
+  }
+  .pill-status-info {
+    background: hsl(var(--color-info-hsl) / 0.15);
+    color: hsl(var(--color-info-hsl));
+    border-color: hsl(var(--color-info-hsl) / 0.3);
+  }
+  .pill-status-pending {
+    background: hsl(var(--color-text-muted-hsl) / 0.15);
+    color: hsl(var(--color-text-muted-hsl));
+    border-color: hsl(var(--color-border-hsl));
+  }
+
+  /* ── Gradient border (subtle) ── */
+  .border-gradient-subtle {
+    border: var(--border-width-thin) solid transparent;
+    background-clip: padding-box;
+    background-image: linear-gradient(hsl(var(--color-surface-hsl)), hsl(var(--color-surface-hsl))),
+      var(--border-gradient);
+    background-origin: border-box;
+  }
+}

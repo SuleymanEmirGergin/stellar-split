@@ -67,8 +67,8 @@ export default function DonutChart({ slices, size = 200, title }: Props) {
           <text x={cx} y={cy - 8} textAnchor="middle" className="fill-foreground text-sm font-bold" style={{ fontSize: 13, fontWeight: 700 }}>
             {total}
           </text>
-          <text x={cx} y={cy + 10} textAnchor="middle" style={{ fontSize: 9, fill: 'var(--muted-foreground)' }}>
-            toplam
+          <text x={cx} y={cy + 10} textAnchor="middle" style={{ fontSize: 16, fontWeight: 600, fill: 'hsl(var(--primary) / 0.9)' }}>
+            Toplam
           </text>
         </svg>
       </div>

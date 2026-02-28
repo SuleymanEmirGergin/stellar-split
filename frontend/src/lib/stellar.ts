@@ -4,7 +4,7 @@ import { rpc } from '@stellar/stellar-sdk';
 // ── Environment-based configuration ──
 const SOROBAN_RPC_URL = import.meta.env.VITE_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
 const NETWORK_PASSPHRASE = import.meta.env.VITE_NETWORK_PASSPHRASE || StellarSdk.Networks.TESTNET;
-const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || 'CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K';
+const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || 'GBEOHD44Y2ON4HEODWMAAIP2ZCCWG5E355OFYIMVNBUKPL6T3LII25H7';
 const HORIZON_URL = import.meta.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
 
 const server = new rpc.Server(SOROBAN_RPC_URL);
@@ -81,4 +81,17 @@ export function formatAmount(stroops: number): string {
 export function formatXLM(stroops: number): string {
   const xlm = stroops / 10_000_000;
   return `${xlm.toFixed(2)} XLM`;
+}
+
+/** Explorer URL for a transaction hash (testnet vs mainnet from NETWORK_PASSPHRASE). */
+export function getExplorerTxUrl(hash: string): string {
+  if (!hash || typeof hash !== 'string') return '#';
+  const base = 'https://stellar.expert/explorer';
+  const network = NETWORK_PASSPHRASE === StellarSdk.Networks.TESTNET ? 'testnet' : 'public';
+  return `${base}/${network}/tx/${encodeURIComponent(hash)}`;
+}
+
+/** Whether current network is testnet. */
+export function isTestnet(): boolean {
+  return NETWORK_PASSPHRASE === StellarSdk.Networks.TESTNET;
 }

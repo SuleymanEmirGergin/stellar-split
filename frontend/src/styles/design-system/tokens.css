@@ -1,0 +1,435 @@
+/**
+ * Web3 / Fintech Design System — Tokens
+ * Apple clarity + Stripe gradients + Web3 dashboard
+ * Dark-first, HSL + HEX fallback, contrast-safe pairings
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AGENT 1 — COLOR SYSTEM (Web3 Dashboard)
+   Semantic: brand, neutrals, states, data-viz, crypto accents
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── THEME: Default (VC-ready dashboard) ── */
+:root {
+  /* Brand — primary / secondary / accent */
+  --color-primary-hsl: 217 91% 60%;
+  --color-primary: hsl(var(--color-primary-hsl)); /* #4D8AFF */
+  --color-primary-hex: #4D8AFF;
+  --color-primary-foreground-hsl: 0 0% 100%;
+  --color-primary-foreground: hsl(var(--color-primary-foreground-hsl));
+
+  --color-secondary-hsl: 224 30% 24%;
+  --color-secondary: hsl(var(--color-secondary-hsl)); /* #2D3A5A */
+  --color-secondary-hex: #2D3A5A;
+  --color-secondary-foreground-hsl: 213 40% 92%;
+  --color-secondary-foreground: hsl(var(--color-secondary-foreground-hsl));
+
+  --color-accent-hsl: 268 75% 58%;
+  --color-accent: hsl(var(--color-accent-hsl)); /* #8B5CF6 */
+  --color-accent-hex: #8B5CF6;
+  --color-accent-foreground-hsl: 0 0% 100%;
+  --color-accent-foreground: hsl(var(--color-accent-foreground-hsl));
+
+  /* Neutrals — bg / surface / elevated / border / text / muted */
+  --color-bg-hsl: 220 20% 98%;
+  --color-bg: hsl(var(--color-bg-hsl)); /* #F5F6FA */
+  --color-bg-hex: #F5F6FA;
+
+  --color-surface-hsl: 0 0% 100%;
+  --color-surface: hsl(var(--color-surface-hsl)); /* #FFFFFF */
+  --color-surface-hex: #FFFFFF;
+
+  --color-elevated-hsl: 0 0% 100%;
+  --color-elevated: hsl(var(--color-elevated-hsl));
+  --color-elevated-hex: #FFFFFF;
+
+  --color-border-hsl: 220 14% 90%;
+  --color-border: hsl(var(--color-border-hsl)); /* #E2E6ED */
+  --color-border-hex: #E2E6ED;
+
+  --color-text-hsl: 222 25% 14%;
+  --color-text: hsl(var(--color-text-hsl)); /* #1E2433 */
+  --color-text-hex: #1E2433;
+
+  --color-text-muted-hsl: 220 12% 48%;
+  --color-text-muted: hsl(var(--color-text-muted-hsl)); /* #6B7280 */
+  --color-text-muted-hex: #6B7280;
+
+  /* States — success / warn / error / info */
+  --color-success-hsl: 152 58% 42%;
+  --color-success: hsl(var(--color-success-hsl)); /* #0D9668 */
+  --color-success-hex: #0D9668;
+  --color-success-foreground-hsl: 0 0% 100%;
+  --color-success-foreground: hsl(var(--color-success-foreground-hsl));
+
+  --color-warn-hsl: 38 92% 50%;
+  --color-warn: hsl(var(--color-warn-hsl)); /* #E5A00D */
+  --color-warn-hex: #E5A00D;
+  --color-warn-foreground-hsl: 222 25% 14%;
+  --color-warn-foreground: hsl(var(--color-warn-foreground-hsl));
+
+  --color-error-hsl: 0 72% 51%;
+  --color-error: hsl(var(--color-error-hsl)); /* #DC2626 */
+  --color-error-hex: #DC2626;
+  --color-error-foreground-hsl: 0 0% 100%;
+  --color-error-foreground: hsl(var(--color-error-foreground-hsl));
+
+  --color-info-hsl: 199 89% 48%;
+  --color-info: hsl(var(--color-info-hsl)); /* #0B8FCE */
+  --color-info-hex: #0B8FCE;
+  --color-info-foreground-hsl: 0 0% 100%;
+  --color-info-foreground: hsl(var(--color-info-foreground-hsl));
+
+  /* Data viz — chart series 1..8 */
+  --color-chart-1-hsl: 217 91% 60%;
+  --color-chart-2-hsl: 268 75% 58%;
+  --color-chart-3-hsl: 152 58% 42%;
+  --color-chart-4-hsl: 38 92% 50%;
+  --color-chart-5-hsl: 199 89% 48%;
+  --color-chart-6-hsl: 330 65% 55%;
+  --color-chart-7-hsl: 25 95% 53%;
+  --color-chart-8-hsl: 180 65% 45%;
+
+  /* Crypto context accents (subtle, not literal logos) */
+  --color-crypto-xlm-hsl: 208 85% 52%;   /* stellar-like blue */
+  --color-crypto-xlm: hsl(var(--color-crypto-xlm-hsl)); /* #0F7AE5 */
+  --color-crypto-btc-hsl: 36 95% 52%;    /* warm gold */
+  --color-crypto-btc: hsl(var(--color-crypto-btc-hsl)); /* #E5A00D */
+  --color-crypto-eth-hsl: 228 45% 55%;  /* slate-blue */
+  --color-crypto-eth: hsl(var(--color-crypto-eth-hsl)); /* #627EEA */
+
+  /* Shadcn-compat mapping (for existing app) */
+  --background: var(--color-bg-hsl);
+  --foreground: var(--color-text-hsl);
+  --card: var(--color-surface-hsl);
+  --card-foreground: var(--color-text-hsl);
+  --popover: var(--color-surface-hsl);
+  --popover-foreground: var(--color-text-hsl);
+  --primary: var(--color-primary-hsl);
+  --primary-foreground: var(--color-primary-foreground-hsl);
+  --secondary: var(--color-secondary-hsl);
+  --secondary-foreground: var(--color-secondary-foreground-hsl);
+  --muted: 220 14% 96%;
+  --muted-foreground: var(--color-text-muted-hsl);
+  --accent: var(--color-accent-hsl);
+  --accent-foreground: var(--color-accent-foreground-hsl);
+  --destructive: var(--color-error-hsl);
+  --destructive-foreground: var(--color-error-foreground-hsl);
+  --border: var(--color-border-hsl);
+  --input: var(--color-border-hsl);
+  --ring: var(--color-primary-hsl);
+  --chart-1: var(--color-chart-1-hsl);
+  --chart-2: var(--color-chart-2-hsl);
+  --chart-3: var(--color-chart-3-hsl);
+  --chart-4: var(--color-chart-4-hsl);
+  --chart-5: var(--color-chart-5-hsl);
+  --chart-6: var(--color-chart-6-hsl);
+  --chart-7: var(--color-chart-7-hsl);
+  --chart-8: var(--color-chart-8-hsl);
+}
+
+/* ── Dark mode (default for dashboard) ── */
+.dark,
+[data-theme="dark"] {
+  --color-bg-hsl: 224 28% 8%;
+  --color-bg: hsl(var(--color-bg-hsl)); /* #0D1117 */
+  --color-bg-hex: #0D1117;
+
+  --color-surface-hsl: 224 22% 12%;
+  --color-surface: hsl(var(--color-surface-hsl)); /* #161B22 */
+  --color-surface-hex: #161B22;
+
+  --color-elevated-hsl: 224 20% 16%;
+  --color-elevated: hsl(var(--color-elevated-hsl)); /* #1F2937 */
+  --color-elevated-hex: #1F2937;
+
+  --color-border-hsl: 224 18% 22%;
+  --color-border: hsl(var(--color-border-hsl)); /* #30363D */
+  --color-border-hex: #30363D;
+
+  --color-text-hsl: 210 25% 96%;
+  --color-text: hsl(var(--color-text-hsl)); /* #F0F4F8 */
+  --color-text-hex: #F0F4F8;
+
+  --color-text-muted-hsl: 215 16% 58%;
+  --color-text-muted: hsl(var(--color-text-muted-hsl)); /* #8B949E */
+  --color-text-muted-hex: #8B949E;
+
+  --color-secondary-hsl: 224 22% 18%;
+  --color-secondary: hsl(var(--color-secondary-hsl));
+  --color-secondary-foreground-hsl: 210 25% 92%;
+
+  --background: var(--color-bg-hsl);
+  --foreground: var(--color-text-hsl);
+  --card: var(--color-surface-hsl);
+  --card-foreground: var(--color-text-hsl);
+  --popover: var(--color-surface-hsl);
+  --popover-foreground: var(--color-text-hsl);
+  --muted: 224 18% 18%;
+  --muted-foreground: var(--color-text-muted-hsl);
+  --border: var(--color-border-hsl);
+  --input: var(--color-border-hsl);
+}
+
+/* ── Theme: Midnight Neon (controlled glow) ── */
+[data-theme="midnight-neon"] {
+  --color-primary-hsl: 268 85% 65%;
+  --color-primary: hsl(var(--color-primary-hsl));
+  --color-primary-hex: #A78BFA;
+  --color-accent-hsl: 180 80% 50%;
+  --color-accent: hsl(var(--color-accent-hsl));
+  --color-accent-hex: #22D3D3;
+  --color-bg-hsl: 240 25% 6%;
+  --color-bg: hsl(var(--color-bg-hsl));
+  --color-surface-hsl: 240 20% 10%;
+  --color-surface: hsl(var(--color-surface-hsl));
+  --color-elevated-hsl: 240 18% 14%;
+  --color-elevated: hsl(var(--color-elevated-hsl));
+  --color-border-hsl: 268 30% 22%;
+  --color-border: hsl(var(--color-border-hsl));
+  --color-text-hsl: 240 10% 96%;
+  --color-text: hsl(var(--color-text-hsl));
+  --color-text-muted-hsl: 268 15% 58%;
+  --color-text-muted: hsl(var(--color-text-muted-hsl));
+  --primary: var(--color-primary-hsl);
+  --accent: var(--color-accent-hsl);
+  --background: var(--color-bg-hsl);
+  --foreground: var(--color-text-hsl);
+  --card: var(--color-surface-hsl);
+  --card-foreground: var(--color-text-hsl);
+  --muted: var(--color-elevated-hsl);
+  --muted-foreground: var(--color-text-muted-hsl);
+  --border: var(--color-border-hsl);
+  --input: var(--color-border-hsl);
+}
+
+[data-theme="midnight-neon"].dark,
+.dark[data-theme="midnight-neon"] {
+  /* same as above; theme is dark-first */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AGENT 2 — GRADIENT PALETTE
+   4 hero, 4 card glow, 2 success, 2 warning/error + shimmer + glow recipes
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Primary hero (4) — use multiple stops to reduce banding */
+  --gradient-hero-1: linear-gradient(
+    135deg,
+    hsl(217 91% 60% / 1) 0%,
+    hsl(217 85% 52% / 0.95) 25%,
+    hsl(224 75% 48% / 0.9) 50%,
+    hsl(268 65% 50% / 0.85) 100%
+  );
+  --gradient-hero-2: linear-gradient(
+    160deg,
+    hsl(224 28% 12% / 1) 0%,
+    hsl(224 25% 18% / 0.98) 40%,
+    hsl(217 91% 60% / 0.15) 70%,
+    hsl(268 75% 58% / 0.08) 100%
+  );
+  --gradient-hero-3: linear-gradient(
+    180deg,
+    hsl(217 91% 60% / 0.12) 0%,
+    hsl(268 75% 58% / 0.06) 50%,
+    transparent 100%
+  );
+  --gradient-hero-4: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(217 91% 60% / 0.08) 20%,
+    hsl(268 75% 58% / 0.12) 50%,
+    hsl(217 91% 60% / 0.08) 80%,
+    transparent 100%
+  );
+
+  /* Card glow (4) — subtle, behind content */
+  --gradient-glow-1: radial-gradient(
+    ellipse 120% 80% at 50% -20%,
+    hsl(217 91% 60% / var(--glow-opacity, 0.12)) 0%,
+    hsl(217 85% 55% / 0.06) 40%,
+    transparent 70%
+  );
+  --gradient-glow-2: radial-gradient(
+    ellipse 100% 60% at 80% 50%,
+    hsl(268 75% 58% / var(--glow-opacity, 0.08)) 0%,
+    transparent 60%
+  );
+  --gradient-glow-3: radial-gradient(
+    circle at 20% 80%,
+    hsl(199 89% 48% / var(--glow-opacity, 0.06)) 0%,
+    transparent 50%
+  );
+  --gradient-glow-4: radial-gradient(
+    ellipse 80% 50% at 50% 100%,
+    hsl(268 75% 58% / var(--glow-opacity, 0.06)) 0%,
+    transparent 55%
+  );
+
+  /* Success (2) */
+  --gradient-success-1: linear-gradient(
+    135deg,
+    hsl(152 58% 42% / 1) 0%,
+    hsl(152 55% 36% / 0.95) 50%,
+    hsl(160 50% 32% / 0.9) 100%
+  );
+  --gradient-success-2: linear-gradient(
+    135deg,
+    hsl(152 58% 42% / 0.2) 0%,
+    hsl(152 55% 36% / 0.08) 100%
+  );
+
+  /* Warning / Error (2) */
+  --gradient-warn-1: linear-gradient(
+    135deg,
+    hsl(38 92% 50% / 0.25) 0%,
+    hsl(38 90% 45% / 0.1) 100%
+  );
+  --gradient-error-1: linear-gradient(
+    135deg,
+    hsl(0 72% 51% / 0.2) 0%,
+    hsl(0 70% 45% / 0.06) 100%
+  );
+
+  /* Intensity levels for glows */
+  --glow-opacity-soft: 0.06;
+  --glow-opacity-medium: 0.12;
+  --glow-opacity-strong: 0.2;
+
+  /* Shimmer — skeleton loaders (very subtle) */
+  --gradient-shimmer: linear-gradient(
+    90deg,
+    hsl(var(--color-border-hsl) / 0.4) 0%,
+    hsl(var(--color-border-hsl) / 0.6) 20%,
+    hsl(var(--color-border-hsl) / 0.8) 40%,
+    hsl(var(--color-border-hsl) / 0.6) 60%,
+    hsl(var(--color-border-hsl) / 0.4) 100%
+  );
+  --gradient-shimmer-moving: linear-gradient(
+    110deg,
+    hsl(var(--color-border-hsl) / 0.35) 0%,
+    hsl(var(--color-border-hsl) / 0.5) 25%,
+    hsl(var(--color-border-hsl) / 0.7) 50%,
+    hsl(var(--color-border-hsl) / 0.5) 75%,
+    hsl(var(--color-border-hsl) / 0.35) 100%
+  );
+}
+
+/* Glow recipes — 2–3 layer radial spotlights behind cards */
+.glow-recipe-card {
+  --glow-opacity: var(--glow-opacity-soft, 0.06);
+  background:
+    var(--gradient-glow-1),
+    var(--gradient-glow-2),
+    var(--color-surface);
+}
+.glow-recipe-card-medium {
+  --glow-opacity: var(--glow-opacity-medium, 0.12);
+  background:
+    var(--gradient-glow-1),
+    var(--gradient-glow-2),
+    var(--color-surface);
+}
+.glow-recipe-hero {
+  background:
+    var(--gradient-hero-3),
+    var(--gradient-hero-2),
+    var(--color-bg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AGENT 3 — STYLE PACK (Surfaces, Borders, Shadows, Blur, Typography)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Radius */
+  --radius-none: 0;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --radius: var(--radius-md);
+
+  /* Spacing (dashboard scale) */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Borders — hairline + gradient border */
+  --border-width-hair: 1px;
+  --border-width-thin: 1.5px;
+  --border-width-default: 2px;
+  --border-color: hsl(var(--color-border-hsl));
+  --border-gradient: linear-gradient(
+    135deg,
+    hsl(var(--color-border-hsl)) 0%,
+    hsl(var(--color-primary-hsl) / 0.4) 50%,
+    hsl(var(--color-border-hsl)) 100%
+  );
+
+  /* Shadows — Apple-like soft (elevation 0..4) */
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.04), 0 2px 4px hsl(0 0% 0% / 0.04);
+  --shadow-2: 0 2px 8px hsl(0 0% 0% / 0.06), 0 4px 12px hsl(0 0% 0% / 0.04);
+  --shadow-3: 0 4px 16px hsl(0 0% 0% / 0.08), 0 8px 24px hsl(0 0% 0% / 0.05);
+  --shadow-4: 0 8px 32px hsl(0 0% 0% / 0.1), 0 16px 48px hsl(0 0% 0% / 0.06);
+  --shadow-glow-subtle: 0 0 24px hsl(var(--color-primary-hsl) / 0.12);
+  --shadow-glow-medium: 0 0 32px hsl(var(--color-primary-hsl) / 0.18);
+
+  /* Blur — glassmorphism (with fallback) */
+  --blur-sm: 8px;
+  --blur-md: 12px;
+  --blur-lg: 20px;
+  --blur-xl: 28px;
+  --blur-2xl: 40px;
+  @supports not (backdrop-filter: blur(1px)) {
+    --blur-sm: 0;
+    --blur-md: 0;
+    --blur-lg: 0;
+    --blur-xl: 0;
+    --blur-2xl: 0;
+  }
+
+  /* Typography — dashboard scale */
+  --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --font-metric: "Inter", var(--font-sans); /* tabular-nums for numbers */
+
+  --text-title-lg: 1.5rem;      /* 24px */
+  --text-title-md: 1.25rem;     /* 20px */
+  --text-title-sm: 1.125rem;    /* 18px */
+  --text-metric: 1.75rem;       /* 28px — balance, big numbers */
+  --text-metric-sm: 1.25rem;    /* 20px */
+  --text-body: 0.9375rem;       /* 15px */
+  --text-body-sm: 0.8125rem;    /* 13px */
+  --text-label: 0.75rem;        /* 12px */
+  --text-caption: 0.6875rem;   /* 11px */
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-tabular: tabular-nums;
+}
+
+.dark,
+[data-theme="dark"],
+[data-theme="midnight-neon"] {
+  --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.2), 0 2px 4px hsl(0 0% 0% / 0.15);
+  --shadow-2: 0 2px 8px hsl(0 0% 0% / 0.25), 0 4px 12px hsl(0 0% 0% / 0.2);
+  --shadow-3: 0 4px 16px hsl(0 0% 0% / 0.3), 0 8px 24px hsl(0 0% 0% / 0.2);
+  --shadow-4: 0 8px 32px hsl(0 0% 0% / 0.35), 0 16px 48px hsl(0 0% 0% / 0.25);
+}

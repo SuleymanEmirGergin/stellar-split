@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Shield, AlertTriangle, Zap, CheckCircle2 } from 'lucide-react';
 import { type Group } from '../../lib/contract';
 import { setGuardians } from '../../lib/contract';
+import { saveGuardians } from '../../lib/recovery';
 import type { TranslationKey } from '../../lib/i18n';
 
 interface SecurityTabProps {
@@ -42,13 +43,25 @@ export default function SecurityTab({
 
        <button 
           onClick={async () => { 
+            const guardians = (group?.members || []).filter(m => m !== walletAddress).slice(0, 2);
+            if (guardians.length === 0) {
+              addToast(t('group.recovery_guardians_failed'), 'error');
+              return;
+            }
             try {
               setAdding(true);
-              await setGuardians(walletAddress, (group?.members || []).slice(0, 2), 2);
+              await setGuardians(walletAddress, guardians, 2);
               addToast(t('group.recovery_guardians_updated'), 'success');
             } catch (err) {
-              console.error(err);
-              addToast(t('group.recovery_guardians_failed'), 'error');
+              const msg = err instanceof Error ? err.message : String(err);
+              const contractUnsupported = /non-existent|MissingValue|set_guardians/i.test(msg);
+              if (contractUnsupported) {
+                saveGuardians(group.id, walletAddress, guardians);
+                addToast(t('group.recovery_guardians_saved_local'), 'success');
+              } else {
+                console.error(err);
+                addToast(t('group.recovery_guardians_failed'), 'error');
+              }
             } finally {
               setAdding(false);
             }

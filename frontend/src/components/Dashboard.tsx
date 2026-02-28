@@ -28,6 +28,7 @@ import { addressBook } from '../lib/contacts';
 import { track } from '../lib/analytics';
 import OnboardingTour from './OnboardingTour';
 import { useXlmUsd } from '../lib/xlmPrice';
+import { WalletCharts } from './ui/WalletCharts';
 
 interface Props {
   walletAddress: string;
@@ -259,7 +260,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
           <motion.div 
             key={i} 
             variants={itemVars}
-            className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-all group"
+            className="card-glass-hover bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-all group"
           >
             <div className={`p-2 w-fit rounded-lg ${s.bg} ${s.color} mb-3 group-hover:scale-110 transition-transform`}>
               <s.icon size={20} />
@@ -269,6 +270,9 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
           </motion.div>
         ))}
       </motion.div>
+
+      {/* Data viz: balance line, tx histogram, fee/asset donuts */}
+      <WalletCharts t={t} />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -312,7 +316,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               <motion.div key={g.id} variants={itemVars}>
                 <Link
                   to={`/group/${g.id}`}
-                  className="block bg-card/40 backdrop-blur-sm border border-white/5 p-6 rounded-2xl cursor-pointer hover:border-indigo-500/30 hover:bg-card/60 transition-all group no-underline shadow-sm hover:shadow-indigo-500/10"
+                  className="block card-glass-hover bg-card/40 backdrop-blur-sm border border-white/5 p-6 rounded-2xl cursor-pointer hover:border-indigo-500/30 hover:bg-card/60 transition-all group no-underline shadow-sm hover:shadow-indigo-500/10"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">

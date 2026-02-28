@@ -29,7 +29,7 @@ import { StrKey } from '@stellar/stellar-sdk';
 import { translateError, type Lang } from '../lib/errors';
 import Confetti from './Confetti';
 import QRCode from './QRCode';
-import Skeleton from './Skeleton';
+import { SkeletonShimmer } from './ui/SkeletonShimmer';
 import InsightsPanel from './InsightsPanel';
 import { uploadReceipt } from '../lib/storage';
 import { addressBook } from '../lib/contacts';
@@ -57,6 +57,7 @@ import { type Proposal, loadProposals, saveProposals, type VoteOption } from '..
 import { scanReceiptAI, type ScannedData } from '../lib/ai';
 import { useI18n } from '../lib/i18n';
 import { useToast } from './Toast';
+import { TxStatusTimeline, type TxStatus } from './ui/TxStatusTimeline';
 import SubscriptionModal from './SubscriptionModal';
 import { isSubscriptionDue } from '../lib/recurring';
 import { useXlmUsd } from '../lib/xlmPrice';
@@ -67,11 +68,12 @@ interface Props {
   groupId: number;
   onBack: () => void;
   isDemo?: boolean;
+  isOffline?: boolean;
 }
 
 type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery';
 
-export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: Props) {
+export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, isOffline }: Props) {
   const { t, lang } = useI18n();
   const { addToast } = useToast();
   const xlmUsd = useXlmUsd();
@@ -124,6 +126,10 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
   const [showConfetti, setShowConfetti] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showPayQRIndex, setShowPayQRIndex] = useState<number | null>(null);
+  const [lastTxStatus, setLastTxStatus] = useState<TxStatus | null>(null);
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [lastTxError, setLastTxError] = useState<string | null>(null);
+  const [lastFeePaid, setLastFeePaid] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = () => { setAddExpenseError(null); setShowAdd(true); };
@@ -325,18 +331,31 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
   const handleSettle = useCallback(async () => {
     if (!group) return;
     setSettling(true);
+    setLastTxStatus('signing');
+    setLastTxHash(null);
+    setLastTxError(null);
+    setLastFeePaid(null);
     try {
-      await settleGroupMutation.mutateAsync();
+      const result = await settleGroupMutation.mutateAsync();
+      setLastTxStatus('confirmed');
+      setLastTxHash(result.txHash ?? null);
+      setLastFeePaid(
+        estimatedSettleFee ? `~${estimatedSettleFee.xlm} XLM` : null
+      );
       track('group_settled');
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 4000);
+      addToast(t('group.settled_success') || 'Group settled successfully!', 'success');
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Takas başarısız';
-      addToast(translateError(raw, langKey), 'error');
+      const msg = translateError(raw, langKey);
+      setLastTxStatus('failed');
+      setLastTxError(msg);
+      addToast(msg, 'error');
     } finally {
       setSettling(false);
     }
-  }, [group, addToast, langKey, settleGroupMutation]);
+  }, [group, addToast, langKey, settleGroupMutation, t, estimatedSettleFee]);
 
   // Estimate settle fee when on Settle tab with settlements
   useEffect(() => {
@@ -397,12 +416,12 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
 
   if (loading) return (
     <div className="space-y-6">
-      <Skeleton className="h-40 w-full rounded-3xl" />
+      <SkeletonShimmer className="h-40 w-full" rounded="3xl" />
       <p className="text-center text-xs font-bold text-muted-foreground">{t('common.loading_group')}</p>
       <div className="grid grid-cols-4 gap-2">
-        {[1,2,3,4].map(i => <Skeleton key={i} className="h-10 rounded-xl" />)}
+        {[1,2,3,4].map(i => <SkeletonShimmer key={i} className="h-10" rounded="xl" />)}
       </div>
-      <Skeleton className="h-64 w-full rounded-3xl" />
+      <SkeletonShimmer className="h-64 w-full" rounded="3xl" />
     </div>
   );
   
@@ -439,7 +458,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-8 pb-8 border-b border-white/5"
+        className="flex items-center justify-between mb-6 pb-6 border-b border-white/5"
       >
         <div className="flex items-center gap-4">
           <button 
@@ -500,7 +519,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-6 mb-8 flex flex-col items-center gap-4 overflow-hidden"
+            className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-6 mb-6 flex flex-col items-center gap-4 overflow-hidden"
           >
             <QRCode groupId={groupId} groupName={group.name} />
             <div className="text-center">
@@ -511,24 +530,31 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
         )}
       </AnimatePresence>
 
-      {/* Tabs Navigation */}
-      <div role="tablist" className="flex gap-2 mb-8 overflow-x-auto pb-4 no-scrollbar" aria-label={t('group.tabs_nav')}>
-        {tabItems.map(t => (
-          <button 
-            key={t.key} 
-            role="tab"
-            aria-selected={tab === t.key}
-            data-testid={`tab-${t.key}`}
-            onClick={() => { setTab(t.key); }} 
-            className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wider flex items-center gap-2 transition-all shrink-0 ${tab===t.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-secondary/50 text-muted-foreground border border-white/5 hover:border-white/10'}`}
-          >
-            <t.icon size={14} />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Layout: left sidebar menu + main content */}
+      <div className="flex gap-6 items-start">
+        {/* Left sidebar – tab navigation */}
+        <nav
+          role="tablist"
+          aria-label={t('group.tabs_nav')}
+          className="shrink-0 w-[220px] sticky top-4 rounded-2xl bg-secondary/30 border border-white/5 p-2 space-y-1"
+        >
+          {tabItems.map((t) => (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={tab === t.key}
+              data-testid={`tab-${t.key}`}
+              onClick={() => setTab(t.key)}
+              className={`w-full px-4 py-3 rounded-xl text-left text-[11px] font-black uppercase tracking-wider flex items-center gap-3 transition-all ${tab === t.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-muted-foreground hover:bg-white/5 hover:text-white border border-transparent'}`}
+            >
+              <t.icon size={16} className="shrink-0" />
+              <span className="truncate">{t.label}</span>
+            </button>
+          ))}
+        </nav>
 
-      {/* Tab Content */}
+        {/* Tab content area */}
+        <div className="flex-1 min-w-0">
       <motion.div
         key={tab}
         initial={{ opacity: 0, x: 10 }}
@@ -585,7 +611,25 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
         )}
 
         {tab === 'settle' && (
-          <SettleTab
+          <>
+            {lastTxStatus && (
+              <div className="mb-6 p-5 rounded-2xl bg-card/60 border border-border">
+                <TxStatusTimeline
+                  status={lastTxStatus}
+                  hash={lastTxHash}
+                  error={lastTxError}
+                  feePaid={lastFeePaid}
+                  onCopyHash={() => addToast(t('common.copied') || 'Copied')}
+                  t={t}
+                  onRetry={() => {
+                    setLastTxStatus(null);
+                    setLastTxError(null);
+                    handleSettle();
+                  }}
+                />
+              </div>
+            )}
+            <SettleTab
             groupId={groupId}
             walletAddress={walletAddress}
             expenses={expenses}
@@ -599,7 +643,9 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
             handleSettle={handleSettle}
             estimatedSettleFee={estimatedSettleFee}
             t={t}
+            isOffline={isOffline}
           />
+          </>
         )}
 
         {tab === 'insights' && <InsightsPanel expenses={expenses} members={group.members} group={group} />}
@@ -613,10 +659,12 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
           />
         )}
 
+        {tab === 'recurring' && (
           <RecurringTab
             subscriptions={subscriptions}
             setShowAddSub={setShowAddSub}
           />
+        )}
 
         {tab === 'social' && (
           <SocialTab
@@ -641,6 +689,8 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
             handleVote={(id, vote) => handleVote(String(id), vote)}
           />
         )}
+
+        {tab === 'security' && (
           <SecurityTab
             group={group}
             walletAddress={walletAddress}
@@ -648,7 +698,10 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo }: 
             t={t}
             addToast={addToast}
           />
+        )}
       </motion.div>
+        </div>
+      </div>
 
       {/* Add Expense Modal */}
       <AnimatePresence>

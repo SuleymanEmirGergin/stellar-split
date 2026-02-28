@@ -1,0 +1,151 @@
+/**
+ * Web3 background identity — grid, node network, wave
+ * Ultra-light CSS-only + optional SVG overlay. GPU-friendly, reduced-motion aware.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BG RECIPES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* —— bg-fintech-grid — CSS-only subtle grid —— */
+.bg-fintech-grid {
+  background-color: hsl(var(--bg));
+  background-image: linear-gradient(hsl(var(--border-subtle)) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border-subtle)) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+
+/* —— bg-node-network — CSS-only dots (lightweight) —— */
+.bg-node-network {
+  background-color: hsl(var(--bg));
+  background-image: radial-gradient(circle at 1px 1px, hsl(var(--border-subtle)) 1px, transparent 0);
+  background-size: 32px 32px;
+  background-position: 0 0;
+}
+
+/* —— bg-crypto-glow — faint gradient orbs (no heavy filter) —— */
+.bg-crypto-glow {
+  position: relative;
+  background-color: hsl(var(--bg));
+  overflow: hidden;
+}
+.bg-crypto-glow::before,
+.bg-crypto-glow::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+.bg-crypto-glow::before {
+  width: 60vw;
+  height: 60vw;
+  max-width: 800px;
+  max-height: 800px;
+  top: -20%;
+  right: -15%;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.06) 0%, transparent 70%);
+}
+.bg-crypto-glow::after {
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  bottom: -15%;
+  left: -10%;
+  background: radial-gradient(circle, hsl(var(--accent) / 0.05) 0%, transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-crypto-glow::before,
+  .bg-crypto-glow::after {
+    will-change: auto;
+  }
+}
+
+/* —— bg-hero-aurora — hero background with subtle drift —— */
+.bg-hero-aurora {
+  position: relative;
+  background: linear-gradient(
+    160deg,
+    hsl(var(--bg)) 0%,
+    hsl(222 35% 10%) 25%,
+    hsl(200 45% 12% / 0.5) 50%,
+    hsl(195 50% 10% / 0.3) 75%,
+    hsl(var(--bg)) 100%
+  );
+  background-size: 200% 200%;
+  animation: aurora-drift 20s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-hero-aurora {
+    animation: none;
+    background-size: 100% 100%;
+  }
+}
+
+@keyframes aurora-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* —— SVG overlay option (repeatable, low-weight) —— */
+.bg-fintech-grid-svg {
+  background-color: hsl(var(--bg));
+  background-image: url("/design-system/grid-pattern.svg");
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+
+.bg-node-network-svg {
+  background-color: hsl(var(--bg));
+  background-image: url("/design-system/nodes-pattern.svg");
+  background-size: 32px 32px;
+  background-position: 0 0;
+}
+
+.bg-wave-svg {
+  background-color: hsl(var(--bg));
+  background-image: url("/design-system/wave-pattern.svg");
+  background-size: 120px 24px;
+  background-position: 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOTION — subtle gradient drift + optional particle dots
+   GPU-friendly: transform/opacity only; no heavy filters on large layers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.motion-gradient-drift {
+  animation: gradient-drift 15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-gradient-drift {
+    animation: none;
+  }
+}
+
+@keyframes gradient-drift {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.92; }
+}
+
+/* Optional: very subtle floating dots (use sparingly, small elements only) */
+.motion-dots {
+  animation: dots-float 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-dots {
+    animation: none;
+  }
+}
+
+@keyframes dots-float {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(2px, -3px); }
+  66% { transform: translate(-1px, 2px); }
+}

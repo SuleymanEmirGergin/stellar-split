@@ -23,11 +23,14 @@ const MAP: { pattern: RegExp | string; tr: string; en: string }[] = [
   { pattern: /timed out after \d+ seconds/i, tr: 'İşlem zaman aşımına uğradı. Tekrar deneyin.', en: 'Transaction timed out. Try again.' },
   { pattern: /İşlem gönderilemedi|gönderilemedi/i, tr: 'İşlem gönderilemedi. Lütfen tekrar deneyin.', en: 'Could not send transaction. Please try again.' },
   { pattern: /İmzalama reddedildi|User declined|rejected/i, tr: 'İmzalama reddedildi. Freighter\'da işlemi onaylayın.', en: 'Signature rejected. Approve the transaction in Freighter.' },
+  { pattern: /wallet not found|not installed|requestAccess.*error|isConnected.*false|no wallet/i, tr: 'Cüzdan bulunamadı. Freighter yükleyin veya sayfayı yenileyip tekrar bağlanın.', en: 'Wallet not found. Install Freighter or refresh and connect again.' },
+  { pattern: /insufficient balance|low balance|not enough.*balance|balance too low/i, tr: 'Yetersiz bakiye. Lütfen cüzdanınıza XLM yükleyin.', en: 'Insufficient balance. Please add XLM to your wallet.' },
   { pattern: /Ağ uyumsuzluğu|network|passphrase/i, tr: 'Ağ uyumsuz. Freighter\'ı Testnet\'e geçirin.', en: 'Network mismatch. Switch Freighter to Testnet.' },
   { pattern: /No result from simulation|Simulation failed/i, tr: 'Kontrat simülasyonu başarısız. Tekrar deneyin.', en: 'Contract simulation failed. Try again.' },
   { pattern: /group not found/i, tr: 'Grup bulunamadı.', en: 'Group not found.' },
   { pattern: /expense not found/i, tr: 'Harcama bulunamadı.', en: 'Expense not found.' },
   { pattern: /Failed to fetch|NetworkError|Load failed|Network request failed/i, tr: 'Çevrimdışı veya sunucu yanıt vermiyor. İşleminiz bağlantı gelince tekrar denenecek.', en: 'Offline or server not responding. Your action will retry when connected.' },
+  { pattern: /invalid address|bad address|invalid public key|StrKey|invalid.*stellar/i, tr: 'Geçersiz adres. Geçerli bir Stellar adresi girin.', en: 'Invalid address. Enter a valid Stellar address.' },
   { pattern: /USDC is not configured|VITE_USDC_CONTRACT_ID/i, tr: 'USDC kullanmak için .env dosyasında VITE_USDC_CONTRACT_ID tanımlayın (testnet USDC contract id).', en: 'Set VITE_USDC_CONTRACT_ID in .env to use USDC (testnet USDC contract id).' },
 ];
 

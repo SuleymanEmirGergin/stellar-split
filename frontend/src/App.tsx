@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, 
   Globe, 
@@ -11,10 +12,14 @@ import {
   ArrowDownRight,
   Zap,
   Wifi,
-  WifiOff
+  WifiOff,
+  QrCode
 } from 'lucide-react';
-import { isFreighterInstalled, connectFreighter, getFreighterAddress, truncateAddress } from './lib/stellar';
+import { isFreighterInstalled, connectFreighter, getFreighterAddress, isTestnet } from './lib/stellar';
+import { maskAddress } from './lib/format';
+import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
+import { BalanceMetric } from './components/ui/BalanceMetric';
 import Landing from './components/Landing';
 import Dashboard from './components/Dashboard';
 import GroupDetail from './components/GroupDetail';
@@ -22,6 +27,7 @@ import JoinPage from './components/JoinPage';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import CopyButton from './components/CopyButton';
+import { ReceivePanel } from './components/ui/ReceivePanel';
 import Logo from './components/Logo';
 import { sounds } from './lib/sound';
 import { useI18n } from './lib/i18n';
@@ -103,8 +109,10 @@ function AppContent() {
   const { dark, toggle: toggleTheme } = useTheme();
   const { t, lang, setLang } = useI18n();
   const isOffline = useOffline();
+  const motionOn = useMotionEnabled();
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<{ prompt: () => Promise<{ outcome: string }> } | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(() => localStorage.getItem('stellarsplit_pwa_install_dismissed') !== 'true');
+  const [showReceivePanel, setShowReceivePanel] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -362,17 +370,37 @@ function AppContent() {
           {/* Wallet */}
           {walletAddress ? (
             <div className="flex items-center gap-2">
+              {isTestnet() && (
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  Testnet
+                </span>
+              )}
+              {!isTestnet() && (
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary border border-primary/30">
+                  Mainnet
+                </span>
+              )}
               <div className="hidden sm:flex items-center px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-100 text-xs font-bold gap-1.5 shadow-sm">
                 <Zap size={14} className="text-amber-400" />
-                <span className="font-mono tracking-tight">{walletBalance ? `${walletBalance} XLM` : '...'}</span>
+                <span className="font-mono tracking-tight">
+                  <BalanceMetric value={walletBalance != null ? parseFloat(walletBalance) : null} suffix="XLM" />
+                </span>
               </div>
-              <CopyButton text={walletAddress} />
+              <CopyButton text={walletAddress} onCopy={() => addToast(t('common.copied') || 'Copied')} />
+              <button
+                type="button"
+                onClick={() => setShowReceivePanel(true)}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:border-primary/30 text-xs font-bold transition-all"
+              >
+                <QrCode size={14} />
+                {t('receive.title') || 'Receive'}
+              </button>
               <button
                 className="flex items-center gap-2 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 font-bold text-xs hover:bg-indigo-500/20 transition-all group"
                 onClick={handleDisconnect}
               >
                 <LinkIcon size={14} className="group-hover:rotate-45 transition-transform" />
-                <span className="font-mono">{truncateAddress(walletAddress)}</span>
+                <span className="font-mono">{maskAddress(walletAddress)}</span>
               </button>
             </div>
           ) : (
@@ -403,39 +431,51 @@ function AppContent() {
         </div>
       )}
 
-      {/* ── Main Content ── */}
-      <main className="flex-1 p-6 md:p-8 max-w-[1200px] w-full mx-auto">
-        {pathname === '/' && (
-          !walletAddress ? (
-                        <Landing onConnect={handleConnect} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
-          ) : (
-            <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
-          )
-        )}
-        {pathname === '/dashboard' && walletAddress && (
-          <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
-        )}
-        {!walletAddress && (pathname === '/dashboard' || (isGroup && hasValidGroupId)) && !isJoin && (
-                      <Landing onConnect={handleConnect} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
-        )}
-        {isJoin && hasValidJoinGroupId && (
-          <JoinPage
-            groupId={joinGroupId!}
-            walletAddress={walletAddress}
-            onConnect={handleConnect}
-            connecting={connecting}
-            freighterAvailable={freighterAvailable}
-            onOpenGroup={() => navigate(`/group/${joinGroupId}`)}
-          />
-        )}
+      {/* ── Main Content (page transition: fade + 8px depth) ── */}
+      <main className="flex-1 p-6 md:p-8 max-w-[1200px] w-full mx-auto overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: motionOn ? 8 : 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: motionOn ? -8 : 0 }}
+            transition={{ duration: 0.2, ease: [0.33, 1, 0.68, 1] }}
+            className="min-h-0"
+          >
+            {pathname === '/' && (
+              !walletAddress ? (
+                <Landing onConnect={handleConnect} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
+              ) : (
+                <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
+              )
+            )}
+            {pathname === '/dashboard' && walletAddress && (
+              <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
+            )}
+            {!walletAddress && (pathname === '/dashboard' || (isGroup && hasValidGroupId)) && !isJoin && (
+              <Landing onConnect={handleConnect} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
+            )}
+            {isJoin && hasValidJoinGroupId && (
+              <JoinPage
+                groupId={joinGroupId!}
+                walletAddress={walletAddress}
+                onConnect={handleConnect}
+                connecting={connecting}
+                freighterAvailable={freighterAvailable}
+                onOpenGroup={() => navigate(`/group/${joinGroupId}`)}
+              />
+            )}
         {isGroup && hasValidGroupId && walletAddress && groupId !== null && (
           <GroupDetail
             walletAddress={walletAddress}
             groupId={groupId}
             isDemo={demoMode}
             onBack={() => navigate('/dashboard')}
+            isOffline={isOffline}
           />
         )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* PWA install banner */}
@@ -469,6 +509,25 @@ function AppContent() {
             >
               ×
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Receive panel modal */}
+      {showReceivePanel && walletAddress && (
+        <div
+          className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowReceivePanel(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative max-w-sm w-full modal-soft-scale" onClick={(e) => e.stopPropagation()}>
+            <ReceivePanel
+              address={walletAddress}
+              onClose={() => setShowReceivePanel(false)}
+              onCopy={() => addToast(t('common.copied') || 'Copied')}
+              t={t}
+            />
           </div>
         </div>
       )}

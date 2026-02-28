@@ -58,8 +58,8 @@ export default function NetworkStats() {
   function timeSince(iso: string): string {
     const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
     if (seconds < 5) return 'az önce';
-    if (seconds < 60) return `${seconds}sn önce`;
-    return `${Math.floor(seconds / 60)}dk önce`;
+    if (seconds < 60) return `${seconds} sn önce`;
+    return `${Math.floor(seconds / 60)} dk önce`;
   }
 
   if (loading) {
@@ -83,7 +83,7 @@ export default function NetworkStats() {
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-5">
+    <div className="glass-panel rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

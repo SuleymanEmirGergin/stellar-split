@@ -27,10 +27,10 @@ function getConfig(type: string) {
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return `${seconds}sn önce`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}dk önce`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}sa önce`;
-  return `${Math.floor(seconds / 86400)}gün önce`;
+  if (seconds < 60) return `${seconds} sn önce`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} dk önce`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} sa önce`;
+  return `${Math.floor(seconds / 86400)} gün önce`;
 }
 
 export default function ActivityFeed({ members }: ActivityFeedProps) {

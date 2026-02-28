@@ -1,0 +1,293 @@
+/**
+ * Web3 Wallet / Fintech Design System — Design Tokens
+ * Apple clarity + Stripe gradients + Web3 dashboard
+ * Dark-first, HSL + HEX fallback, accessibility-conscious
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE (:root)
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* —— Brand —— */
+  --primary-h: 222;
+  --primary-s: 84%;
+  --primary-l: 52%;
+  --primary: var(--primary-h) var(--primary-s) var(--primary-l);
+  --primary-hex: #3b5bdb;
+  --primary-foreground: 0 0% 100%;
+  --primary-foreground-hex: #ffffff;
+
+  --secondary-h: 220;
+  --secondary-s: 18%;
+  --secondary-l: 96%;
+  --secondary: var(--secondary-h) var(--secondary-s) var(--secondary-l);
+  --secondary-hex: #eef2f9;
+  --secondary-foreground: 222 47% 25%;
+  --secondary-foreground-hex: #2d3a5e;
+
+  --accent-h: 262;
+  --accent-s: 72%;
+  --accent-l: 58%;
+  --accent: var(--accent-h) var(--accent-s) var(--accent-l);
+  --accent-hex: #7c3aed;
+  --accent-foreground: 0 0% 100%;
+  --accent-foreground-hex: #ffffff;
+
+  /* —— Neutrals (bg / surface / elevated / border / text / muted) —— */
+  --bg: 0 0% 99%;
+  --bg-hex: #fcfcfd;
+  --surface: 0 0% 100%;
+  --surface-hex: #ffffff;
+  --surface-elevated: 0 0% 100%;
+  --surface-elevated-hex: #ffffff;
+  --border: 220 13% 91%;
+  --border-hex: #e2e6ee;
+  --border-subtle: 220 13% 96%;
+  --text: 222 25% 14%;
+  --text-hex: #1a2234;
+  --text-muted: 220 12% 46%;
+  --text-muted-hex: #6b7280;
+  --text-inverse: 0 0% 100%;
+  --text-inverse-hex: #ffffff;
+
+  /* —— Semantic states —— */
+  --success-h: 152;
+  --success-s: 48%;
+  --success-l: 42%;
+  --success: var(--success-h) var(--success-s) var(--success-l);
+  --success-hex: #0d9668;
+  --success-foreground: 0 0% 100%;
+  --warn-h: 38;
+  --warn-s: 92%;
+  --warn-l: 50%;
+  --warn: var(--warn-h) var(--warn-s) var(--warn-l);
+  --warn-hex: #e9a80d;
+  --warn-foreground: 222 47% 12%;
+  --error-h: 0;
+  --error-s: 72%;
+  --error-l: 51%;
+  --error: var(--error-h) var(--error-s) var(--error-l);
+  --error-hex: #dc3545;
+  --error-foreground: 0 0% 100%;
+  --info-h: 207;
+  --info-s: 90%;
+  --info-l: 54%;
+  --info: var(--info-h) var(--info-s) var(--info-l);
+  --info-hex: #0ea5e9;
+  --info-foreground: 0 0% 100%;
+
+  /* —— Chart / data viz (1..8) —— */
+  --chart-1: 222 84% 52%;
+  --chart-2: 262 72% 58%;
+  --chart-3: 152 48% 42%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 340 75% 55%;
+  --chart-6: 190 90% 45%;
+  --chart-7: 280 65% 52%;
+  --chart-8: 25 95% 53%;
+
+  /* —— Crypto context accents (hues only, not logos) —— */
+  --crypto-xlm-h: 195;
+  --crypto-xlm-s: 85%;
+  --crypto-xlm-l: 48%;
+  --crypto-xlm: var(--crypto-xlm-h) var(--crypto-xlm-s) var(--crypto-xlm-l);
+  --crypto-xlm-hex: #14b0d4;
+  --crypto-btc-h: 36;
+  --crypto-btc-s: 95%;
+  --crypto-btc-l: 52%;
+  --crypto-btc: var(--crypto-btc-h) var(--crypto-btc-s) var(--crypto-btc-l);
+  --crypto-btc-hex: #f7931a;
+  --crypto-eth-h: 225;
+  --crypto-eth-s: 75%;
+  --crypto-eth-l: 58%;
+  --crypto-eth: var(--crypto-eth-h) var(--crypto-eth-s) var(--crypto-eth-l);
+  --crypto-eth-hex: #627eea;
+
+  /* —— Legacy shim (existing app vars) —— */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-muted);
+  --destructive: var(--error);
+  --destructive-foreground: var(--error-foreground);
+  --input: var(--border);
+  --ring: var(--primary);
+
+  /* —— Radius —— */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* —— Spacing —— */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* —— Border —— */
+  --border-width: 1px;
+  --border-width-thick: 2px;
+
+  /* —— Shadow (Apple-like soft) —— */
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px hsl(0 0% 0% / 0.04), 0 1px 3px hsl(0 0% 0% / 0.06);
+  --shadow-2: 0 2px 4px hsl(0 0% 0% / 0.04), 0 4px 8px hsl(0 0% 0% / 0.06);
+  --shadow-3: 0 4px 12px hsl(0 0% 0% / 0.05), 0 8px 24px hsl(0 0% 0% / 0.08);
+  --shadow-4: 0 8px 24px hsl(0 0% 0% / 0.06), 0 16px 48px hsl(0 0% 0% / 0.10);
+  --shadow-glow-subtle: 0 0 24px hsl(var(--primary) / 0.08);
+  --shadow-glow-medium: 0 0 32px hsl(var(--primary) / 0.12);
+  --shadow-glow-strong: 0 0 48px hsl(var(--primary) / 0.18);
+
+  /* —— Blur (glass) —— */
+  --blur-sm: 8px;
+  --blur-md: 12px;
+  --blur-lg: 20px;
+  --blur-xl: 32px;
+
+  /* —— Typography —— */
+  --font-sans: "Inter", "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --text-title: 1.5rem;
+  --text-title-lg: 1.875rem;
+  --text-metric: 1.75rem;
+  --text-metric-sm: 1.25rem;
+  --text-body: 0.9375rem;
+  --text-body-sm: 0.8125rem;
+  --text-label: 0.75rem;
+  --text-caption: 0.6875rem;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE (.dark) — default for dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dark {
+  --primary-h: 222;
+  --primary-s: 84%;
+  --primary-l: 58%;
+  --primary: var(--primary-h) var(--primary-s) var(--primary-l);
+  --primary-hex: #4f6bef;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 222 20% 14%;
+  --secondary-hex: #1e2530;
+  --secondary-foreground: 0 0% 92%;
+
+  --accent: 262 72% 65%;
+  --accent-hex: #8b5cf6;
+  --accent-foreground: 0 0% 100%;
+
+  --bg: 222 25% 7%;
+  --bg-hex: #0d1117;
+  --surface: 222 22% 10%;
+  --surface-hex: #161b22;
+  --surface-elevated: 222 20% 13%;
+  --surface-elevated-hex: #1c2128;
+  --border: 222 18% 22%;
+  --border-hex: #30363d;
+  --border-subtle: 222 18% 16%;
+  --text: 210 25% 95%;
+  --text-hex: #e6edf3;
+  --text-muted: 215 15% 58%;
+  --text-muted-hex: #7d8590;
+  --text-inverse: 222 25% 7%;
+
+  --success: 152 48% 45%;
+  --success-hex: #0fbd7a;
+  --warn: 38 92% 55%;
+  --warn-hex: #f0b429;
+  --warn-foreground: 222 47% 10%;
+  --error: 0 72% 55%;
+  --error-hex: #e5484d;
+  --info: 207 90% 58%;
+  --info-hex: #3b9eff;
+
+  --chart-1: 222 84% 58%;
+  --chart-2: 262 72% 65%;
+  --chart-3: 152 48% 45%;
+  --chart-4: 38 92% 55%;
+  --chart-5: 340 75% 60%;
+  --chart-6: 190 90% 50%;
+  --chart-7: 280 65% 58%;
+  --chart-8: 25 95% 58%;
+
+  --crypto-xlm: 195 85% 52%;
+  --crypto-xlm-hex: #1ac4ed;
+  --crypto-btc: 36 95% 55%;
+  --crypto-btc-hex: #f59e0b;
+  --crypto-eth: 225 75% 62%;
+  --crypto-eth-hex: #818cf8;
+
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-muted);
+  --destructive: var(--error);
+  --destructive-foreground: var(--error-foreground);
+  --border: var(--border);
+  --input: var(--border);
+  --ring: var(--primary);
+
+  --shadow-1: 0 1px 3px hsl(0 0% 0% / 0.2), 0 2px 6px hsl(0 0% 0% / 0.15);
+  --shadow-2: 0 2px 6px hsl(0 0% 0% / 0.2), 0 4px 12px hsl(0 0% 0% / 0.18);
+  --shadow-3: 0 4px 12px hsl(0 0% 0% / 0.22), 0 8px 24px hsl(0 0% 0% / 0.2);
+  --shadow-4: 0 8px 24px hsl(0 0% 0% / 0.25), 0 16px 48px hsl(0 0% 0% / 0.22);
+  --shadow-glow-subtle: 0 0 24px hsl(var(--primary) / 0.15);
+  --shadow-glow-medium: 0 0 32px hsl(var(--primary) / 0.2);
+  --shadow-glow-strong: 0 0 48px hsl(var(--primary) / 0.28);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME: Midnight Neon (controlled glow, not pure neon)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.theme-midnight-neon,
+.dark.theme-midnight-neon {
+  --primary-h: 195;
+  --primary-s: 85%;
+  --primary-l: 52%;
+  --primary: var(--primary-h) var(--primary-s) var(--primary-l);
+  --primary-hex: #1ac4ed;
+  --primary-foreground: 222 47% 8%;
+
+  --accent: 280 65% 58%;
+  --accent-hex: #a78bfa;
+  --accent-foreground: 0 0% 100%;
+
+  --bg: 222 35% 5%;
+  --bg-hex: #080c12;
+  --surface: 222 30% 8%;
+  --surface-hex: #0f1620;
+  --surface-elevated: 222 28% 11%;
+  --border: 222 25% 18%;
+  --text: 210 30% 96%;
+  --text-muted: 215 18% 60%;
+
+  --crypto-xlm: 195 85% 55%;
+  --shadow-glow-subtle: 0 0 32px hsl(195 85% 52% / 0.12);
+  --shadow-glow-medium: 0 0 48px hsl(195 85% 52% / 0.18);
+  --shadow-glow-strong: 0 0 64px hsl(195 85% 52% / 0.22);
+}

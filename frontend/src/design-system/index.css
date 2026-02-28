@@ -1,0 +1,10 @@
+/**
+ * Design system — drop-in package
+ * Apple clarity + Stripe gradients + Web3 dashboard
+ * Import this once (e.g. in main.tsx or index.css).
+ */
+
+@import "./tokens.css";
+@import "./gradients.css";
+@import "./surfaces.css";
+@import "./backgrounds.css";

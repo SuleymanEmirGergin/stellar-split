@@ -23,7 +23,7 @@ export default function GlobalImpact() {
   }, []);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm relative overflow-hidden group">
+    <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
       <div className="absolute top-0 right-0 p-8 opacity-5 text-7xl group-hover:scale-110 transition-transform duration-500">🌍</div>
       <div className="relative z-10">
         <h3 className="text-lg font-black tracking-tight mb-2 flex items-center gap-2">
