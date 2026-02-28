@@ -188,9 +188,9 @@ When moving from Testnet to Mainnet:
 
 ### Deployed contract (Testnet)
 
-- **Contract ID:** `GBEOHD44Y2ON4HEODWMAAIP2ZCCWG5E355OFYIMVNBUKPL6T3LII25H7`
+- **Contract ID:** `CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K`
 - **Network:** Stellar Testnet
-- **Explorer:** [Stellar Expert (Testnet)](https://stellar.expert/explorer/testnet/contract/GBEOHD44Y2ON4HEODWMAAIP2ZCCWG5E355OFYIMVNBUKPL6T3LII25H7)
+- **Explorer:** [Stellar Expert (Testnet)](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K)
 
 ### VITE_CONTRACT_ID nasıl alınır?
 
@@ -254,7 +254,7 @@ Balance breakdown per member (you vs. demo members) and the Insights tab showing
 
 ### Deployed Advanced Contracts (Testnet)
 
-- **Main Contract:** `GBEOHD44Y2ON4HEODWMAAIP2ZCCWG5E355OFYIMVNBUKPL6T3LII25H7` (Inter-contract call enabled)
+- **Main Contract:** `CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K` (Inter-contract call enabled)
 - **Reward Token (SPLT):** `CDA7...REWARD` (Simulated/Placeholder for local demo, real one can be deployed via `contracts/stellar_split_token`)
 - **Transaction Hash (Reward):** `479c3bb...` (Local commit hash of the integration)
 
