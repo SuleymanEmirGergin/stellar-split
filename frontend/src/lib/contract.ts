@@ -4,6 +4,9 @@ import { server, NETWORK_PASSPHRASE, CONTRACT_ID, getNativeTokenContractId, USDC
 
 const contract = new StellarSdk.Contract(CONTRACT_ID);
 
+// Reward Token ID (in production, this would be in .env)
+export const SPLT_CONTRACT_ID = 'CDA7...REWARD'; 
+
 /**
  * Demo Mode Check: If 'stellarsplit_demo_mode' is 'true' in localStorage, 
  * we bypass the blockchain and return mock data.
@@ -985,4 +988,32 @@ export async function awardBadge(
     StellarSdk.nativeToScVal(badgeId, { type: 'u32' })
   );
   await signAndSubmit(tx);
+}
+
+// ─────────────────────────────────────────────
+//  REWARD TOKEN (SPLT)
+// ─────────────────────────────────────────────
+
+/** Fetch SPLT (StellarSplit Reward Token) balance for a user. */
+export async function getSPLTBalance(userAddress: string): Promise<number> {
+  if (isDemoMode()) return 1200; // Mock SPLT
+  
+  try {
+    const spltContract = new StellarSdk.Contract(SPLT_CONTRACT_ID);
+    const account = await server.getAccount(userAddress);
+    const txBuilder = new StellarSdk.TransactionBuilder(account, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: NETWORK_PASSPHRASE,
+    });
+    txBuilder.addOperation(spltContract.call('balance', StellarSdk.Address.fromString(userAddress).toScVal()));
+    const tx = txBuilder.build();
+    const simulated = await server.simulateTransaction(tx);
+    
+    if (rpc.Api.isSimulationSuccess(simulated) && simulated.result) {
+      return Number(StellarSdk.scValToNative(simulated.result.retval));
+    }
+  } catch (err) {
+    console.warn('SPLT balance fetch failed:', err);
+  }
+  return 0;
 }

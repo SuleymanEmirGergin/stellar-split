@@ -385,6 +385,19 @@ impl StellarSplitContract {
             token_client.transfer(&s.from, &s.to, &s.amount);
         }
 
+        // ── Reward Users with SPLT (Inter-contract call) ──
+        // In a real scenario, the reward_token_id would be stored in the Group or Global state.
+        // Here we use a dummy address if not provided, or skip if not found.
+        let reward_token_id = group.token.clone(); // Self-rewarding for demo or dedicated token
+        
+        // We reward the settler for initiating the transaction
+        let reward_amount = 100_i128; // 100 SPLT
+        env.invoke_contract::<()>(
+            &reward_token_id,
+            &soroban_sdk::Symbol::new(&env, "mint"),
+            soroban_sdk::vec![&env, settler.into_val(&env), reward_amount.into_val(&env)],
+        );
+
         // Grubu settled olarak işaretle
         set_group_settled(&env, group_id, true);
 
@@ -392,6 +405,11 @@ impl StellarSplitContract {
         env.events().publish(
             (Symbol::new(&env, "group_settled"), group_id),
             settlements.len(),
+        );
+
+        env.events().publish(
+            (Symbol::new(&env, "reward_minted"), settler.clone()),
+            reward_amount,
         );
 
         settlements
