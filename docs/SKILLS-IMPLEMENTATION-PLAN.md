@@ -31,18 +31,18 @@ Bu belge [SKILLS-ROADMAP.md](SKILLS-ROADMAP.md) ile uyumlu **adım adım uygulam
 
 ### 1.2 Kontrat: settle_group mint davranışı (solidity-security + systematic-debugging)
 
-- [ ] **1.2.1** `contracts/stellar_split/src/lib.rs` içinde `settle_group`’taki `invoke_contract` mint çağrısını incele: XLM SAC’ta `mint` yok; gerçek XLM ile panic riski.
-- [ ] **1.2.2** Seçenek A: Mint’i sadece “reward token” (ayrı contract) ile sınırla; `group.token` XLM SAC ise mint atla.  
+- [x] **1.2.1** `contracts/stellar_split/src/lib.rs` içinde `settle_group`’taki `invoke_contract` mint çağrısını incele: XLM SAC’ta `mint` yok; gerçek XLM ile panic riski.
+- [x] **1.2.2** Seçenek A: Mint’i sadece “reward token” (ayrı contract) ile sınırla; `group.token` XLM SAC ise mint atla.  
   Seçenek B: Mint’i tamamen kaldır veya feature flag / config ile aç/kapa.  
   Seçenek C: Değişiklik yapmadan `docs/SECURITY-NOTES.md` içinde riski ve mevcut “demo only” davranışı yaz.
-- [ ] **1.2.3** Seçilen değişikliği uygula; `cargo test` ve (varsa) frontend settle akışını manuel test et.
-- [ ] **1.2.4** Doğrulama: `cargo test` geçsin; README veya SECURITY-NOTES’ta davranış açıklansın.
+- [x] **1.2.3** Seçilen değişikliği uygula; `cargo test` ve (varsa) frontend settle akışını manuel test et.
+- [x] **1.2.4** Doğrulama: `cargo test` geçsin; README veya SECURITY-NOTES’ta davranış açıklansın.
 
 ### 1.3 Kontrat güvenlik checklist’i (solidity-security)
 
-- [ ] **1.3.1** `docs/SECURITY-CHECKLIST.md` oluştur: require_auth kullanımları, input validasyonları (length, range, üyelik), TTL, guardian/recovery kısaca.
-- [ ] **1.3.2** Checklist’te “settle_group mint” davranışını (1.2’deki karar) tek cümleyle not et.
-- [ ] **1.3.3** Doğrulama: Dosya README’den veya ARCHITECTURE’dan linklensin (isteğe bağlı).
+- [x] **1.3.1** `docs/SECURITY-CHECKLIST.md` oluştur: require_auth kullanımları, input validasyonları (length, range, üyelik), TTL, guardian/recovery kısaca.
+- [x] **1.3.2** Checklist’te “settle_group mint” davranışını (1.2’deki karar) tek cümleyle not et.
+- [x] **1.3.3** Doğrulama: Dosya README’den veya ARCHITECTURE’dan linklensin (isteğe bağlı).
 
 ---
 
