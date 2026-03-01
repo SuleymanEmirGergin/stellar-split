@@ -486,3 +486,64 @@ fn test_event_emission_on_create_and_expense() {
     let expense = client.get_expense(&group_id, &expense_id);
     assert_eq!(expense.amount, 100);
 }
+
+// ═══════════════════════════════════════════════════
+//  GUARDIAN / RECOVERY TESTLERİ
+// ═══════════════════════════════════════════════════
+
+#[test]
+fn test_set_guardians_success() {
+    let (env, client, _token) = setup_contract();
+    let user = Address::generate(&env);
+    let g1 = Address::generate(&env);
+    let g2 = Address::generate(&env);
+    let guardians = vec![&env, g1.clone(), g2.clone()];
+
+    client.set_guardians(&user, &guardians, &2);
+
+    let config = client.get_guardians(&user).expect("guardians should be set");
+    assert_eq!(config.guardians.len(), 2);
+    assert_eq!(config.threshold, 2);
+}
+
+#[test]
+#[should_panic(expected = "at least one guardian required")]
+fn test_set_guardians_empty_fails() {
+    let (env, client, _token) = setup_contract();
+    let user = Address::generate(&env);
+    let guardians: Vec<Address> = Vec::new(&env);
+    client.set_guardians(&user, &guardians, &1);
+}
+
+#[test]
+#[should_panic(expected = "invalid threshold")]
+fn test_set_guardians_invalid_threshold_fails() {
+    let (env, client, _token) = setup_contract();
+    let user = Address::generate(&env);
+    let g1 = Address::generate(&env);
+    let guardians = vec![&env, g1.clone()];
+    client.set_guardians(&user, &guardians, &3);
+}
+
+#[test]
+fn test_initiate_recovery_and_approve() {
+    let (env, client, _token) = setup_contract();
+    let target = Address::generate(&env);
+    let g1 = Address::generate(&env);
+    let g2 = Address::generate(&env);
+    let new_addr = Address::generate(&env);
+    let guardians = vec![&env, g1.clone(), g2.clone()];
+
+    client.set_guardians(&target, &guardians, &2);
+    client.initiate_recovery(&g1, &target, &new_addr);
+
+    let request = client.get_recovery(&target).expect("recovery request should exist");
+    assert_eq!(request.approvals.len(), 1);
+    assert_eq!(request.status, 0u32);
+
+    client.approve_recovery(&g2, &target);
+
+    let request2 = client.get_recovery(&target).expect("recovery request should still exist");
+    assert_eq!(request2.approvals.len(), 2);
+    assert_eq!(request2.status, 1u32);
+}

@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, token, Address, Env, Map, String, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, token, Address, Env, IntoVal, Map, String, Symbol, Vec};
 
 mod settle;
 mod storage;
