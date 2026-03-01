@@ -50,11 +50,11 @@ Bu belge [SKILLS-ROADMAP.md](SKILLS-ROADMAP.md) ile uyumlu **adım adım uygulam
 
 ### 2.1 Kontrat: Guardian / recovery unit testleri (web3-testing)
 
-- [ ] **2.1.1** `contracts/stellar_split/src/test.rs` içinde `set_guardians` için en az 1 test: geçerli guardian listesi ve threshold ile çağrı başarılı.
-- [ ] **2.1.2** `initiate_recovery` için 1 test: guardian çağırır, recovery request oluşur.
-- [ ] **2.1.3** `approve_recovery` için 1 test: threshold’a ulaşınca status “completed” (veya mevcut tasarıma göre).
-- [ ] **2.1.4** (İsteğe bağlı) Hata case: guardian olmayanın `initiate_recovery` çağırması panic; invalid threshold ile `set_guardians` panic.
-- [ ] **2.1.5** Doğrulama: `cargo test` tüm yeni testlerle geçsin.
+- [x] **2.1.1** `contracts/stellar_split/src/test.rs` içinde `set_guardians` için en az 1 test: geçerli guardian listesi ve threshold ile çağrı başarılı.
+- [x] **2.1.2** `initiate_recovery` için 1 test: guardian çağırır, recovery request oluşur.
+- [x] **2.1.3** `approve_recovery` için 1 test: threshold’a ulaşınca status “completed” (veya mevcut tasarıma göre).
+- [x] **2.1.4** (İsteğe bağlı) Hata case: guardian olmayanın `initiate_recovery` çağırması panic; invalid threshold ile `set_guardians` panic.
+- [x] **2.1.5** Doğrulama: `cargo test` tüm yeni testlerle geçsin.
 
 ### 2.2 README ve Quick Links (crypto-bd-agent uyarlı)
 
