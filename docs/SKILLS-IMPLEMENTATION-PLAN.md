@@ -58,15 +58,15 @@ Bu belge [SKILLS-ROADMAP.md](SKILLS-ROADMAP.md) ile uyumlu **adım adım uygulam
 
 ### 2.2 README ve Quick Links (crypto-bd-agent uyarlı)
 
-- [ ] **2.2.1** README “Quick Links” veya “Canlı Demo” bölümünde: canlı demo URL’si, repo, (varsa) demo video linki güncel olsun.
-- [ ] **2.2.2** LEVEL3-ROADMAP veya README’de “Demo video linki” ve “Live demo linki” için placeholder’lar sen doldurana kadar açık kalsın.
-- [ ] **2.2.3** Doğrulama: README’yi okuyan biri demo ve repo’ya tek yerden ulaşabilsin.
+- [x] **2.2.1** README “Quick Links” veya “Canlı Demo” bölümünde: canlı demo URL’si, repo, (varsa) demo video linki güncel olsun.
+- [x] **2.2.2** LEVEL3-ROADMAP veya README’de “Demo video linki” ve “Live demo linki” için placeholder’lar sen doldurana kadar açık kalsın.
+- [x] **2.2.3** Doğrulama: README’yi okuyan biri demo ve repo’ya tek yerden ulaşabilsin.
 
 ### 2.3 Contract API dokümantasyonu (blockchain-developer)
 
-- [ ] **2.3.1** `docs/CONTRACT-API.md` (veya ARCHITECTURE.md’ye bölüm) ekle: `create_group`, `add_expense`, `settle_group`, `get_group`, `get_balances`, `compute_settlements`, guardian/recovery fonksiyonları; parametreler ve dönüşler kısaca.
-- [ ] **2.3.2** Frontend’in hangi fonksiyonları `contract.ts` üzerinden çağırdığını 1–2 cümleyle yaz.
-- [ ] **2.3.3** Doğrulama: Yeni geliştirici bu dokümandan kontrat arayüzünü anlayabilsin.
+- [x] **2.3.1** `docs/CONTRACT-API.md` (veya ARCHITECTURE.md’ye bölüm) ekle: `create_group`, `add_expense`, `settle_group`, `get_group`, `get_balances`, `compute_settlements`, guardian/recovery fonksiyonları; parametreler ve dönüşler kısaca.
+- [x] **2.3.2** Frontend’in hangi fonksiyonları `contract.ts` üzerinden çağırdığını 1–2 cümleyle yaz.
+- [x] **2.3.3** Doğrulama: Yeni geliştirici bu dokümandan kontrat arayüzünü anlayabilsin.
 
 ---
 
