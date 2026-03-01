@@ -73,8 +73,14 @@ test.describe('Create group → Add expense → Settle flow', () => {
     await settleTab.click();
     await expect(page.getByText(/Optimized Settlements|Hemen Öde|Settle now/i).first()).toBeVisible({ timeout: 5000 });
 
-    const settleBtn = page.getByRole('button', { name: /Hemen Öde|Settle now/i });
+    const settleBtn = page.getByRole('button', { name: /Hemen Öde|Settle now|Grubu Takas|Mark Group As Settled/i });
     await expect(settleBtn).toBeVisible({ timeout: 3000 });
+    await settleBtn.click();
+
+    // After settle: success toast or settled state (demo mode completes immediately)
+    await expect(
+      page.getByText(/Group settled successfully|Takas başarılı|settled successfully|success/i)
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('create group modal shows estimated fee when form is valid', async ({ page }) => {
