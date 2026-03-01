@@ -39,11 +39,12 @@ const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--c
 export function DashboardCharts({
   balanceHistory = [],
   txByDay = [],
-  feeTotal = 0,
+  feeTotal = 0, // reserved for future fee display; intentionally unused for now
   assetLabel = 'XLM',
   assetPercent = 100,
   className = '',
 }: DashboardChartsProps) {
+  void feeTotal;
   const hasBalance = balanceHistory.length > 0;
   const hasTx = txByDay.length > 0;
 

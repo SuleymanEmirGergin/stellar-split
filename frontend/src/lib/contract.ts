@@ -662,7 +662,8 @@ export async function settleGroup(
   if (!returnVal) throw new Error('No return value');
 
   const native = StellarSdk.scValToNative(returnVal);
-  if (!Array.isArray(native)) return { settlements: [], txHash: (result as any).id || (result as any).hash || '' };
+  const txHash = 'id' in result && typeof result.id === 'string' ? result.id : 'hash' in result && typeof (result as { hash?: string }).hash === 'string' ? (result as { hash: string }).hash : '';
+  if (!Array.isArray(native)) return { settlements: [], txHash };
 
   return {
     settlements: native.map((s: Record<string, unknown>) => ({
@@ -670,7 +671,7 @@ export async function settleGroup(
       to: String(s.to),
       amount: Number(s.amount),
     })),
-    txHash: (result as any).id || (result as any).hash || '',
+    txHash,
   };
 }
 
