@@ -16,6 +16,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+/* eslint-disable react-refresh/only-export-components -- useToast is a hook, not a component; shared with ToastProvider in same file */
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used within ToastProvider');

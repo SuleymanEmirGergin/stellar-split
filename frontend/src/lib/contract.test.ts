@@ -60,4 +60,29 @@ describe('contract (demo mode)', () => {
       expect(typeof s.amount).toBe('number');
     });
   });
+
+  it('getGroup in demo returns consistent shape for any group id', async () => {
+    const g = await getGroup(MOCK_CALLER, 999);
+    expect(g.id).toBe(999);
+    expect(g.name).toContain('999');
+    expect(Array.isArray(g.members)).toBe(true);
+    expect(g.members.length).toBeGreaterThanOrEqual(1);
+    expect(typeof g.creator).toBe('string');
+    expect(typeof g.expense_count).toBe('number');
+  });
+});
+
+describe('contract (validation)', () => {
+  const demoKey = 'stellarsplit_demo_mode';
+
+  afterEach(() => {
+    localStorage.removeItem(demoKey);
+  });
+
+  it('createGroup throws when fewer than 2 unique members (non-demo path)', async () => {
+    localStorage.removeItem(demoKey);
+    await expect(
+      createGroup(MOCK_CALLER, 'Solo', [MOCK_CALLER], 'XLM')
+    ).rejects.toThrow(/En az 2 üye|at least 2/i);
+  });
 });

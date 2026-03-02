@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { truncateAddress, getExplorerTxUrl } from '../lib/stellar';
 import { SkeletonShimmer } from './ui';
 
@@ -21,11 +21,7 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [walletAddress]);
-
-  async function fetchTransactions() {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -54,7 +50,11 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   function formatTime(iso: string) {
     const d = new Date(iso);

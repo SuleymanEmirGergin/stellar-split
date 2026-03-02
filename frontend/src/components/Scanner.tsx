@@ -33,7 +33,7 @@ export default function Scanner({ onScan, onClose }: Props) {
         }
       },
       () => {
-        // silent fail for most frames
+        // silent fail for most frames (error callback)
       }
     );
 

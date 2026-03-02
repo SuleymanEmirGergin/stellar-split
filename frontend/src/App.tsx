@@ -28,6 +28,9 @@ import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import CopyButton from './components/CopyButton';
 import { ReceivePanel } from './components/ui/ReceivePanel';
+import { WalletBridge } from './components/WalletBridge';
+import { ReputationDashboard } from './components/ReputationDashboard';
+import { generatePayURI } from './lib/sep7';
 import Logo from './components/Logo';
 import { sounds } from './lib/sound';
 import { useI18n } from './lib/i18n';
@@ -136,11 +139,13 @@ function AppContent() {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<{ prompt: () => Promise<{ outcome: string }> } | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(() => localStorage.getItem('stellarsplit_pwa_install_dismissed') !== 'true');
   const [showReceivePanel, setShowReceivePanel] = useState(false);
+  const [bridgeUri, setBridgeUri] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   const pathname = location.pathname;
   const isDashboard = pathname === '/dashboard';
+  const isReputation = pathname === '/reputation';
   const isGroup = pathname.startsWith('/group/');
   const isJoin = pathname.startsWith('/join/');
   const joinGroupId = isJoin ? parseInt(pathname.replace(/^\/join\//, ''), 10) : null;
@@ -193,13 +198,13 @@ function AppContent() {
         if (pathname === '/') navigate('/dashboard', { replace: true });
       }
     });
-  }, []);
+  }, [navigate, pathname]);
 
   useEffect(() => {
-    if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId)) && !isJoin) {
+    if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId) || isReputation) && !isJoin) {
       navigate('/', { replace: true });
     }
-  }, [walletAddress, pathname, isDashboard, isGroup, hasValidGroupId, isJoin, navigate]);
+  }, [walletAddress, pathname, isDashboard, isGroup, hasValidGroupId, isJoin, isReputation, navigate]);
 
   useEffect(() => {
     if (walletAddress && isGroup && !hasValidGroupId) {
@@ -275,6 +280,9 @@ function AppContent() {
             window.dispatchEvent(new CustomEvent('stellarsplit:new-group'));
           }
           break;
+        case 'r':
+          if (walletAddress) navigate('/reputation');
+          break;
         case 'e':
           if (isGroup && hasValidGroupId) {
             window.dispatchEvent(new CustomEvent('stellarsplit:new-expense'));
@@ -294,7 +302,7 @@ function AppContent() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isDashboard, isGroup, hasValidGroupId, addToast, demoMode]);
+  }, [isDashboard, isGroup, hasValidGroupId, addToast, demoMode, walletAddress, navigate]);
 
   const toggleDemoMode = useCallback(() => {
     const newMode = !demoMode;
@@ -476,7 +484,7 @@ function AppContent() {
           >
             {pathname === '/' && (
               !walletAddress ? (
-                <Landing onConnect={handleConnect} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
+                <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
               ) : (
                 <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
               )
@@ -484,8 +492,11 @@ function AppContent() {
             {pathname === '/dashboard' && walletAddress && (
               <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
             )}
-            {!walletAddress && (pathname === '/dashboard' || (isGroup && hasValidGroupId)) && !isJoin && (
-              <Landing onConnect={handleConnect} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
+            {isReputation && walletAddress && (
+              <ReputationDashboard walletAddress={walletAddress} isDemo={demoMode} onBack={() => navigate('/dashboard')} />
+            )}
+            {!walletAddress && (pathname === '/dashboard' || (isGroup && hasValidGroupId) || isReputation) && !isJoin && (
+              <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
             )}
             {isJoin && hasValidJoinGroupId && (
               <JoinPage
@@ -557,6 +568,7 @@ function AppContent() {
             <ReceivePanel
               address={walletAddress}
               onClose={() => setShowReceivePanel(false)}
+              onMobileBridge={setBridgeUri}
               onCopy={() => addToast(t('common.copied') || 'Copied')}
               t={t}
             />
@@ -565,6 +577,13 @@ function AppContent() {
       )}
 
       <Footer />
+
+      {bridgeUri && (
+        <WalletBridge
+          uri={bridgeUri}
+          onClose={() => setBridgeUri(null)}
+        />
+      )}
     </div>
   );
 }
