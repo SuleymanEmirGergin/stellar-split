@@ -20,13 +20,15 @@ export interface ScannedData {
   confidence: number;
 }
 
+import { runWiroTask, pollWiroTask, type WiroModel } from './wiro';
+
 const WIRO_API_KEY = import.meta.env.VITE_WIRO_API_KEY as string | undefined;
 const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
 
-const WIRO_RUN_URL = 'https://api.wiro.ai/v1/Run/openai/gpt-5-2';
-const WIRO_TASK_DETAIL_URL = 'https://api.wiro.ai/v1/Task/Detail';
-const POLL_INTERVAL_MS = 1500;
-const POLL_MAX_ATTEMPTS = 40; // ~60s
+/** Wiro API settings */
+const WIRO_REASONING = 'medium';
+const WIRO_VERBOSITY = 'medium';
+const WIRO_MODEL_DEFAULT: WiroModel = 'google/gemini-3-flash';
 
 const CATEGORIES = [
   'food',
@@ -60,117 +62,94 @@ function base64ToBlob(dataUrlOrBase64: string): Blob {
   return new Blob([bytes], { type: 'image/jpeg' });
 }
 
-async function wiroRunWithImage(imageBase64: string): Promise<string> {
-  if (!WIRO_API_KEY) throw new Error('VITE_WIRO_API_KEY is not set');
-  const blob = base64ToBlob(imageBase64);
+async function wiroRunWithImage(imageInput: string): Promise<string> {
   const form = new FormData();
-  form.append('inputImage', blob, 'receipt.jpg');
+  if (imageInput.startsWith('http://') || imageInput.startsWith('https://')) {
+    form.append('inputImage', imageInput);
+  } else {
+    const blob = base64ToBlob(imageInput);
+    form.append('inputImage', blob, 'receipt.jpg');
+  }
   form.append('prompt', RECEIPT_PROMPT);
-  form.append('reasoning', 'low');
+  form.append('reasoning', WIRO_REASONING);
   form.append('webSearch', 'false');
-  form.append('verbosity', 'low');
+  form.append('verbosity', WIRO_VERBOSITY);
 
-  const res = await fetch(WIRO_RUN_URL, {
-    method: 'POST',
-    headers: { 'x-api-key': WIRO_API_KEY },
-    body: form,
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Wiro Run failed: ${res.status} ${err}`);
-  }
-  const data = (await res.json()) as { errors?: unknown[]; taskid?: string; socketaccesstoken?: string; result?: boolean };
-  if (data.errors?.length) throw new Error(`Wiro errors: ${JSON.stringify(data.errors)}`);
-  const token = data.socketaccesstoken;
-  if (!token) throw new Error('Wiro Run did not return socketaccesstoken');
-  return token;
+  return await runWiroTask(WIRO_MODEL_DEFAULT, form);
 }
 
-interface WiroTaskItem {
-  status?: string;
-  outputs?: Array<{ url?: string; contenttype?: string }>;
-  debugoutput?: string;
-  [key: string]: unknown;
-}
 
-async function wiroPollTaskDetail(taskToken: string): Promise<WiroTaskItem | null> {
-  const res = await fetch(WIRO_TASK_DETAIL_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': WIRO_API_KEY!,
-    },
-    body: JSON.stringify({ tasktoken: taskToken }),
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { tasklist?: WiroTaskItem[]; result?: boolean };
-  const task = data.tasklist?.[0];
-  if (!task) return null;
-  return task;
-}
 
-async function callWiroVision(imageBase64: string): Promise<ScannedData> {
-  const taskToken = await wiroRunWithImage(imageBase64);
-  for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-    const task = await wiroPollTaskDetail(taskToken);
-    if (!task) continue;
-    const status = task.status || '';
-    if (status === 'task_postprocess_end' || status === 'task_end') {
-      let jsonStr: string | null = null;
-      if (task.outputs?.length) {
-        for (const out of task.outputs) {
-          if (!out.url) continue;
-          const ct = (out.contenttype || '').toLowerCase();
-          if (ct.includes('json') || ct.includes('text')) {
-            const r = await fetch(out.url);
-            if (r.ok) jsonStr = await r.text();
-            break;
-          }
-        }
-        if (!jsonStr && task.outputs[0]?.url) {
-          const r = await fetch(task.outputs[0].url);
-          if (r.ok) {
-            const text = await r.text();
-            if (text.trim().startsWith('{') && text.includes('"merchant"')) jsonStr = text;
-          }
-        }
+/** Wiro task status for optional progress UI. Connect to wss://socket.wiro.ai/v1, send {"type":"task_info","tasktoken":"..."}. */
+export type WiroTaskStatus =
+  | 'task_queue'
+  | 'task_accept'
+  | 'task_preprocess_start'
+  | 'task_preprocess_end'
+  | 'task_assign'
+  | 'task_start'
+  | 'task_output'
+  | 'task_error'
+  | 'task_end'
+  | 'task_postprocess_start'
+  | 'task_postprocess_end';
+
+/**
+ * Optional: connect to Wiro WebSocket for real-time task progress.
+ * Call with socketaccesstoken from Run response; onStatus is called with each status.
+ * Returns a disconnect function.
+ */
+export function wiroConnectProgress(
+  socketAccessToken: string,
+  onStatus: (status: WiroTaskStatus, message?: string) => void
+): () => void {
+  if (typeof WebSocket === 'undefined') return () => {};
+  const ws = new WebSocket('wss://socket.wiro.ai/v1');
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'task_info', tasktoken: socketAccessToken }));
+  };
+  ws.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data as string) as { type?: string; message?: string };
+      if (msg.type && msg.type.startsWith('task_')) {
+        onStatus(msg.type as WiroTaskStatus, msg.message);
       }
-      if (!jsonStr && typeof task.debugoutput === 'string' && task.debugoutput.trim()) {
-        jsonStr = task.debugoutput.trim();
-      }
-      if (!jsonStr) {
-        for (const [, v] of Object.entries(task)) {
-          if (typeof v === 'string' && v.trim().startsWith('{') && v.includes('"merchant"')) {
-            jsonStr = v.trim();
-            break;
-          }
-        }
-      }
-      if (jsonStr) {
-        const cleaned = jsonStr.replace(/^```json\s*|\s*```$/g, '').trim();
-        const parsed = JSON.parse(cleaned) as {
-          merchant?: string;
-          currency?: string;
-          items?: Array<{ description: string; amount: number; category: string }>;
-          totalAmount?: number;
-        };
-        const items: ScannedItem[] = (parsed.items || []).map((item) => ({
-          description: typeof item.description === 'string' ? item.description : 'Item',
-          amount: typeof item.amount === 'number' ? item.amount : 0,
-          category: (item.category && (CATEGORIES as readonly string[]).includes(item.category)) ? (item.category as Category) : 'other',
-        }));
-        return {
-          merchant: parsed.merchant || 'Unknown',
-          currency: parsed.currency || 'XLM',
-          items,
-          totalAmount: typeof parsed.totalAmount === 'number' ? parsed.totalAmount : 0,
-          confidence: 0.9,
-        };
-      }
+    } catch {
+      // ignore
     }
-  }
-  throw new Error('Wiro task did not return receipt JSON in time');
+  };
+  return () => {
+    try {
+      ws.close();
+    } catch {
+      // ignore
+    }
+  };
+}
+
+async function callWiroVision(
+  imageBase64: string,
+  onProgress?: (status: string) => void
+): Promise<ScannedData> {
+  const taskToken = await wiroRunWithImage(imageBase64);
+  const resultText = await pollWiroTask(taskToken, onProgress);
+  
+  const cleaned = resultText.replace(/^```json\s*|\s*```$/g, '').trim();
+  const parsed = JSON.parse(cleaned);
+
+  const items: ScannedItem[] = (parsed.items || []).map((item: { description?: string; amount?: number; category?: string }) => ({
+    description: typeof item.description === 'string' ? item.description : 'Item',
+    amount: typeof item.amount === 'number' ? item.amount : 0,
+    category: (item.category && (CATEGORIES as readonly string[]).includes(item.category)) ? (item.category as Category) : 'other',
+  }));
+
+  return {
+    merchant: parsed.merchant || 'Unknown',
+    currency: parsed.currency || 'XLM',
+    items,
+    totalAmount: typeof parsed.totalAmount === 'number' ? parsed.totalAmount : 0,
+    confidence: 0.9,
+  };
 }
 
 async function callOpenAIVision(imageBase64: string): Promise<ScannedData> {
@@ -311,10 +290,33 @@ async function runLocalOCR(imageBase64: string): Promise<ScannedData> {
   };
 }
 
-export async function scanReceiptAI(imageBase64: string): Promise<ScannedData> {
+/** Returns true when a receipt AI backend (Wiro or OpenAI) is configured. */
+export function hasReceiptAI(): boolean {
+  return !!(WIRO_API_KEY || OPENAI_KEY);
+}
+
+/** Demo/sample receipt data for when no API key is set. Use in UI as "Demo fiş" button. */
+export function getMockScannedData(): ScannedData {
+  return {
+    merchant: 'Demo Kafe',
+    currency: 'XLM',
+    items: [
+      { description: 'Kahve', amount: 2.5, category: 'food' },
+      { description: 'Sandviç', amount: 4.0, category: 'food' },
+      { description: 'Kurabiye', amount: 1.5, category: 'food' },
+    ],
+    totalAmount: 8,
+    confidence: 0.9,
+  };
+}
+
+export async function scanReceiptAI(
+  imageBase64: string,
+  onWiroProgress?: (status: string) => void
+): Promise<ScannedData> {
   if (WIRO_API_KEY) {
     try {
-      return await callWiroVision(imageBase64);
+      return await callWiroVision(imageBase64, onWiroProgress);
     } catch (err) {
       console.warn('Wiro Vision failed, trying fallback:', err);
       if (OPENAI_KEY) {
@@ -336,4 +338,60 @@ export async function scanReceiptAI(imageBase64: string): Promise<ScannedData> {
     }
   }
   return await runLocalOCR(imageBase64);
+}
+
+/**
+ * Innovation #7: Financial Intelligence (RAG Advisor)
+ */
+export interface FinancialAdvice {
+  summary: string;
+  tips: string[];
+  savingPlan?: string;
+}
+
+export async function adviseFinancial(
+  walletAddress: string,
+  context: { groups: any[], balances: Record<string, number> },
+  userQuery?: string
+): Promise<FinancialAdvice> {
+  if (!WIRO_API_KEY) throw new Error('VITE_WIRO_API_KEY is not set');
+
+  const ragContext = `
+    User Wallet: ${walletAddress}
+    Managed Groups: ${context.groups.length}
+    Group Details: ${JSON.stringify(context.groups.map(g => ({ name: g.name, members: g.memberCount })))}
+    Current Balances (Stroops): ${JSON.stringify(context.balances)}
+  `;
+
+  const prompt = `
+    You are StellarSplit Advanced Financial Advisor. 
+    Analyze this user's group spending and balances on the Stellar network:
+    ${ragContext}
+
+    User Question (if any): ${userQuery || "Provide a general monthly savings and optimization report."}
+
+    Focus on:
+    1. Reducing debt in groups.
+    2. Optimizing XLM/USDC holdings.
+    3. Suggesting DeFi yield strategies available on Stellar.
+    4. Providing 3 actionable saving tips.
+
+    Reply with valid JSON only:
+    {
+      "summary": "...",
+      "tips": ["tip1", "tip2", "tip3"],
+      "savingPlan": "..."
+    }
+  `;
+
+  const form = new FormData();
+  form.append('prompt', prompt);
+  form.append('thinkingLevel', 'low');
+  form.append('temperature', '1');
+
+  const taskToken = await runWiroTask(WIRO_MODEL_DEFAULT, form);
+  const resultText = await pollWiroTask(taskToken);
+  
+  const cleaned = resultText.replace(/^```json\s*|\s*```$/g, '').trim();
+  return JSON.parse(cleaned) as FinancialAdvice;
 }
