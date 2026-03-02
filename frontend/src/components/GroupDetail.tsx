@@ -17,9 +17,10 @@ import {
   QrCode,
   Plus,
   Share2,
-  Link
+  Link,
+  Target
 } from 'lucide-react';
-import { getRecovery, type RecoveryRequest, estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
+import { getRecovery, getGuardians, type RecoveryRequest, type GuardianConfig, estimateSettleGroupFee, type EstimatedFee, isDemoMode } from '../lib/contract';
 import { useGroup, useGroupExpenses, useBalances, useGroupSettlements, groupKeys } from '../hooks/useGroupQuery';
 import { useAddExpenseMutation, useCancelExpenseMutation, useSettleGroupMutation, useAddMemberMutation, useRemoveMemberMutation } from '../hooks/useExpenseMutations';
 import { useQueryClient } from '@tanstack/react-query';
@@ -44,8 +45,10 @@ import RecurringTab from './tabs/RecurringTab';
 import SocialTab from './tabs/SocialTab';
 import GovernanceTab from './tabs/GovernanceTab';
 import SecurityTab from './tabs/SecurityTab';
+import { SocialSavings } from './SocialSavings';
 
 import { sendWebhookNotification, sendSettlementReadyNotification, sendLocalNotification, requestNotificationPermission } from '../lib/notifications';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { 
   type RecurringTemplate, 
   loadSubscriptions, 
@@ -53,12 +56,23 @@ import {
   saveSubscriptions, 
 } from '../lib/recurring';
 import { getLiveApy } from '../lib/defi';
-import { type Proposal, loadProposals, saveProposals, type VoteOption } from '../lib/governance';
-import { scanReceiptAI, type ScannedData } from '../lib/ai';
+import { loadAllGuardians, loadRecoveryRequest } from '../lib/recovery';
+import { 
+  type Proposal, 
+  loadProposals, 
+  saveProposals, 
+  type VoteOption,
+  type Dispute,
+  loadDisputes,
+  saveDisputes,
+  initiateDispute
+} from '../lib/governance';
+import { scanReceiptAI, hasReceiptAI, getMockScannedData, type ScannedData } from '../lib/ai';
 import { useI18n } from '../lib/i18n';
 import { useToast } from './Toast';
 import { TxStatusTimeline, type TxStatus } from './ui/TxStatusTimeline';
 import SubscriptionModal from './SubscriptionModal';
+import { NotificationCenter } from './NotificationCenter';
 import { isSubscriptionDue } from '../lib/recurring';
 import { useXlmUsd } from '../lib/xlmPrice';
 import { track } from '../lib/analytics';
@@ -71,7 +85,7 @@ interface Props {
   isOffline?: boolean;
 }
 
-type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery';
+type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'savings' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery';
 
 export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, isOffline }: Props) {
   const { t, lang } = useI18n();
@@ -109,6 +123,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const [webhookNotifyPref, setWebhookNotifyPref] = useState<WebhookNotifyPref>(() => (localStorage.getItem(`webhook_pref_${groupId}`) as WebhookNotifyPref) || 'all');
   const [webhookNotifySettlement, setWebhookNotifySettlement] = useState<boolean>(() => localStorage.getItem(`webhook_settlement_${groupId}`) !== 'false');
   const [subscriptions, setSubscriptions] = useState<RecurringTemplate[]>(() => loadSubscriptions(groupId));
+  const [disputes, setDisputes] = useState<Dispute[]>(() => loadDisputes(groupId));
   const [liveApy, setLiveApy] = useState<number | null>(null);
   const [showAddSub, setShowAddSub] = useState(false);
   const [proposals, setProposals] = useState<Proposal[]>(() => loadProposals(groupId));
@@ -120,6 +135,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const [ocrResult, setOcrResult] = useState<ScannedData | null>(null);
   const [selectedOcrItems, setSelectedOcrItems] = useState<number[]>([]);
   const [activeRecovery, setActiveRecovery] = useState<RecoveryRequest | null>(null);
+  const [guardianConfig, setGuardianConfig] = useState<GuardianConfig | null>(null);
   const [filterSearch, setFilterSearch] = useState('');
 
   const [settling, setSettling] = useState(false);
@@ -157,19 +173,47 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
 
 
-  useEffect(() => {
-    async function checkRecovery() {
-      if (walletAddress) {
-        try {
-          const req = await getRecovery(walletAddress, walletAddress);
-          setActiveRecovery(req);
-        } catch (err) {
-          console.error('Failed to fetch recovery:', err);
+  const loadSecurityData = useCallback(async () => {
+    if (!walletAddress) return;
+    try {
+      if (isDemoMode()) {
+        const local = loadAllGuardians(groupId)[walletAddress];
+        if (local) {
+          setGuardianConfig({
+            user: local.userAddress,
+            guardians: local.guardians,
+            threshold: local.threshold,
+          });
+        } else {
+          setGuardianConfig(null);
         }
+        const req = loadRecoveryRequest(groupId);
+        if (req && req.status === 'pending' && req.targetAddress === walletAddress) {
+          setActiveRecovery({
+            target: req.targetAddress,
+            new_address: req.newAddress,
+            approvals: req.approvals,
+            status: 0,
+          });
+        } else {
+          setActiveRecovery(null);
+        }
+      } else {
+        const [req, config] = await Promise.all([
+          getRecovery(walletAddress, walletAddress),
+          getGuardians(walletAddress, walletAddress),
+        ]);
+        setActiveRecovery(req ?? null);
+        setGuardianConfig(config ?? null);
       }
+    } catch (err) {
+      console.error('Failed to fetch security data:', err);
     }
-    checkRecovery();
-  }, [walletAddress]);
+  }, [walletAddress, groupId]);
+
+  useEffect(() => {
+    loadSecurityData();
+  }, [loadSecurityData]);
 
   // Event polling: refresh group when contract events (expense_added, group_settled, etc.) occur
   useEffect(() => {
@@ -200,7 +244,12 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     if (lastSent === String(settlements.length)) return;
     localStorage.setItem(key, String(settlements.length));
     sendSettlementReadyNotification(webhookUrl, { groupName: group.name, transactionCount: settlements.length });
-  }, [groupId, group, webhookUrl, webhookNotifySettlement, settlements.length]);
+    useNotificationStore.getState().add({
+      title: t('group.settle'),
+      body: `${group.name}: ${settlements.length} transfer ile takas planı hazır.`,
+      type: 'settlement',
+    });
+  }, [groupId, group, webhookUrl, webhookNotifySettlement, settlements.length, t]);
 
   // Automated Subscription Processing
   useEffect(() => {
@@ -258,6 +307,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
       requestNotificationPermission().then(granted => {
         if (granted) sendLocalNotification(t('group.new_expense'), `${expDesc.trim()} eklendi.`);
       });
+      useNotificationStore.getState().add({ title: t('group.new_expense'), body: `${expDesc.trim()} — ${amountXlm.toFixed(2)} XLM`, type: 'expense' });
 
       setShowAdd(false);
       setExpAmount('');
@@ -345,7 +395,8 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
       track('group_settled');
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 4000);
-      addToast(t('group.settled_success') || 'Group settled successfully!', 'success');
+      addToast(t('group.settled_success'), 'success');
+      addToast(t('group.reward_earned'), 'success');
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Takas başarısız';
       const msg = translateError(raw, langKey);
@@ -443,6 +494,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     { key: 'expenses', label: t('group.expenses'), icon: Receipt },
     { key: 'balances', label: t('group.balances'), icon: BarChart3 },
     { key: 'settle', label: t('group.settle'), icon: Zap },
+    { key: 'savings', label: 'Birikim', icon: Target },
     { key: 'insights', label: t('group.insights'), icon: Info },
     { key: 'recurring', label: t('group.recurring'), icon: Repeat },
     { key: 'defi', label: 'DeFi', icon: DollarSign },
@@ -484,6 +536,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <NotificationCenter />
           <button
             type="button"
             onClick={async () => {
@@ -578,6 +631,13 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             setShowAdd={setShowAdd}
             setAddExpenseError={setAddExpenseError}
             t={t}
+            onDispute={(exp) => {
+              const newDispute = initiateDispute(walletAddress, exp.id.toString(), exp.amount, exp.category || 'other', `Harcama İtirazı: ${exp.description}`);
+              const updated = [...disputes, newDispute];
+              setDisputes(updated);
+              saveDisputes(groupId, updated);
+              addToast("İtiraz süreci başlatıldı (DAO Lite)");
+            }}
           />
         )}
 
@@ -631,6 +691,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             )}
             <SettleTab
             groupId={groupId}
+            groupMembers={group.members}
             walletAddress={walletAddress}
             expenses={expenses}
             settlements={settlements}
@@ -648,7 +709,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           </>
         )}
 
-        {tab === 'insights' && <InsightsPanel expenses={expenses} members={group.members} group={group} />}
+        {tab === 'insights' && <InsightsPanel expenses={expenses} members={group.members} group={group} currentUser={walletAddress} />}
 
         {tab === 'defi' && (
           <DeFiTab
@@ -663,6 +724,16 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           <RecurringTab
             subscriptions={subscriptions}
             setShowAddSub={setShowAddSub}
+            onToggle={(id) => {
+              const updated = subscriptions.map(s => s.id === id ? { ...s, status: s.status === 'active' ? 'paused' : 'active' } : s);
+              setSubscriptions(updated);
+              saveSubscriptions(groupId, updated);
+            }}
+            onDelete={(id) => {
+              const updated = subscriptions.filter(s => s.id !== id);
+              setSubscriptions(updated);
+              saveSubscriptions(groupId, updated);
+            }}
           />
         )}
 
@@ -680,13 +751,35 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           />
         )}
 
+        {tab === 'savings' && (
+          <SocialSavings 
+            groupId={groupId} 
+            walletAddress={walletAddress} 
+          />
+        )}
+
         {tab === 'governance' && (
           <GovernanceTab
             group={group}
             proposals={proposals}
+            disputes={disputes}
             walletAddress={walletAddress}
             setShowAddPropose={setShowAddPropose ?? (() => {})}
-            handleVote={(id, vote) => handleVote(String(id), vote)}
+            handleVote={(id, vote, isDispute) => {
+              if (isDispute) {
+                const updated = disputes.map(d => {
+                  if (d.id === id) {
+                    const newVotes = { ...d.votes, [walletAddress]: vote };
+                    return { ...d, votes: newVotes };
+                  }
+                  return d;
+                });
+                setDisputes(updated);
+                saveDisputes(groupId, updated);
+              } else {
+                handleVote(String(id), vote);
+              }
+            }}
           />
         )}
 
@@ -695,6 +788,8 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             group={group}
             walletAddress={walletAddress}
             activeRecovery={activeRecovery}
+            guardianConfig={guardianConfig}
+            onRefresh={loadSecurityData}
             t={t}
             addToast={addToast}
           />
@@ -714,6 +809,9 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             onClick={()=>setShowAdd(false)}
           >
              <motion.div 
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-expense-modal-title"
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
@@ -727,18 +825,18 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                     <Receipt size={24} />
                   </div>
-                  <h3 className="text-2xl font-black tracking-tighter">{t('group.new_expense')}</h3>
+                  <h3 id="add-expense-modal-title" className="text-2xl font-black tracking-tighter">{t('group.new_expense')}</h3>
                 </div>
 
                 <div className="space-y-4">
                    <div className="relative">
                      <Receipt className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                     <input className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-sm font-bold outline-none focus:border-indigo-500/50 transition-all" placeholder={t('group.what_for')} value={expDesc} onChange={e=>setExpDesc(e.target.value)} />
+                     <input data-testid="expense-description-input" aria-label={t('group.what_for')} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-sm font-bold outline-none focus:border-indigo-500/50 transition-all" placeholder={t('group.what_for')} value={expDesc} onChange={e=>setExpDesc(e.target.value)} />
                    </div>
                    
                    <div className="relative">
                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-                     <input className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-xl font-black tabular-nums outline-none focus:border-indigo-500/50 transition-all" placeholder="0.00" value={expAmount} onChange={e=>setExpAmount(e.target.value)} />
+                     <input data-testid="expense-amount-input" aria-label={t('group.amount') || 'Amount'} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-xl font-black tabular-nums outline-none focus:border-indigo-500/50 transition-all" placeholder="0.00" value={expAmount} onChange={e=>setExpAmount(e.target.value)} />
                    </div>
 
                    <div>
@@ -778,6 +876,20 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                         {uploading || aiScanning ? <Zap className="animate-spin" size={14} /> : <Camera size={14} />}
                         {uploading ? t('group.uploading') : (aiScanning ? t('group.analyzing') : t('group.scan_receipt'))}
                       </label>
+                      {!hasReceiptAI() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const mock = getMockScannedData();
+                            setOcrResult(mock);
+                            setSelectedOcrItems(mock.items.map((_, i) => i));
+                          }}
+                          className="px-4 py-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-400 hover:bg-amber-500/20 transition-all whitespace-nowrap"
+                          data-testid="demo-receipt-btn"
+                        >
+                          {t('ocr.demo_receipt')}
+                        </button>
+                      )}
                    </div>
 
                     {addExpenseError && (
@@ -863,21 +975,26 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             onClick={() => setShowAddPropose(false)}
           >
             <motion.div 
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-proposal-modal-title"
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               className="bg-card w-full max-w-sm rounded-[40px] p-8 border border-white/5"
               onClick={e => e.stopPropagation()}
             >
-              <h3 className="text-xl font-black mb-6 tracking-tight">{t('group.new_proposal')}</h3>
+              <h3 id="add-proposal-modal-title" className="text-xl font-black mb-6 tracking-tight">{t('group.new_proposal')}</h3>
               <div className="space-y-4">
                 <input 
+                  aria-label={t('group.proposal_title_placeholder')}
                   className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/50 transition-all font-medium" 
                   placeholder={t('group.proposal_title_placeholder')} 
                   value={newPropTitle} 
                   onChange={e => setNewPropTitle(e.target.value)} 
                 />
                 <textarea 
+                  aria-label={t('group.proposal_desc_placeholder')}
                   className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/50 transition-all font-medium" 
                   placeholder={t('group.proposal_desc_placeholder')} 
                   rows={4}
