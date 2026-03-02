@@ -131,3 +131,12 @@ Bu belge, **Level 3** gereksinimlerine göre projenin mevcut durumunu ve yapıla
 - [x] Deploy config (vercel.json, netlify.toml) repo’da
 
 Bu yol haritasına göre sırayla deploy → linkleri README’ye yaz → video → commit kontrolü yapıldığında Level 3 teslim gereksinimleri karşılanmış olur.
+
+---
+
+## Skill tabanlı genel yol haritası
+
+Proje yapısının skill'lerle (blockchain-developer, solidity-security, web3-testing, concise-planning, lint-and-validate, systematic-debugging) detaylı incelemesi ve uygulama planı:
+
+- **[SKILLS-ROADMAP.md](SKILLS-ROADMAP.md)** — Proje analizi, skill → yapılacaklar eşlemesi, öncelik sıralaması.
+- **[SKILLS-IMPLEMENTATION-PLAN.md](SKILLS-IMPLEMENTATION-PLAN.md)** — Faz faz (temizlik → test/doküman → iyileştirme) uygulama adımları ve checkbox'lar.
