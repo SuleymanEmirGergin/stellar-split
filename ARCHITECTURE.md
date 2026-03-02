@@ -13,6 +13,8 @@
 3. Group detail (`/group/:id`) loads group, expenses, balances, and settlements from the contract (or demo mocks).
 4. Settlements are computed on-chain with a greedy algorithm (see `contracts/stellar_split/src/settle.rs`).
 
+Kontrat fonksiyonları ve parametrelerin özeti: [docs/CONTRACT-API.md](docs/CONTRACT-API.md).
+
 ## Demo / mock features
 
 Several UI features are implemented with **in-app or localStorage-only** logic (no production backend). See the [Demo / Mock Features](README.md#-demo--mock-features) section in the README for the full table (receipt storage, AI scan, DeFi, recovery, webhooks). When **Demo Mode** is on, all contract calls are bypassed and replaced with local mocks so the app works offline.
