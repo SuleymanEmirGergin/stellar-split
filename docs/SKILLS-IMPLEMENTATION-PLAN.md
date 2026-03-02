@@ -74,25 +74,25 @@ Bu belge [SKILLS-ROADMAP.md](SKILLS-ROADMAP.md) ile uyumlu **adım adım uygulam
 
 ### 3.1 Frontend: contract edge case testleri (web3-testing)
 
-- [ ] **3.1.1** `frontend/src/lib/contract.test.ts` veya yeni bir test dosyasında: Demo mode kapalıyken “group not found” veya simulation hatası senaryosu (mock fetch/RPC) ile hata mesajı veya throw doğrulansın.
-- [ ] **3.1.2** Doğrulama: `npm run test:run` geçsin.
+- [x] **3.1.1** `frontend/src/lib/contract.test.ts` veya yeni bir test dosyasında: Demo mode kapalıyken “group not found” veya simulation hatası senaryosu (mock fetch/RPC) ile hata mesajı veya throw doğrulansın.
+- [x] **3.1.2** Doğrulama: `npm run test:run` geçsin.
 
 ### 3.2 E2E: Settle sonrası doğrulama (web3-testing)
 
-- [ ] **3.2.1** `frontend/e2e/create-expense-settle.spec.ts` (veya benzeri) içinde: create group → add expense → Settle tab’a geç sonrası “Settled” veya işlem hash / success mesajı görünür mü kontrol et (demo mode’da).
-- [ ] **3.2.2** Doğrulama: `npm run e2e` ilgili spec’i geçsin.
+- [x] **3.2.1** `frontend/e2e/create-expense-settle.spec.ts` (veya benzeri) içinde: create group → add expense → Settle tab’a geç sonrası “Settled” veya işlem hash / success mesajı görünür mü kontrol et (demo mode’da).
+- [x] **3.2.2** Doğrulama: `npm run e2e` ilgili spec’i geçsin.
 
 ### 3.3 One-pager / submission summary (crypto-bd-agent)
 
-- [ ] **3.3.1** `docs/ONEPAGER.md` oluştur: Problem, Çözüm, Tech stack, Demo link, Testnet contract, “3+ tests passing” veya benzeri 3–5 madde.
-- [ ] **3.3.2** README’de “Submission summary” veya “One-pager” linki ekle (isteğe bağlı).
-- [ ] **3.3.3** Doğrulama: Jüri veya dış biri tek sayfadan projeyi özetleyebilsin.
+- [x] **3.3.1** `docs/ONEPAGER.md` oluştur: Problem, Çözüm, Tech stack, Demo link, Testnet contract, “3+ tests passing” veya benzeri 3–5 madde.
+- [x] **3.3.2** README’de “Submission summary” veya “One-pager” linki ekle (isteğe bağlı).
+- [x] **3.3.3** Doğrulama: Jüri veya dış biri tek sayfadan projeyi özetleyebilsin.
 
 ### 3.4 CI: Clippy (lint-and-validate)
 
-- [ ] **3.4.1** `.github/workflows/ci.yml` içinde contract-test job’ına (veya yeni bir job) `cargo clippy -- -D warnings` ekle.
-- [ ] **3.4.2** Clippy uyarı varsa kontrat kodunda düzelt.
-- [ ] **3.4.3** Doğrulama: CI’da Clippy geçsin.
+- [x] **3.4.1** `.github/workflows/ci.yml` içinde contract-test job’ına (veya yeni bir job) `cargo clippy -- -D warnings` ekle.
+- [x] **3.4.2** Clippy uyarı varsa kontrat kodunda düzelt.
+- [x] **3.4.3** Doğrulama: CI’da Clippy geçsin.
 
 ---
 
