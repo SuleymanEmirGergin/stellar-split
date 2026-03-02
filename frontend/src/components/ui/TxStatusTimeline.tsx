@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Loader2, Copy, ExternalLink } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
 import { maskAddress } from '../../lib/format';
 import { getExplorerTxUrl } from '../../lib/stellar';
 import CopyButton from '../CopyButton';

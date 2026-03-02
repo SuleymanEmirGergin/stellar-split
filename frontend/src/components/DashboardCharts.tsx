@@ -106,7 +106,7 @@ export default function DashboardCharts({
                 {assetDistribution.length > 1 && assetDistribution.slice(1).map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[(i + 1) % CHART_COLORS.length]} />
                 ))}
-              </PieChart>
+              </Pie>
               <Tooltip formatter={(v: number) => [`${Number(v)}%`, 'Share']} />
             </PieChart>
           </ResponsiveContainer>

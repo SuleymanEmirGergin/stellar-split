@@ -197,7 +197,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
     } finally {
       setCreating(false);
     }
-  }, [walletAddress, newName, newMembers, groups, saveGroups, currency]);
+  }, [walletAddress, newName, newMembers, groups, saveGroups, currency, t]);
 
   const totalMembers = groups.reduce((s, g) => s + g.memberCount, 0);
   const filteredGroups = groups

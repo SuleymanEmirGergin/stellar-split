@@ -193,7 +193,7 @@ function AppContent() {
         if (pathname === '/') navigate('/dashboard', { replace: true });
       }
     });
-  }, []);
+  }, [navigate, pathname]);
 
   useEffect(() => {
     if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId)) && !isJoin) {
