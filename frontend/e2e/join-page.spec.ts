@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-const E2E_WALLET = 'GDJJRRMBK4IWLEPJGIE6SXD2LP7FILNK6I6NMDPKPWUK4TTE4M7PXVK';
+import { seedDemoSession } from './utils/session';
 
 test.describe('Join page', () => {
   test('join page shows connect CTA when not connected', async ({ page }) => {
@@ -20,11 +19,7 @@ test.describe('Join page', () => {
   });
 
   test('join flow: open group lands on group detail', async ({ page }) => {
-    await page.addInitScript((wallet: string) => {
-      (window as unknown as { __PLAYWRIGHT_E2E_WALLET__?: string }).__PLAYWRIGHT_E2E_WALLET__ = wallet;
-      localStorage.setItem('stellarsplit_demo_mode', 'true');
-      localStorage.setItem('stellarsplit_joyride_done_v2', 'true');
-    }, E2E_WALLET);
+    await seedDemoSession(page);
 
     page.setDefaultTimeout(15000);
     await page.goto('/join/1', { waitUntil: 'domcontentloaded' });

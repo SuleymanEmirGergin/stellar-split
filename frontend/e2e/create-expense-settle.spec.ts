@@ -1,42 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ensureDashboardReady, seedDemoSession } from './utils/session';
 
-const E2E_WALLET = 'GDJJRRMBK4IWLEPJGIE6SXD2LP7FILNK6I6NMDPKPWUK4TTE4M7PXVK';
 const E2E_SECOND_MEMBER = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript((wallet: string) => {
-    (window as unknown as { __PLAYWRIGHT_E2E_WALLET__?: string }).__PLAYWRIGHT_E2E_WALLET__ = wallet;
-    localStorage.setItem('stellarsplit_demo_mode', 'true');
-    localStorage.setItem('stellarsplit_joyride_done_v2', 'true');
-  }, E2E_WALLET);
+  await seedDemoSession(page);
 });
-
-async function recoverFromErrorBoundary(page: Page): Promise<void> {
-  const errorTitle = page.getByRole('heading', { name: /Bir hata oluştu|Something went wrong/i });
-  if (!(await errorTitle.isVisible().catch(() => false))) return;
-  await page.getByRole('button', { name: /Tekrar dene|Retry/i }).click();
-  await expect(errorTitle).toBeHidden({ timeout: 10000 });
-}
-
-async function ensureDashboardReady(page: Page): Promise<void> {
-  const createGroupBtn = page.getByTestId('create-group-btn');
-  await recoverFromErrorBoundary(page);
-  if (await createGroupBtn.isVisible().catch(() => false)) return;
-
-  const connectBtn = page.getByTestId('landing-connect-btn');
-  if (await connectBtn.isVisible().catch(() => false)) {
-    await connectBtn.click();
-  }
-
-  const tryDemoBtn = page.getByTestId('landing-try-demo');
-  if (!(await createGroupBtn.isVisible().catch(() => false)) && (await tryDemoBtn.isVisible().catch(() => false))) {
-    await tryDemoBtn.click();
-  }
-
-  await recoverFromErrorBoundary(page);
-  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15000 });
-  await expect(createGroupBtn).toBeVisible({ timeout: 15000 });
-}
 
 async function openCreateGroupModal(page: Page): Promise<void> {
   const createGroupBtn = page.getByTestId('create-group-btn');
