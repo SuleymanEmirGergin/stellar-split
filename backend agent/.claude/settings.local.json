@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l \"c:/Users/emirg/OneDrive/Desktop/backend agent/backend-integrator/stacks/\"*.md)",
+      "Bash(wc -l \"c:/Users/emirg/OneDrive/Desktop/backend agent/validator-agent/\"*.md)",
+      "Bash(wc -l \"c:/Users/emirg/OneDrive/Desktop/backend agent/qa-agent/\"*.md)",
+      "Bash(wc -l \"c:/Users/emirg/OneDrive/Desktop/backend agent/repo-builder-agent/\"*.md)",
+      "Bash(wc -l \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/backend-integrator/stacks/*.md)",
+      "Bash(wc -l \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/backend-integrator/*.md \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/backend-integrator/*.json)",
+      "Bash(wc -l \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/validator-agent/*.md \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/validator-agent/*.json)",
+      "Bash(wc -l \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/repo-builder-agent/*.md \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/repo-builder-agent/*.json)",
+      "Bash(wc -l \"c:\\\\Users\\\\emirg\\\\OneDrive\\\\Desktop\\\\backend agent\"/qa-agent/*.md)",
+      "Bash(npm run:*)",
+      "Bash(node index.js validate frontend-backend \"../../pipeline-runs/linkpulse-fastapi/frontend-backend-handoff.json\")",
+      "Bash(node index.js validate repo \"../../pipeline-runs/snaplink-hono-workers/repo-handoff.json\")"
+    ]
+  }
+}

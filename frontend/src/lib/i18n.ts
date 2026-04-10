@@ -1004,7 +1004,7 @@ class TranslationEngine {
   }
 
   t(key: TranslationKey): string {
-    return translations[this.currentLang][key] || key;
+    return (translations[this.currentLang] as Record<string, string>)[key] || key;
   }
 }
 

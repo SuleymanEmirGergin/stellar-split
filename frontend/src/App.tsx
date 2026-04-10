@@ -1,21 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Shield, 
-  Globe, 
-  Sun, 
-  Moon, 
-  Link as LinkIcon, 
-  AlertTriangle, 
-  ArrowUpRight, 
+import {
+  Shield,
+  Globe,
+  Sun,
+  Moon,
+  Link as LinkIcon,
+  AlertTriangle,
+  ArrowUpRight,
   ArrowDownRight,
   Zap,
   Wifi,
   WifiOff,
-  QrCode
+  QrCode,
+  Settings
 } from 'lucide-react';
 import { isFreighterInstalled, connectFreighter, getFreighterAddress, isTestnet } from './lib/stellar';
+import { signInWithStellar, signOut } from './lib/siws';
 import { maskAddress } from './lib/format';
 import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
@@ -27,10 +29,11 @@ import JoinPage from './components/JoinPage';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import CopyButton from './components/CopyButton';
-import { ReceivePanel } from './components/ui/ReceivePanel';
+import { ReceivePanel, EasterEgg, AutoPitch } from './components/ui';
 import { WalletBridge } from './components/WalletBridge';
 import { ReputationDashboard } from './components/ReputationDashboard';
-import { generatePayURI } from './lib/sep7';
+import { NotificationCenter } from './components/NotificationCenter';
+import { SettingsPage } from './components/SettingsPage';
 import Logo from './components/Logo';
 import { sounds } from './lib/sound';
 import { useI18n } from './lib/i18n';
@@ -146,13 +149,22 @@ function AppContent() {
   const pathname = location.pathname;
   const isDashboard = pathname === '/dashboard';
   const isReputation = pathname === '/reputation';
+  const isSettings = pathname === '/settings';
   const isGroup = pathname.startsWith('/group/');
   const isJoin = pathname.startsWith('/join/');
   const joinGroupId = isJoin ? parseInt(pathname.replace(/^\/join\//, ''), 10) : null;
   const hasValidJoinGroupId = joinGroupId !== null && !Number.isNaN(joinGroupId);
-  // Route kullanmadigimiz icin useParams bos donuyor; id'yi pathname'den aliyoruz
-  const groupId = isGroup ? parseInt(pathname.replace(/^\/group\//, ''), 10) : null;
-  const hasValidGroupId = groupId !== null && !Number.isNaN(groupId);
+  // Support both numeric (Soroban) and string UUID (backend) group IDs
+  const groupIdRaw = isGroup ? pathname.replace(/^\/group\//, '') : null;
+  const groupIdNumeric = groupIdRaw ? parseInt(groupIdRaw, 10) : null;
+  // A group ID is valid if it's a non-empty string (UUID) or a valid number
+  const hasValidGroupId =
+    groupIdRaw != null &&
+    groupIdRaw.length > 0 &&
+    (isNaN(Number(groupIdRaw)) || !Number.isNaN(groupIdNumeric));
+  // Pass numeric ID to legacy Soroban components; fall back to raw string for backend groups
+  const groupId: string | number | null =
+    groupIdNumeric != null && !Number.isNaN(groupIdNumeric) ? groupIdNumeric : groupIdRaw;
 
   // Open Graph / document.title per route (helps JS-aware crawlers and tabs)
   useEffect(() => {
@@ -191,20 +203,27 @@ function AppContent() {
 
   useEffect(() => {
     isFreighterInstalled().then(setFreighterAvailable);
-    getFreighterAddress().then((addr) => {
+    getFreighterAddress().then(async (addr) => {
       if (addr) {
         setWalletAddress(addr);
         useAppStore.getState().setWalletAddress(addr);
+        // Silently re-authenticate with backend on page load
+        try {
+          const { user } = await signInWithStellar(addr);
+          useAppStore.getState().setBackendUser(user);
+        } catch {
+          // Backend unreachable or user cancelled — continue without JWT
+        }
         if (pathname === '/') navigate('/dashboard', { replace: true });
       }
     });
   }, [navigate, pathname]);
 
   useEffect(() => {
-    if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId) || isReputation) && !isJoin) {
+    if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId) || isReputation || isSettings) && !isJoin) {
       navigate('/', { replace: true });
     }
-  }, [walletAddress, pathname, isDashboard, isGroup, hasValidGroupId, isJoin, isReputation, navigate]);
+  }, [walletAddress, pathname, isDashboard, isGroup, hasValidGroupId, isJoin, isReputation, isSettings, navigate]);
 
   useEffect(() => {
     if (walletAddress && isGroup && !hasValidGroupId) {
@@ -242,6 +261,14 @@ function AppContent() {
       if (addr) {
         setWalletAddress(addr);
         useAppStore.getState().setWalletAddress(addr);
+        // Authenticate with backend (SIWS) — non-blocking; errors shown as info toasts
+        try {
+          const { user } = await signInWithStellar(addr);
+          useAppStore.getState().setBackendUser(user);
+        } catch (siwsErr) {
+          const siwsMsg = siwsErr instanceof Error ? siwsErr.message : 'Backend auth failed';
+          addToast(`${siwsMsg} (offline mode active)`, 'info');
+        }
         if (isJoin && hasValidJoinGroupId) {
           navigate(`/group/${joinGroupId}`);
         } else {
@@ -263,6 +290,9 @@ function AppContent() {
   const handleDisconnect = useCallback(() => {
     setWalletAddress(null);
     useAppStore.getState().setWalletAddress('');
+    useAppStore.getState().setBackendUser(null);
+    // Revoke backend session (fire-and-forget — don't block UI)
+    void signOut().catch(() => {});
     navigate('/');
     addToast(t('dash.empty'), 'info');
   }, [addToast, t, navigate]);
@@ -283,6 +313,9 @@ function AppContent() {
         case 'r':
           if (walletAddress) navigate('/reputation');
           break;
+        case 's':
+          if (walletAddress) navigate('/settings');
+          break;
         case 'e':
           if (isGroup && hasValidGroupId) {
             window.dispatchEvent(new CustomEvent('stellarsplit:new-expense'));
@@ -296,7 +329,7 @@ function AppContent() {
           break;
         }
         case '?':
-          addToast('⎯ N = Yeni Grup · E = Yeni Harcama · D = Demo Mod · Esc = Kapat', 'info');
+          addToast('⎯ N = Yeni Grup · E = Harcama · R = Reputasyon · S = Ayarlar · D = Demo', 'info');
           break;
       }
     };
@@ -315,7 +348,7 @@ function AppContent() {
     navigate(walletAddress ? '/dashboard' : '/');
   }, [walletAddress, navigate]);
 
-  const goToGroup = useCallback((id: number) => {
+  const goToGroup = useCallback((id: number | string) => {
     navigate(`/group/${id}`);
   }, [navigate]);
 
@@ -373,8 +406,8 @@ function AppContent() {
             <button
               onClick={toggleDemoMode}
               className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
-                demoMode 
-                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' 
+                demoMode
+                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
                   : 'text-muted-foreground hover:bg-white/5'
               }`}
               title={demoMode ? t('header.switch_testnet') : t('header.switch_demo')}
@@ -396,7 +429,24 @@ function AppContent() {
             >
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
+
+            {walletAddress && (
+              <button
+                onClick={() => navigate('/settings')}
+                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
+                  isSettings
+                    ? 'bg-white/10 text-foreground'
+                    : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                }`}
+                title="Settings (S)"
+              >
+                <Settings size={18} />
+              </button>
+            )}
           </div>
+
+          {/* Notifications */}
+          {walletAddress && <NotificationCenter />}
 
           {/* Wallet */}
           {walletAddress ? (
@@ -495,6 +545,13 @@ function AppContent() {
             {isReputation && walletAddress && (
               <ReputationDashboard walletAddress={walletAddress} isDemo={demoMode} onBack={() => navigate('/dashboard')} />
             )}
+            {isSettings && walletAddress && (
+              <SettingsPage
+                dark={dark}
+                toggleTheme={toggleTheme}
+                onDisconnect={handleDisconnect}
+              />
+            )}
             {!walletAddress && (pathname === '/dashboard' || (isGroup && hasValidGroupId) || isReputation) && !isJoin && (
               <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
             )}
@@ -584,6 +641,9 @@ function AppContent() {
           onClose={() => setBridgeUri(null)}
         />
       )}
+
+      <EasterEgg />
+      <AutoPitch />
     </div>
   );
 }

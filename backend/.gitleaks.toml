@@ -1,0 +1,24 @@
+[allowlist]
+description = "Allowlisted patterns"
+paths = [
+  '''.env.example''',
+  '''SECURITY.md''',
+]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT secret key"
+regex = '''JWT_SECRET\s*=\s*.{10,}'''
+tags = ["secret", "jwt"]
+
+[[rules]]
+id = "aws-key"
+description = "AWS/S3 access key"
+regex = '''S3_ACCESS_KEY_ID\s*=\s*[A-Z0-9]{16,}'''
+tags = ["secret", "aws"]
+
+[[rules]]
+id = "private-key"
+description = "Private key material"
+regex = '''PRIVATE_KEY\s*=\s*.{20,}'''
+tags = ["secret", "key"]

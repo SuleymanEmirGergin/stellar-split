@@ -1,13 +1,15 @@
 import { QRCodeSVG } from 'qrcode.react';
 import { maskAddress } from '../../lib/format';
 import CopyButton from '../CopyButton';
+import type { TranslationKey } from '../../lib/i18n';
 
 export interface ReceivePanelProps {
   address: string;
   onCopy?: () => void;
   onClose?: () => void;
+  onMobileBridge?: (uri: string) => void;
   /** Optional translation: (key) => string */
-  t?: (key: string) => string;
+  t?: (key: TranslationKey) => string;
   className?: string;
 }
 

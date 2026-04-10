@@ -24,6 +24,7 @@ interface ExpensesTabProps {
   setShowAdd: (val: boolean) => void;
   setAddExpenseError: (val: string | null) => void;
   t: (key: TranslationKey) => string;
+  onDispute?: (expense: Expense) => void;
 }
 
 const containerVars = {

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "1.0.0",
+  "reportType": "frontend-backend",
+  "status": "pass",
+  "timestamp": "2026-04-04T09:15:00Z",
+  "projectName": "LinkPulse",
+  "sourceFile": "frontend-backend-handoff.json",
+  "summary": {
+    "total": 16,
+    "passed": 16,
+    "warned": 0,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "id": "schema-required-fields",
+      "category": "schema",
+      "status": "pass",
+      "message": "All required top-level fields present: project, pages, forms, tables, actions, authFlows, uploads, externalTriggers, assumptions"
+    },
+    {
+      "id": "schema-project-stack",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.backendStackPreference present: 'FastAPI + PostgreSQL + SQLAlchemy + ARQ'"
+    },
+    {
+      "id": "schema-compliance-scope",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.complianceScope declared: 'none'"
+    },
+    {
+      "id": "schema-observability-baseline",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.observabilityBaseline declared: healthEndpoints=true, structuredLogging=true"
+    },
+    {
+      "id": "semantic-form-page-refs",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All forms reference valid pages: LoginForm→Login, RegisterForm→Register, LinkForm→LinkEditor, ProfileForm→ProfileSettings, ApiKeyCreateForm→ApiKeys"
+    },
+    {
+      "id": "semantic-table-page-refs",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All tables reference valid pages: LinkEditorList→LinkEditor, ApiKeysTable→ApiKeys"
+    },
+    {
+      "id": "semantic-action-target-refs",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All actions reference inferrable entities: Link, ApiKey"
+    },
+    {
+      "id": "semantic-auth-protected-pages",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All 5 protected pages declared in authFlows.login.protectedPages: Dashboard, LinkEditor, Analytics, ApiKeys, ProfileSettings"
+    },
+    {
+      "id": "semantic-upload-consistency",
+      "category": "semantic",
+      "status": "pass",
+      "message": "2 uploads defined (ProfileAvatar, LinkThumbnail); upload field in LinkForm references LinkThumbnail. Storage: S3, visibility: public — consistent."
+    },
+    {
+      "id": "semantic-external-trigger-types",
+      "category": "semantic",
+      "status": "pass",
+      "message": "3 externalTriggers: PublicClickTracking (custom/internal), ResendEmailDelivery (email-send), WeeklyDigestCron (cron). All have explicit expectedOutcome."
+    },
+    {
+      "id": "security-auth-flows-present",
+      "category": "security",
+      "status": "pass",
+      "message": "Required auth flows present: login, register, logout, refresh, email-verification"
+    },
+    {
+      "id": "security-upload-visibility-declared",
+      "category": "security",
+      "status": "pass",
+      "message": "All uploads have explicit visibility: public. No signed URLs needed — consistent with public S3 bucket assumption."
+    },
+    {
+      "id": "security-rate-limit-assumption",
+      "category": "security",
+      "status": "pass",
+      "message": "Rate limiting declared in assumptions for high-volume public click endpoint (200 req/min per IP)"
+    },
+    {
+      "id": "security-api-key-hash-assumption",
+      "category": "security",
+      "status": "pass",
+      "message": "API key storage security declared in assumptions: SHA-256 hash, only prefix stored in plaintext"
+    },
+    {
+      "id": "completeness-assumptions-present",
+      "category": "completeness",
+      "status": "pass",
+      "message": "10 assumptions declared covering: data model (single page per user), async click tracking, analytics pre-computation, Redis caching, API key hashing, S3 visibility, compliance scope, rate limiting, idempotency, job deduplication"
+    },
+    {
+      "id": "completeness-backend-inferable",
+      "category": "completeness",
+      "status": "pass",
+      "message": "All entities inferable from UI: User, Link, ClickEvent, AnalyticsSummary, ApiKey, EmailVerificationToken, RefreshToken. All endpoints derivable from pages/forms/actions/externalTriggers."
+    }
+  ],
+  "assumptions": [],
+  "fixHints": []
+}

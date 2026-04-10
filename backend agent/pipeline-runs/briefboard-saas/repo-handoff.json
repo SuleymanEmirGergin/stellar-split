@@ -1,0 +1,112 @@
+{
+  "meta": {
+    "generatedBy": "backend-integrator-agent",
+    "generatedAt": "2026-03-30T19:38:00Z",
+    "modeUsed": "/blueprint",
+    "schemaVersion": "2.1.0"
+  },
+  "project": {
+    "name": "BriefBoard",
+    "description": "Client portal SaaS for agencies to share project updates, milestones, and files with their clients.",
+    "repoType": "monorepo",
+    "deploymentTarget": "railway"
+  },
+  "frontend": {
+    "framework": "Next.js 14 (App Router)",
+    "apps": [
+      { "name": "web", "path": "apps/web" }
+    ]
+  },
+  "backend": {
+    "framework": "NestJS",
+    "language": "typescript",
+    "services": [
+      { "name": "api", "path": "apps/api", "type": "api" },
+      { "name": "worker", "path": "apps/worker", "type": "worker" }
+    ],
+    "database": "PostgreSQL 16",
+    "orm": "Prisma",
+    "auth": "JWT (access + refresh, HttpOnly cookie)"
+  },
+  "integrations": [
+    {
+      "name": "Stripe",
+      "type": "payment",
+      "provider": "Stripe",
+      "envVarsRequired": [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_STARTER_PRICE_ID",
+        "STRIPE_PRO_PRICE_ID",
+        "STRIPE_AGENCY_PRICE_ID"
+      ]
+    },
+    {
+      "name": "Resend",
+      "type": "email",
+      "provider": "Resend",
+      "envVarsRequired": [
+        "RESEND_API_KEY",
+        "EMAIL_FROM"
+      ]
+    },
+    {
+      "name": "AWS S3",
+      "type": "storage",
+      "provider": "S3",
+      "envVarsRequired": [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION",
+        "AWS_S3_BUCKET",
+        "STORAGE_SIGNED_URL_TTL"
+      ]
+    },
+    {
+      "name": "PostHog",
+      "type": "analytics",
+      "provider": "PostHog",
+      "envVarsRequired": [
+        "POSTHOG_API_KEY",
+        "POSTHOG_HOST"
+      ]
+    }
+  ],
+  "infrastructure": {
+    "queue": "BullMQ",
+    "cache": "Redis",
+    "storage": "S3",
+    "containerization": "docker-compose",
+    "cicd": "github-actions"
+  },
+  "security": {
+    "secretScanningEnabled": true,
+    "securityMdIncluded": true,
+    "ciSecurityScanStep": true,
+    "gitignoreComprehensive": true
+  },
+  "packages": [
+    {
+      "name": "@briefboard/types",
+      "path": "packages/types",
+      "purpose": "types",
+      "consumedBy": ["api", "web", "worker"]
+    },
+    {
+      "name": "@briefboard/config",
+      "path": "packages/config",
+      "purpose": "config",
+      "consumedBy": ["api", "web", "worker"]
+    }
+  ],
+  "assumptions": [
+    "Railway deployment chosen for simplicity — separate services for api and worker",
+    "PostgreSQL and Redis provisioned via Railway plugin",
+    "GitHub Actions CI for automated testing and deployment",
+    "pnpm workspaces + Turborepo for monorepo management",
+    "Shared @briefboard/types covers API request/response interfaces and Prisma enums",
+    "Shared @briefboard/config covers environment variable schemas (zod)",
+    "No CDN for file delivery in v1 — S3 signed URLs used directly",
+    "Worker service runs in same Railway project as API but separate service instance"
+  ]
+}

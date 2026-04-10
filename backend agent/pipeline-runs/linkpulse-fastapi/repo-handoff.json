@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "2.1.0",
+  "project": {
+    "name": "LinkPulse",
+    "description": "Link-in-bio analytics platform. FastAPI + ARQ + PostgreSQL + Redis + S3. Single-tenant by user.",
+    "framework": "fastapi",
+    "language": "python",
+    "runtime": "python3.12",
+    "packageManager": "pip",
+    "deploymentTarget": "railway",
+    "monorepo": false
+  },
+  "services": [
+    {
+      "name": "api",
+      "type": "api",
+      "port": 8000,
+      "entryPoint": "src/main.py",
+      "startCommand": "uvicorn src.main:app --host 0.0.0.0 --port 8000",
+      "dockerfile": "infra/Dockerfile.api",
+      "healthCheck": {
+        "live": "/health/live",
+        "ready": "/health/ready"
+      }
+    },
+    {
+      "name": "worker",
+      "type": "worker",
+      "entryPoint": "src/worker.py",
+      "startCommand": "python -m arq src.worker.WorkerSettings",
+      "dockerfile": "infra/Dockerfile.worker"
+    }
+  ],
+  "databases": [
+    {
+      "type": "postgresql",
+      "provider": "railway",
+      "migrationTool": "alembic",
+      "migrationCommand": "alembic upgrade head"
+    },
+    {
+      "type": "redis",
+      "provider": "railway",
+      "usages": ["arq-jobs", "rate-limiting", "idempotency-cache", "analytics-cache", "session-cache"]
+    }
+  ],
+  "entities": [
+    "User",
+    "Link",
+    "ClickEvent",
+    "AnalyticsSummary",
+    "ApiKey",
+    "EmailVerificationToken",
+    "RefreshToken"
+  ],
+  "endpoints": {
+    "total": 28,
+    "modules": ["auth", "links", "public", "analytics", "api-keys", "users", "health"]
+  },
+  "workers": [
+    {
+      "name": "record_click",
+      "queue": "default",
+      "trigger": "http-handler",
+      "idempotency": "job_id with 5-second dedup window",
+      "retries": 3
+    },
+    {
+      "name": "send_verification_email",
+      "queue": "default",
+      "trigger": "auth-register",
+      "idempotency": "job_id per user_id",
+      "retries": 3
+    },
+    {
+      "name": "aggregate_analytics",
+      "queue": "cron",
+      "trigger": "cron:every-hour",
+      "idempotency": "upsert on (user_id, date) unique constraint",
+      "retries": 2
+    },
+    {
+      "name": "send_weekly_digest",
+      "queue": "cron",
+      "trigger": "cron:monday-09:00-utc",
+      "idempotency": "arq cron schedule is inherently idempotent",
+      "retries": 2
+    }
+  ],
+  "integrations": [
+    {
+      "name": "Resend",
+      "type": "email",
+      "adapter": "src/adapters/resend_adapter.py",
+      "envVars": ["RESEND_API_KEY"]
+    },
+    {
+      "name": "S3",
+      "type": "storage",
+      "adapter": "src/adapters/s3_adapter.py",
+      "envVars": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "S3_PUBLIC_BUCKET"]
+    }
+  ],
+  "security": {
+    "authStrategy": "jwt-hs256",
+    "tokenStorage": "httponly-cookie-for-refresh",
+    "passwordHashing": "argon2id",
+    "secretScanning": true,
+    "gitleaksConfig": ".gitleaks.toml",
+    "securityMdIncluded": true,
+    "corsWhitelistConfigured": true,
+    "piiFieldsEncrypted": false,
+    "fieldEncryptionAlgorithm": "none",
+    "dependencyAudit": "pip-audit",
+    "rateLimitingEnabled": true,
+    "rateLimitingStrategy": "redis-sliding-window"
+  },
+  "observability": {
+    "structuredLogging": true,
+    "loggingLibrary": "structlog",
+    "correlationId": true,
+    "correlationIdHeader": "X-Request-Id",
+    "healthEndpointsPlanned": true,
+    "healthLive": "/health/live",
+    "healthReady": "/health/ready",
+    "prometheusMetrics": false,
+    "sentryEnabled": false,
+    "distributedTracing": false,
+    "distributedTracingNote": "2 services (api + worker); OTel deferred to v1.1 — add opentelemetry-sdk + ARQ task header propagation"
+  },
+  "meta": {
+    "playbooksApplied": [
+      "auth.md",
+      "uploads.md",
+      "analytics.md",
+      "rate-limiting.md",
+      "api-keys.md",
+      "caching.md",
+      "background-jobs.md",
+      "security.md",
+      "observability.md",
+      "idempotency.md"
+    ],
+    "stackGuidesApplied": ["fastapi.md"],
+    "deploymentGuideApplied": "deployments/railway.md"
+  },
+  "envVars": {
+    "api": [
+      "DATABASE_URL",
+      "REDIS_URL",
+      "JWT_SECRET",
+      "JWT_EXPIRES_IN",
+      "APP_DOMAIN",
+      "CORS_ALLOWED_ORIGINS",
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "AWS_REGION",
+      "S3_PUBLIC_BUCKET",
+      "RESEND_API_KEY",
+      "CLICK_RATE_LIMIT",
+      "AUTH_RATE_LIMIT",
+      "ANALYTICS_CACHE_TTL"
+    ],
+    "worker": [
+      "DATABASE_URL",
+      "REDIS_URL",
+      "RESEND_API_KEY",
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "AWS_REGION",
+      "S3_PUBLIC_BUCKET"
+    ]
+  },
+  "files": {
+    "envExample": ".env.example",
+    "gitleaks": ".gitleaks.toml",
+    "securityMd": "SECURITY.md",
+    "architectureMd": "ARCHITECTURE.md",
+    "dockerfile": ["infra/Dockerfile.api", "infra/Dockerfile.worker"],
+    "ciConfig": ".github/workflows/deploy-railway.yml"
+  }
+}

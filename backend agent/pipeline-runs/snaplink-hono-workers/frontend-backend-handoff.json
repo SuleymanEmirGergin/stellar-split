@@ -1,0 +1,227 @@
+{
+  "project": {
+    "name": "SnapLink",
+    "description": "URL shortener with click analytics. Users create short links and track clicks (geo, device, referrer) in real time. Public redirect endpoint runs at Cloudflare edge — zero cold start, global low latency.",
+    "frontendStack": "React + Vite (SPA, hosted on Cloudflare Pages)",
+    "backendStackPreference": "Hono + Cloudflare Workers + D1 + KV + Queues",
+    "deploymentTarget": "cloudflare-workers",
+    "complianceScope": "none",
+    "observabilityBaseline": {
+      "healthEndpoints": true,
+      "structuredLogging": true,
+      "distributedTracing": false,
+      "metricsEnabled": false
+    },
+    "notes": "Redirect endpoint (GET /:code) is the hot path — must be < 10ms. KV stores code→URL mapping (TTL 1h). D1 (SQLite at edge) for persistent data. CF Queue for fire-and-forget click analytics. Rate limiting via Upstash REST API (no TCP Redis in Workers). No Docker — deployed via wrangler."
+  },
+  "pages": [
+    {
+      "name": "Landing",
+      "route": "/",
+      "purpose": "Hero section with guest URL shortener. Paste a long URL, get a short link instantly (no auth required). Shows example shortened links and feature highlights.",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["GuestShortenForm", "ShortenResult", "FeatureList"],
+      "errorStates": ["invalid URL format", "URL blocked by safe browsing", "rate limit exceeded"]
+    },
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "purpose": "Overview for authenticated users: KPI cards (total links, total clicks today / this week / all time), sparkline chart of clicks last 14 days, top 5 links by clicks.",
+      "requiresAuth": true,
+      "dataDependencies": ["analyticsSummary", "topLinks", "clickTimeSeries"],
+      "components": ["KPICards", "SparklineChart", "TopLinksWidget"],
+      "emptyStates": ["no links yet — create your first short link"],
+      "errorStates": ["analytics unavailable"]
+    },
+    {
+      "name": "Links",
+      "route": "/links",
+      "purpose": "Full link management: table of all user links (short URL, destination, click count, status), create new link (with optional custom slug and UTM builder), toggle active, edit, delete.",
+      "requiresAuth": true,
+      "dataDependencies": ["links"],
+      "components": ["LinksTable", "CreateLinkModal", "UTMBuilderPanel"],
+      "emptyStates": ["no links yet — create your first"],
+      "errorStates": ["failed to create link", "slug already taken", "destination URL unreachable"]
+    },
+    {
+      "name": "Analytics",
+      "route": "/analytics",
+      "purpose": "Detailed analytics: click time series (daily/weekly/monthly toggle), geographic breakdown by country (bar chart), device type breakdown, top referrers table, date range picker.",
+      "requiresAuth": true,
+      "dataDependencies": ["clickTimeSeries", "geoBreakdown", "deviceBreakdown", "referrerBreakdown"],
+      "components": ["ClickVolumeChart", "GeoBreakdownChart", "DeviceBreakdown", "ReferrersTable", "DateRangePicker"],
+      "emptyStates": ["no click data in selected period"],
+      "errorStates": ["analytics unavailable"]
+    },
+    {
+      "name": "Settings",
+      "route": "/settings",
+      "purpose": "Account settings: update display name and email, change password, view account tier (free / pro), danger zone (delete account).",
+      "requiresAuth": true,
+      "dataDependencies": ["userProfile"],
+      "components": ["ProfileForm", "ChangePasswordForm", "DangerZone"],
+      "emptyStates": [],
+      "errorStates": ["save failed", "current password incorrect", "email already taken"]
+    }
+  ],
+  "forms": [
+    {
+      "name": "GuestShortenForm",
+      "page": "Landing",
+      "submitAction": "POST /api/links/guest",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "url", "type": "url", "required": true, "validation": { "format": "url", "maxLength": 2048 } }
+      ],
+      "successBehavior": "Show short URL inline with copy button; no redirect",
+      "errorBehavior": "Inline error below input"
+    },
+    {
+      "name": "RegisterForm",
+      "page": "Landing",
+      "submitAction": "POST /api/auth/register",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8, "maxLength": 128 } },
+        { "name": "displayName", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 60 } }
+      ],
+      "successBehavior": "Redirect to /dashboard",
+      "errorBehavior": "Inline field errors"
+    },
+    {
+      "name": "LoginForm",
+      "page": "Landing",
+      "submitAction": "POST /api/auth/login",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect to /dashboard",
+      "errorBehavior": "Inline error message"
+    },
+    {
+      "name": "CreateLinkForm",
+      "page": "Links",
+      "submitAction": "POST /api/links",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "destinationUrl", "type": "url", "required": true, "validation": { "format": "url", "maxLength": 2048 } },
+        { "name": "title", "type": "text", "required": false, "validation": { "maxLength": 100 } },
+        { "name": "slug", "type": "text", "required": false, "validation": { "pattern": "^[a-zA-Z0-9_-]{3,30}$", "note": "Custom slug — alphanumeric, dash, underscore only" } },
+        { "name": "utmSource", "type": "text", "required": false },
+        { "name": "utmMedium", "type": "text", "required": false },
+        { "name": "utmCampaign", "type": "text", "required": false }
+      ],
+      "successBehavior": "New link appears in table with copy button",
+      "errorBehavior": "Inline errors in modal"
+    },
+    {
+      "name": "ProfileForm",
+      "page": "Settings",
+      "submitAction": "PATCH /api/users/me",
+      "methodHint": "PATCH",
+      "fields": [
+        { "name": "displayName", "type": "text", "required": false, "validation": { "maxLength": 60 } },
+        { "name": "email", "type": "email", "required": false, "validation": { "format": "email" } }
+      ],
+      "successBehavior": "Toast: profile updated",
+      "errorBehavior": "Toast: failed to save"
+    }
+  ],
+  "tables": [
+    {
+      "name": "LinksTable",
+      "page": "Links",
+      "columns": [
+        { "name": "shortUrl", "type": "text", "sortable": false, "filterable": false },
+        { "name": "destinationUrl", "type": "text", "sortable": false, "filterable": false },
+        { "name": "title", "type": "text", "sortable": false, "filterable": false },
+        { "name": "clicks", "type": "number", "sortable": true, "filterable": false },
+        { "name": "isActive", "type": "toggle", "sortable": false, "filterable": true },
+        { "name": "createdAt", "type": "date", "sortable": true, "filterable": false }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": true,
+      "supportsSort": true,
+      "supportsFilters": true,
+      "rowActions": ["copy", "edit", "toggle", "delete"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "DeleteLink",
+      "page": "Links",
+      "type": "delete",
+      "target": "ShortLink",
+      "requiresConfirmation": true,
+      "sideEffects": ["removeFromKVCache", "clicksOrphaned"]
+    },
+    {
+      "name": "ToggleLinkActive",
+      "page": "Links",
+      "type": "update",
+      "target": "ShortLink",
+      "requiresConfirmation": false,
+      "sideEffects": ["updateKVCache"]
+    },
+    {
+      "name": "CopyShortUrl",
+      "page": "Links",
+      "type": "copy",
+      "target": "ShortLink",
+      "requiresConfirmation": false,
+      "sideEffects": []
+    }
+  ],
+  "authFlows": [
+    {
+      "type": "login",
+      "protectedPages": ["Dashboard", "Links", "Analytics", "Settings"],
+      "notes": "JWT access token (15 min) + refresh token (7 days) stored in HttpOnly cookie. Sessions tracked in KV with TTL."
+    },
+    {
+      "type": "register",
+      "notes": "Immediate access after registration — no email verification in v1."
+    },
+    {
+      "type": "logout",
+      "notes": "Deletes session from KV."
+    },
+    {
+      "type": "refresh",
+      "notes": "Silent refresh via HttpOnly cookie before access token expires."
+    }
+  ],
+  "uploads": [],
+  "externalTriggers": [
+    {
+      "name": "PublicRedirect",
+      "type": "custom",
+      "providerHint": "internal",
+      "triggerSource": "Any visitor clicks a short link → GET /:code → KV lookup (cache hit, < 5ms) or D1 fallback → 301 redirect → enqueue click event to CF Queue",
+      "expectedOutcome": "Visitor redirected to destination URL; ClickEvent written to D1 asynchronously via Queue consumer"
+    },
+    {
+      "name": "ClickQueueConsumer",
+      "type": "custom",
+      "providerHint": "Cloudflare Queue",
+      "triggerSource": "CF Queue batch delivery → Worker consumer writes ClickEvent rows to D1",
+      "expectedOutcome": "ClickEvent persisted with geo (CF-IPCountry), device (UA parse), referrer, timestamp"
+    }
+  ],
+  "assumptions": [
+    "Public redirect endpoint (GET /:code) is the hot path — KV cache hit must be < 5ms; D1 fallback acceptable for cache misses (~20ms)",
+    "KV stores code→destination URL mapping with 1h TTL; invalidated on link toggle or delete",
+    "D1 (SQLite at edge) used for persistent data — users, links, click events, analytics summaries",
+    "CF Queue used for fire-and-forget click analytics — redirect returns 301 immediately; click is written asynchronously by Queue consumer",
+    "Analytics summaries pre-computed hourly by a CF Cron Trigger worker — raw ClickEvent table not queried directly by analytics API",
+    "Rate limiting on guest shorten endpoint (10 req/min per IP) and auth endpoints (10 req/15min) via Upstash REST API — no TCP Redis in Workers",
+    "IP address is used to extract country via CF-IPCountry header — raw IP not stored; only country code persisted",
+    "No compliance requirements — standard security baseline applies",
+    "Custom slugs validated for uniqueness at creation time — collision returns 409",
+    "Guest-shortened links are anonymous and expire after 30 days — authenticated links never expire"
+  ]
+}

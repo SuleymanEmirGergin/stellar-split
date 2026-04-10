@@ -1,0 +1,643 @@
+{
+  "$schema": "https://example.com/frontend-backend-handoff.schema.json",
+  "meta": {
+    "version": "1.0.0",
+    "generatedBy": "Backend Integrator Agent",
+    "generatedAt": "2026-04-09T00:00:00Z",
+    "projectName": "StellarSplit",
+    "description": "Full frontend-to-backend handoff for StellarSplit — a decentralized group expense splitting dApp on Stellar blockchain."
+  },
+  "project": {
+    "name": "StellarSplit",
+    "description": "Decentralized group expense splitting dApp on Stellar blockchain. Frontend uses React+TypeScript+Freighter wallet. Backend is NestJS+PostgreSQL+Redis. Auth is via Stellar wallet signature (SIWS).",
+    "frontendStack": "React 18, TypeScript, Vite, Freighter Wallet, Soroban SDK",
+    "backendStackPreference": "NestJS 10, PostgreSQL, Prisma ORM, Redis + BullMQ, Passport JWT, S3-compatible storage, Railway deployment",
+    "deploymentTarget": "Railway",
+    "complianceScope": "none",
+    "observabilityBaseline": {
+      "healthEndpoints": true,
+      "structuredLogging": true,
+      "distributedTracing": false,
+      "metricsEnabled": true
+    }
+  },
+  "pages": [
+    {
+      "name": "Landing",
+      "route": "/",
+      "purpose": "Connect Freighter wallet or enter demo mode. Entry point to the dApp.",
+      "requiresAuth": false,
+      "components": ["ConnectWalletButton", "DemoModeButton", "HeroSection"],
+      "emptyStates": ["Wallet not connected — prompt to install Freighter"],
+      "errorStates": ["Freighter not detected", "Wallet connection rejected"]
+    },
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "purpose": "User's groups list. Create new group. Search groups.",
+      "requiresAuth": true,
+      "dataDependencies": ["GET /groups", "POST /groups"],
+      "components": ["GroupList", "CreateGroupForm", "GroupSearchBar"],
+      "emptyStates": ["No groups yet — prompt to create first group"],
+      "errorStates": ["Failed to load groups", "Network error"]
+    },
+    {
+      "name": "GroupDetail",
+      "route": "/group/:id",
+      "purpose": "Group detail view with tabs: Expenses, Balances, Settle, Gallery, DeFi, Recurring, Social, Governance, Security.",
+      "requiresAuth": true,
+      "roles": ["member", "creator", "guardian"],
+      "dataDependencies": [
+        "GET /groups/:id",
+        "GET /groups/:id/expenses",
+        "GET /groups/:id/balances",
+        "GET /groups/:id/settlements",
+        "GET /groups/:id/recurring",
+        "GET /groups/:id/guardians",
+        "POST /expenses",
+        "POST /settlements",
+        "POST /recurring",
+        "DELETE /expenses/:id"
+      ],
+      "components": [
+        "ExpensesTab", "BalancesTab", "SettleTab", "GalleryTab",
+        "DeFiTab", "RecurringTab", "SocialTab", "GovernanceTab", "SecurityTab"
+      ],
+      "emptyStates": [
+        "No expenses yet",
+        "No settlements yet",
+        "No recurring expenses",
+        "No guardians configured"
+      ],
+      "errorStates": ["Group not found", "Not a member of this group", "Settlement transaction failed"]
+    },
+    {
+      "name": "JoinGroup",
+      "route": "/join/:id",
+      "purpose": "Join a group via invite link. Adds current wallet address as a member.",
+      "requiresAuth": true,
+      "dataDependencies": ["POST /groups/:id/join"],
+      "components": ["JoinGroupConfirmation"],
+      "emptyStates": [],
+      "errorStates": ["Invalid invite link", "Already a member", "Group not found"]
+    },
+    {
+      "name": "ReputationDashboard",
+      "route": "/reputation",
+      "purpose": "User reputation dashboard — payment history, score, badges.",
+      "requiresAuth": true,
+      "dataDependencies": ["GET /reputation/me", "GET /reputation/badges"],
+      "components": ["ReputationScore", "BadgeList", "PaymentHistoryChart"],
+      "emptyStates": ["No reputation data yet"],
+      "errorStates": ["Failed to load reputation"]
+    }
+  ],
+  "forms": [
+    {
+      "name": "ConnectWalletForm",
+      "page": "Landing",
+      "submitAction": "POST /auth/verify",
+      "method": "POST",
+      "note": "Freighter wallet signs a SIWS challenge. No password. Wallet address = identity.",
+      "fields": [
+        {
+          "name": "walletAddress",
+          "label": "Wallet Address",
+          "type": "text",
+          "required": true,
+          "validation": {
+            "pattern": "^G[A-Z2-7]{55}$",
+            "note": "Must be a valid Stellar public key (G...)"
+          },
+          "mapsToEntity": "User"
+        },
+        {
+          "name": "signature",
+          "label": "Wallet Signature",
+          "type": "hidden",
+          "required": true,
+          "description": "SIWS signature produced by Freighter over the challenge nonce"
+        },
+        {
+          "name": "nonce",
+          "label": "Challenge Nonce",
+          "type": "hidden",
+          "required": true,
+          "description": "Server-issued nonce from GET /auth/challenge"
+        }
+      ],
+      "successBehavior": "Redirect to /dashboard with JWT stored in localStorage",
+      "errorBehavior": "Show error toast; stay on Landing"
+    },
+    {
+      "name": "CreateGroupForm",
+      "page": "Dashboard",
+      "submitAction": "POST /groups",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Group Name",
+          "type": "text",
+          "required": true,
+          "validation": { "minLength": 2, "maxLength": 80 }
+        },
+        {
+          "name": "currency",
+          "label": "Currency",
+          "type": "select",
+          "required": true,
+          "options": ["XLM", "USDC"],
+          "mapsToEntity": "Group"
+        },
+        {
+          "name": "members",
+          "label": "Initial Members",
+          "type": "tags",
+          "required": false,
+          "description": "Stellar wallet addresses to add as initial members",
+          "validation": {
+            "pattern": "^G[A-Z2-7]{55}$",
+            "note": "Each entry must be a valid Stellar public key"
+          },
+          "mapsToEntity": "Group"
+        }
+      ],
+      "successBehavior": "Navigate to /group/:newId",
+      "errorBehavior": "Display inline validation errors"
+    },
+    {
+      "name": "AddExpenseForm",
+      "page": "GroupDetail",
+      "submitAction": "POST /expenses",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "text",
+          "required": true,
+          "validation": { "minLength": 1, "maxLength": 200 }
+        },
+        {
+          "name": "amount",
+          "label": "Amount",
+          "type": "number",
+          "required": true,
+          "validation": { "min": 0.0000001, "max": 999999999 }
+        },
+        {
+          "name": "currency",
+          "label": "Currency",
+          "type": "select",
+          "required": true,
+          "options": ["XLM", "USDC"]
+        },
+        {
+          "name": "paidBy",
+          "label": "Paid By",
+          "type": "select",
+          "required": true,
+          "description": "Wallet address of member who paid",
+          "mapsToEntity": "Expense"
+        },
+        {
+          "name": "splitType",
+          "label": "Split Type",
+          "type": "select",
+          "required": true,
+          "options": ["equal", "custom", "percentage"]
+        },
+        {
+          "name": "splits",
+          "label": "Split Details",
+          "type": "json",
+          "required": false,
+          "description": "Array of {walletAddress, amount} for custom/percentage splits. Omit for equal split.",
+          "note": "Required when splitType is custom or percentage"
+        },
+        {
+          "name": "groupId",
+          "label": "Group ID",
+          "type": "hidden",
+          "required": true,
+          "mapsToEntity": "Expense"
+        },
+        {
+          "name": "receipt",
+          "label": "Receipt Image",
+          "type": "image",
+          "required": false,
+          "validation": {
+            "mimeTypes": ["image/jpeg", "image/png", "image/webp"],
+            "maxSizeMB": 10
+          }
+        }
+      ],
+      "successBehavior": "Refresh expenses list; close modal",
+      "errorBehavior": "Show inline field errors"
+    },
+    {
+      "name": "SettleGroupForm",
+      "page": "GroupDetail",
+      "submitAction": "POST /settlements",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "groupId",
+          "label": "Group ID",
+          "type": "hidden",
+          "required": true,
+          "mapsToEntity": "Settlement"
+        },
+        {
+          "name": "txHash",
+          "label": "Transaction Hash",
+          "type": "text",
+          "required": true,
+          "description": "Stellar transaction hash from Freighter-signed settlement",
+          "validation": { "pattern": "^[A-F0-9]{64}$" }
+        },
+        {
+          "name": "amount",
+          "label": "Settlement Amount",
+          "type": "number",
+          "required": true,
+          "validation": { "min": 0.0000001 }
+        }
+      ],
+      "successBehavior": "Mark group as settled; refresh settlements history",
+      "errorBehavior": "Show transaction error"
+    },
+    {
+      "name": "CreateRecurringForm",
+      "page": "GroupDetail",
+      "submitAction": "POST /recurring",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "groupId",
+          "label": "Group ID",
+          "type": "hidden",
+          "required": true
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "text",
+          "required": true,
+          "validation": { "minLength": 1, "maxLength": 200 }
+        },
+        {
+          "name": "amount",
+          "label": "Amount",
+          "type": "number",
+          "required": true,
+          "validation": { "min": 0.0000001 }
+        },
+        {
+          "name": "frequency",
+          "label": "Frequency",
+          "type": "select",
+          "required": true,
+          "options": ["daily", "weekly", "monthly", "yearly"]
+        },
+        {
+          "name": "nextDue",
+          "label": "Next Due Date",
+          "type": "datetime-local",
+          "required": true
+        },
+        {
+          "name": "members",
+          "label": "Split Between",
+          "type": "tags",
+          "required": false,
+          "description": "Wallet addresses to split among; defaults to all group members"
+        }
+      ],
+      "successBehavior": "Add to recurring list; schedule next run",
+      "errorBehavior": "Show validation errors"
+    },
+    {
+      "name": "AddGuardianForm",
+      "page": "GroupDetail",
+      "submitAction": "POST /guardians",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "guardianAddress",
+          "label": "Guardian Wallet Address",
+          "type": "text",
+          "required": true,
+          "validation": {
+            "pattern": "^G[A-Z2-7]{55}$"
+          },
+          "mapsToEntity": "Guardian"
+        },
+        {
+          "name": "groupId",
+          "label": "Group ID",
+          "type": "hidden",
+          "required": true
+        }
+      ],
+      "successBehavior": "Guardian added; refresh security tab",
+      "errorBehavior": "Show error"
+    }
+  ],
+  "tables": [
+    {
+      "name": "GroupsTable",
+      "page": "Dashboard",
+      "dataSource": "GET /groups",
+      "columns": [
+        { "name": "name", "type": "text", "sortable": true, "filterable": true },
+        { "name": "currency", "type": "badge", "filterable": true },
+        { "name": "memberCount", "type": "number" },
+        { "name": "isSettled", "type": "boolean" },
+        { "name": "createdAt", "type": "datetime", "sortable": true }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": true,
+      "supportsSort": true,
+      "supportsFilters": true,
+      "rowActions": ["view", "leave"]
+    },
+    {
+      "name": "ExpensesTable",
+      "page": "GroupDetail",
+      "dataSource": "GET /groups/:id/expenses",
+      "columns": [
+        { "name": "description", "type": "text" },
+        { "name": "amount", "type": "currency", "sortable": true },
+        { "name": "currency", "type": "badge" },
+        { "name": "paidBy", "type": "text" },
+        { "name": "splitType", "type": "badge" },
+        { "name": "status", "type": "badge", "filterable": true },
+        { "name": "createdAt", "type": "datetime", "sortable": true },
+        { "name": "receipt", "type": "image" }
+      ],
+      "supportsPagination": true,
+      "supportsSort": true,
+      "supportsFilters": true,
+      "rowActions": ["cancel"]
+    },
+    {
+      "name": "SettlementsTable",
+      "page": "GroupDetail",
+      "dataSource": "GET /groups/:id/settlements",
+      "columns": [
+        { "name": "txHash", "type": "link" },
+        { "name": "settledBy", "type": "text" },
+        { "name": "amount", "type": "currency" },
+        { "name": "timestamp", "type": "datetime", "sortable": true }
+      ],
+      "supportsPagination": true,
+      "supportsSort": true,
+      "supportsFilters": false
+    },
+    {
+      "name": "RecurringTable",
+      "page": "GroupDetail",
+      "dataSource": "GET /groups/:id/recurring",
+      "columns": [
+        { "name": "description", "type": "text" },
+        { "name": "amount", "type": "currency" },
+        { "name": "frequency", "type": "badge" },
+        { "name": "nextDue", "type": "datetime" },
+        { "name": "isActive", "type": "boolean" }
+      ],
+      "supportsPagination": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["edit", "delete", "pause"]
+    },
+    {
+      "name": "BalancesTable",
+      "page": "GroupDetail",
+      "dataSource": "GET /groups/:id/balances",
+      "columns": [
+        { "name": "walletAddress", "type": "text" },
+        { "name": "balance", "type": "currency" },
+        { "name": "owes", "type": "json" }
+      ],
+      "supportsPagination": false,
+      "supportsSort": false,
+      "supportsFilters": false
+    },
+    {
+      "name": "GuardiansTable",
+      "page": "GroupDetail",
+      "dataSource": "GET /groups/:id/guardians",
+      "columns": [
+        { "name": "guardianAddress", "type": "text" },
+        { "name": "isActive", "type": "boolean" },
+        { "name": "addedAt", "type": "datetime" }
+      ],
+      "supportsPagination": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["remove"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "CreateGroup",
+      "type": "create",
+      "page": "Dashboard",
+      "target": "Group",
+      "endpoint": "POST /groups",
+      "description": "Create a new expense group",
+      "requiresConfirmation": false,
+      "sideEffects": ["Adds creator as first member", "Creates group invite link"]
+    },
+    {
+      "name": "CancelExpense",
+      "type": "toggle-status",
+      "page": "GroupDetail",
+      "target": "Expense",
+      "endpoint": "PATCH /expenses/:id/cancel",
+      "description": "Cancel an active expense — soft-delete, recalculate balances",
+      "requiresConfirmation": true,
+      "confirmationMessage": "Cancel this expense? Balances will be recalculated.",
+      "sideEffects": ["Recalculates group balances", "Sends notification to members"]
+    },
+    {
+      "name": "SettleGroup",
+      "type": "custom",
+      "page": "GroupDetail",
+      "target": "Settlement",
+      "endpoint": "POST /settlements",
+      "description": "Record a Stellar settlement transaction",
+      "requiresConfirmation": true,
+      "confirmationMessage": "Confirm settlement on Stellar blockchain?",
+      "sideEffects": ["Marks group settled", "Monitors tx on Stellar Horizon", "Updates reputation scores"]
+    },
+    {
+      "name": "JoinGroup",
+      "type": "custom",
+      "page": "JoinGroup",
+      "target": "Group",
+      "endpoint": "POST /groups/:id/join",
+      "description": "Join group via invite link",
+      "requiresConfirmation": false,
+      "sideEffects": ["Adds user to group members", "Sends notification to group"]
+    },
+    {
+      "name": "LeaveGroup",
+      "type": "custom",
+      "page": "GroupDetail",
+      "target": "Group",
+      "endpoint": "POST /groups/:id/leave",
+      "description": "Leave a group",
+      "requiresConfirmation": true,
+      "confirmationMessage": "Leave this group? You cannot rejoin without a new invite.",
+      "sideEffects": ["Recalculates balances", "Notifies group members"]
+    },
+    {
+      "name": "DeleteRecurring",
+      "type": "delete",
+      "page": "GroupDetail",
+      "target": "RecurringTemplate",
+      "endpoint": "DELETE /recurring/:id",
+      "description": "Delete a recurring expense template",
+      "requiresConfirmation": true,
+      "confirmationMessage": "Delete this recurring expense?",
+      "sideEffects": ["Cancels scheduled BullMQ jobs"]
+    },
+    {
+      "name": "RemoveGuardian",
+      "type": "delete",
+      "page": "GroupDetail",
+      "target": "Guardian",
+      "endpoint": "DELETE /guardians/:id",
+      "description": "Remove a social recovery guardian",
+      "requiresConfirmation": true,
+      "confirmationMessage": "Remove this guardian?",
+      "sideEffects": []
+    },
+    {
+      "name": "ViewReputation",
+      "type": "read",
+      "page": "ReputationDashboard",
+      "target": "Reputation",
+      "endpoint": "GET /reputation/me",
+      "description": "Fetch user reputation score, badges, payment history",
+      "requiresConfirmation": false,
+      "sideEffects": []
+    }
+  ],
+  "authFlows": [
+    {
+      "type": "login",
+      "name": "SIWS Wallet Authentication",
+      "endpoint": "POST /auth/verify",
+      "notes": "Sign In With Stellar (SIWS). Step 1: GET /auth/challenge returns a nonce. Step 2: Frontend signs nonce with Freighter. Step 3: POST /auth/verify with walletAddress + signature + nonce. Backend verifies Ed25519 signature using @stellar/stellar-sdk. On success, issues JWT (access token 15m + refresh token 7d). No passwords.",
+      "protectedPages": ["Dashboard", "GroupDetail", "JoinGroup", "ReputationDashboard"]
+    },
+    {
+      "type": "refresh-token",
+      "name": "JWT Refresh",
+      "endpoint": "POST /auth/refresh",
+      "notes": "Refresh access token using the refresh token stored in HttpOnly cookie."
+    },
+    {
+      "type": "logout",
+      "name": "Logout",
+      "endpoint": "POST /auth/logout",
+      "notes": "Revokes refresh token; clears HttpOnly cookie."
+    },
+    {
+      "type": "role-based-access",
+      "name": "Group Member RBAC",
+      "notes": "Users are either group members or non-members. Group creator has elevated permissions (delete group, manage members). Guardians have recovery permissions.",
+      "protectedPages": ["GroupDetail"],
+      "roles": ["member", "creator", "guardian"]
+    }
+  ],
+  "uploads": [
+    {
+      "name": "ReceiptUpload",
+      "page": "GroupDetail",
+      "fileTypes": ["image/jpeg", "image/png", "image/webp"],
+      "maxSizeMB": 10,
+      "multiple": false,
+      "storageHint": "S3-compatible (Cloudflare R2 or AWS S3). Path: receipts/{groupId}/{expenseId}/{uuid}.{ext}",
+      "visibility": "signed-url",
+      "endpoint": "POST /uploads/receipt",
+      "notes": "Uploaded via multipart/form-data. Sharp resizes to max 1920px. Returns signed URL. Receipt URL stored on Expense entity."
+    }
+  ],
+  "externalTriggers": [
+    {
+      "name": "StellarHorizonTxMonitor",
+      "type": "queue-job",
+      "providerHint": "Stellar Horizon API",
+      "triggerSource": "Settlement creation",
+      "expectedOutcome": "Polls Horizon for tx confirmation; updates settlement status; triggers reputation update",
+      "notes": "BullMQ job with exponential backoff retry (max 10 attempts). Timeout 30s per attempt. Circuit breaker pattern: after 5 consecutive failures, pause queue for 60s."
+    },
+    {
+      "name": "RecurringExpenseScheduler",
+      "type": "cron-job",
+      "providerHint": "BullMQ + Redis",
+      "triggerSource": "RecurringTemplate nextDue timestamp",
+      "expectedOutcome": "Auto-creates expense when nextDue is reached; advances nextDue by frequency interval",
+      "notes": "BullMQ repeatable jobs. Cron checks every minute. On failure: skip cycle, log, notify group creator."
+    },
+    {
+      "name": "NotificationDispatch",
+      "type": "push-notification",
+      "providerHint": "Web Push API / Discord webhook / Slack webhook",
+      "triggerSource": "Expense create/cancel, settlement, member join/leave, recurring trigger",
+      "expectedOutcome": "Sends push notification or webhook to configured channels",
+      "notes": "BullMQ queue with retry=3. Payload is JSON. Discord/Slack webhooks verified via shared secret in env. Web push uses VAPID keys."
+    },
+    {
+      "name": "XLMPriceFeed",
+      "type": "third-party-api-call",
+      "providerHint": "CoinGecko API",
+      "triggerSource": "Expense display / balance calculation",
+      "expectedOutcome": "Returns current XLM/USD price for display. Cached in Redis for 60s.",
+      "notes": "Rate limit: CoinGecko free tier = 30 calls/min. Timeout 5s. On failure: serve cached value; if cache stale >5min, show 'price unavailable'."
+    },
+    {
+      "name": "AnalyticsEventIngestion",
+      "type": "analytics-event",
+      "providerHint": "Internal analytics store or PostHog",
+      "triggerSource": "Any user action",
+      "expectedOutcome": "Persists analytics event for usage tracking",
+      "notes": "Fire-and-forget. Existing server.js /analytics endpoint migrated into NestJS module."
+    },
+    {
+      "name": "OGImageGeneration",
+      "type": "custom",
+      "providerHint": "Sharp / Canvas",
+      "triggerSource": "Group share link generation",
+      "expectedOutcome": "Generates Open Graph image for group share cards",
+      "notes": "Migrated from existing server.js. Cached in S3/R2."
+    }
+  ],
+  "assumptions": [
+    "Auth: SIWS (Sign In With Stellar) uses Ed25519 signature verification via @stellar/stellar-sdk. No passwords are stored. Wallet address is the user identifier.",
+    "CORS: CORS is configured to allow only the frontend origin (env var FRONTEND_URL). Credentials mode enabled for HttpOnly refresh-token cookie.",
+    "JWT: Access token TTL is 15 minutes. Refresh token TTL is 7 days, stored in HttpOnly Secure SameSite=Strict cookie. Refresh tokens are stored hashed in Redis for revocation.",
+    "Rate limiting: /auth/challenge and /auth/verify are rate-limited to 10 req/min per IP using throttler. All public endpoints are rate-limited to 60 req/min per IP.",
+    "Data classification: walletAddress is a public-key identifier, not PII in the traditional sense. No email, phone, or national ID is collected. No financial card data. Data classification tier: Internal.",
+    "Structured logging: Pino logger is used throughout. No console.log in service/controller files. All log lines include correlationId (X-Request-ID), walletAddress (where applicable), route, and statusCode.",
+    "Health checks: GET /health/live and GET /health/ready endpoints are defined in HealthModule. Railway health check path is /health/live.",
+    "File upload security: MIME type validation enforced by Multer (image/jpeg, image/png, image/webp only). Max 10MB. Files stored in S3-compatible bucket with signed URLs (expiry 1h). Never publicly exposed.",
+    "Idempotency: Settlement creation is idempotent on txHash — duplicate txHash returns 200 with existing record instead of 409. Expense creation is not idempotent (deliberate — users may add same expense twice by mistake and cancel manually).",
+    "Resilience: External service calls (Stellar Horizon, CoinGecko) have timeouts (5-30s), retry with exponential backoff, and circuit breaker. Redis cache is used to reduce blast radius of external API failures.",
+    "Background jobs: BullMQ is used for all async work. Jobs have configurable retry counts and dead-letter queue. Worker is co-located with API in monolith mode for Railway deploy but architected for extraction.",
+    "Notifications: Webhook endpoints for Discord/Slack verify signature via HMAC-SHA256 shared secret. Web push uses VAPID. All notification delivery is async via BullMQ.",
+    "Reputation: Score is computed server-side based on settlement history, on-time payments, and group participation. Not user-editable.",
+    "Multi-tenancy: Groups are the primary isolation boundary. Users belong to multiple groups. No workspace/org concept.",
+    "Soroban: Smart contract interactions are handled by StellarService adapter. Frontend initiates Soroban calls; backend only records on-chain results via Horizon monitoring.",
+    "Observability: Sentry DSN and LOG_LEVEL are env-var-backed. Health endpoint included. Metrics via Prometheus-compatible /metrics endpoint (optional).",
+    "Pagination: All list endpoints support cursor-based pagination (cursor, limit params). Default limit=20, max=100.",
+    "No raw card storage: No credit/debit card data is collected or stored at any point. Out of PCI scope.",
+    "Field-level encryption: No traditional PII fields (email, phone, address, national ID) are collected. walletAddress is a Stellar public key — a non-sensitive public identifier. No field-level AES encryption is required. Data classification tier: Internal (public-key identifiers only)."
+  ]
+}

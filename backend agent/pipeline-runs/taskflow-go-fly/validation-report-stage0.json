@@ -1,0 +1,39 @@
+{
+  "validatedFile": "frontend-backend-handoff.json",
+  "validatedAt": "2026-04-06T09:00:00Z",
+  "schema": "backend-integrator/frontend-backend-handoff.schema.json",
+  "status": "pass",
+  "summary": {
+    "totalChecks": 18,
+    "passed": 18,
+    "warnings": 0,
+    "failures": 0
+  },
+  "checks": [
+    { "id": "schema-compliance",              "category": "schema",       "label": "JSON Schema Compliance",               "status": "pass", "message": "frontend-backend-handoff.json is fully schema-compliant." },
+    { "id": "semantic-form-page-refs",        "category": "semantic",     "label": "Form Page References",                 "status": "pass", "message": "All 9 forms reference valid page names." },
+    { "id": "semantic-table-page-refs",       "category": "semantic",     "label": "Table Page References",                "status": "pass", "message": "All 3 tables reference valid page names." },
+    { "id": "semantic-action-page-refs",      "category": "semantic",     "label": "Action Page References",               "status": "pass", "message": "All 5 actions reference valid page names." },
+    { "id": "semantic-upload-page-refs",      "category": "semantic",     "label": "Upload Page References",               "status": "pass", "message": "All 2 uploads reference valid page names." },
+    { "id": "semantic-rbac-page-roles",       "category": "semantic",     "label": "RBAC: Pages Define Roles",             "status": "pass", "message": "role-based-access auth flow detected and 6 page(s) define roles." },
+    { "id": "semantic-auth-login-flow",       "category": "semantic",     "label": "Auth-Required Pages Have Login Flow",  "status": "pass", "message": "7 page(s) require auth and a 'login' authFlow is declared." },
+    { "id": "security-auth-has-login",        "category": "security",     "label": "Auth Flows Include Login",             "status": "pass", "message": "authFlows is non-empty and includes a 'login' flow." },
+    { "id": "security-webhook-signature",     "category": "security",     "label": "Payment Webhook Signature Verification","status": "pass", "message": "No payment-webhook triggers detected — check skipped." },
+    { "id": "playbook-pii-encryption-assumption", "category": "security", "label": "PII Fields: Encryption Assumption",   "status": "pass", "message": "PII fields detected and encryption assumption present in assumptions[]." },
+    { "id": "playbook-cors-assumption",       "category": "security",     "label": "Auth Flows: CORS Assumption",          "status": "pass", "message": "Auth flows detected and CORS assumption present in assumptions[]." },
+    { "id": "playbook-public-rate-limiting",  "category": "security",     "label": "Public Pages: Rate Limiting Assumption","status": "pass", "message": "Public pages detected and rate limiting assumption present in assumptions[]." },
+    { "id": "completeness-assumptions-declared", "category": "completeness","label": "Assumptions Declared",              "status": "pass", "message": "12 assumption(s) declared by the producing agent." },
+    { "id": "completeness-project-name",      "category": "completeness", "label": "Project Name Meaningful",              "status": "pass", "message": "project.name is 'TaskFlow' — meaningful and descriptive." },
+    { "id": "completeness-has-interactive",   "category": "completeness", "label": "System Has Interactive Elements",      "status": "pass", "message": "9 forms, 5 actions — system has interactive elements." },
+    { "id": "data-class-pii-tier",            "category": "completeness", "label": "Data Classification: PII Tier Declared","status": "pass", "message": "PII fields detected and data classification tier referenced in assumptions[]." },
+    { "id": "observability-logging-assumption","category": "completeness", "label": "Observability: Logging / Health Assumption","status": "pass", "message": "Non-trivial system (9 pages, 5 actions) and structured logging assumption present." },
+    { "id": "resilience-external-trigger-patterns","category": "completeness","label": "Resilience: External Trigger Patterns","status": "pass", "message": "2 email-send trigger(s) detected and retry/backoff assumption present in assumptions[]." }
+  ],
+  "blockingFailures": [],
+  "warnings": [],
+  "meta": {
+    "validatorVersion": "2.1.0",
+    "pipelineStage": "frontend-to-backend",
+    "commandUsed": "/validate frontend-backend"
+  }
+}

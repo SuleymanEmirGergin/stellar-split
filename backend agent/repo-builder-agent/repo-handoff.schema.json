@@ -1,0 +1,464 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/repo-handoff.schema.json",
+  "title": "Repo Builder Handoff Schema",
+  "description": "Structured handoff contract from Repo Builder Agent to downstream agents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "project"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "generatedBy": { "type": "string", "description": "Agent that produced this file" },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "modeUsed": {
+          "type": "string",
+          "enum": ["/blueprint", "/scaffold", "/assemble"],
+          "description": "The command mode that triggered the output"
+        },
+        "schemaVersion": { "type": "string" },
+        "version": { "type": "string", "description": "Alias for schemaVersion." },
+        "projectName": { "type": "string" },
+        "playbooksApplied": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "stackGuidesApplied": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deploymentGuideApplied": { "type": "string" },
+        "pipelineVersion": { "type": "string" },
+        "notes": { "type": "string" },
+        "sourceHandoff": { "type": "string" }
+      }
+    },
+
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "repoType": {
+          "type": "string",
+          "enum": ["single-app", "monorepo"]
+        },
+        "deploymentTarget": {
+          "type": "string",
+          "enum": [
+            "vercel", "aws", "gcp", "azure",
+            "railway", "fly.io", "fly-io",
+            "render", "cloudflare-workers", "cloudflare-worker",
+            "netlify", "heroku", "digitalocean", "custom", "unknown"
+          ]
+        },
+        "runtime": { "type": "string", "description": "e.g. node, bun, deno, python, cloudflare-workers" },
+        "language": { "type": "string" },
+        "framework": { "type": "string" },
+        "packageManager": { "type": "string" },
+        "monorepo": { "type": "boolean" }
+      }
+    },
+
+    "frontend": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framework": { "type": "string" },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "path"],
+            "properties": {
+              "name": { "type": "string" },
+              "path": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framework": { "type": "string" },
+        "language": {
+          "type": "string",
+          "enum": ["typescript", "javascript", "python", "go", "java", "ruby", "elixir", "rust", "other"]
+        },
+        "pythonVersion": { "type": "string" },
+        "database": { "type": ["string", "object", "null"] },
+        "orm": { "type": "string" },
+        "auth": { "type": ["string", "object", "null"], "description": "e.g. JWT, session, OAuth" },
+        "entities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "authStrategy": { "type": "string" },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "path": { "type": "string" },
+              "type": {
+                "type": "string",
+                "enum": ["api", "worker", "cron", "gateway", "websocket", "grpc"]
+              },
+              "port": { "type": "integer" },
+              "entrypoint": { "type": "string" },
+              "entryPoint": { "type": "string" },
+              "startCommand": { "type": "string" },
+              "schedule": { "type": "string" },
+              "description": { "type": "string" },
+              "endpoints": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "healthCheck": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "integrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "payment", "storage", "email", "sms",
+              "push-notification", "analytics", "ai", "llm",
+              "maps", "crm", "video", "search", "realtime",
+              "rate-limiting", "monitoring", "logging", "cdn",
+              "auth", "identity", "queue", "cache", "custom"
+            ]
+          },
+          "provider": { "type": "string" },
+          "envVarsRequired": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "infrastructure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "queue": { "type": "string" },
+        "cache": { "type": "string" },
+        "storage": { "type": "string" },
+        "containerization": {
+          "type": "string",
+          "enum": ["docker", "docker-compose", "kubernetes", "none"]
+        },
+        "cicd": {
+          "type": "string",
+          "enum": ["github-actions", "gitlab-ci", "circleci", "custom", "none"]
+        },
+        "redisProvider": { "type": "string" },
+        "redisNotes": { "type": "string" },
+        "deploymentNotes": { "type": "string" }
+      }
+    },
+
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Security baseline",
+      "properties": {
+        "secretScanningEnabled": { "type": "boolean", "default": false },
+        "securityMdIncluded": { "type": "boolean", "default": false },
+        "ciSecurityScanStep": { "type": "boolean", "default": false },
+        "gitignoreComprehensive": { "type": "boolean", "default": false },
+        "corsWhitelistConfigured": { "type": "boolean", "default": false },
+        "piiFieldsEncrypted": { "type": "boolean", "default": false },
+        "fieldEncryptionAlgorithm": {
+          "type": "string",
+          "enum": ["AES-256-GCM", "AES-256-CBC", "none"]
+        },
+        "authStrategy": { "type": "string" },
+        "tokenStorage": { "type": "string" },
+        "passwordHashing": { "type": "string" },
+        "secretScanning": { "type": ["string", "boolean"] },
+        "gitleaksConfig": { "type": "string" },
+        "dependencyAudit": { "type": "string" },
+        "rateLimitingEnabled": { "type": "boolean" },
+        "rateLimitingStrategy": { "type": "string" },
+        "notes": { "type": "string" },
+        "encryptedFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "searchableHashedFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "hashAlgorithm": { "type": "string" },
+        "sentryPhiStripping": { "type": "boolean" },
+        "sentryPhiFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "structlogRedactList": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "compliance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Compliance scope and PHI/PCI handling.",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["HIPAA", "PCI-DSS", "SOC2", "GDPR", "none"]
+        },
+        "hipaaCompliant": { "type": "boolean" },
+        "phiEntities": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "phiEntitiesEncrypted": { "type": "boolean" },
+        "phiAuditLogging": { "type": "boolean" },
+        "minimumNecessaryEnforced": { "type": "boolean" },
+        "baaRequired": { "type": "boolean" },
+        "baaVendors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "dataRetentionYears": { "type": "number" },
+        "incidentResponseTimeline": { "type": "string" },
+        "auditLogTable": { "type": "string" },
+        "auditLogFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "doctorPatientRelationshipEnforced": { "type": "boolean" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Observability baseline.",
+      "properties": {
+        "structuredLogging": { "type": "boolean" },
+        "loggingLibrary": { "type": "string" },
+        "correlationId": { "type": "boolean" },
+        "correlationIds": { "type": "boolean", "description": "Alias for correlationId." },
+        "correlationIdHeader": { "type": "string" },
+        "healthEndpointsPlanned": { "type": "boolean" },
+        "healthEndpoints": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "healthLive": { "type": "string" },
+        "healthReady": { "type": "string" },
+        "prometheusMetrics": { "type": "boolean" },
+        "prometheusEndpoint": { "type": "string" },
+        "sentryEnabled": { "type": "boolean" },
+        "sentryEnvironments": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "distributedTracing": { "type": "boolean" },
+        "distributedTracingNote": { "type": "string" }
+      }
+    },
+
+    "packages": {
+      "type": "array",
+      "description": "Shared packages inside the monorepo",
+      "items": {
+        "type": "object",
+        "required": ["name", "path", "purpose"],
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" },
+          "purpose": {
+            "type": "string",
+            "enum": ["types", "ui", "sdk", "config", "utils", "custom"]
+          },
+          "consumedBy": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "databases": {
+      "type": "array",
+      "description": "Database declarations (top-level for newer schema versions).",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "provider": { "type": "string" },
+          "orm": { "type": "string" },
+          "migrationTool": { "type": "string" },
+          "migrationCommand": { "type": "string" },
+          "managedBy": { "type": "string" },
+          "hyperdrive": { "type": "boolean" }
+        }
+      }
+    },
+
+    "services": {
+      "type": "array",
+      "description": "Top-level service declarations (used in newer schema versions).",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["api", "worker", "cron", "gateway", "websocket", "grpc"]
+          },
+          "entryPoint": { "type": "string" },
+          "startCommand": { "type": "string" },
+          "healthCheck": { "type": "object", "additionalProperties": true },
+          "schedule": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+
+    "entities": {
+      "type": "array",
+      "description": "Top-level entity names.",
+      "items": { "type": "string" }
+    },
+
+    "endpoints": {
+      "type": "object",
+      "description": "API endpoint summary.",
+      "additionalProperties": true,
+      "properties": {
+        "total": { "type": "integer" },
+        "modules": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "workers": {
+      "type": "array",
+      "description": "Background worker declarations.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "queue": { "type": "string" },
+          "trigger": { "type": "string" },
+          "idempotency": { "type": "string" }
+        }
+      }
+    },
+
+    "envVars": {
+      "type": "object",
+      "description": "Environment variable declarations.",
+      "additionalProperties": true
+    },
+
+    "files": {
+      "type": "object",
+      "description": "Key file path declarations.",
+      "additionalProperties": false,
+      "properties": {
+        "dockerfile": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "dockerCompose": { "type": "string" },
+        "renderYaml": { "type": "string" },
+        "flyToml": { "type": "string" },
+        "wranglerConfig": { "type": "string" },
+        "wrangler.toml": { "type": "string" },
+        "wrangler": { "type": "string" },
+        "ciWorkflow": { "type": "string" },
+        "ciConfig": { "type": "string" },
+        "railwayToml": { "type": "string" },
+        "envExample": { "type": "string" },
+        "gitleaks": { "type": "string" },
+        "gitleaksConfig": { "type": "string" },
+        "securityMd": { "type": "string" },
+        "architectureMd": { "type": "string" },
+        "migrations": { "type": "string" }
+      }
+    },
+
+    "schemaVersion": {
+      "type": "string",
+      "description": "Top-level schema version (older format)."
+    },
+
+    "models": {
+      "type": "array",
+      "description": "Data model declarations (older schema format).",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+
+    "apiEndpoints": {
+      "type": "array",
+      "description": "API endpoint declarations (older schema format).",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+
+    "celeryTasks": {
+      "type": "array",
+      "description": "Celery task declarations (Django/Python projects).",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+
+    "assumptions": {
+      "type": "array",
+      "description": "Assumptions made by the agent when information was missing",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "object", "additionalProperties": true }
+        ]
+      }
+    }
+  }
+}

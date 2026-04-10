@@ -1,0 +1,158 @@
+{
+  "validatedFile": "frontend-backend-handoff.json",
+  "validatedAt": "2026-04-05T17:49:16.698Z",
+  "schema": "backend-integrator\\frontend-backend-handoff.schema.json",
+  "status": "pass",
+  "summary": {
+    "totalChecks": 17,
+    "passed": 17,
+    "warnings": 0,
+    "failures": 0
+  },
+  "checks": [
+    {
+      "id": "schema-compliance",
+      "category": "schema",
+      "label": "JSON Schema Compliance",
+      "status": "pass",
+      "message": "Handoff file is fully compliant with frontend-backend-handoff.schema.json.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-form-page-refs",
+      "category": "semantic",
+      "label": "Form Page References",
+      "status": "pass",
+      "message": "All forms reference valid page names.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-table-page-refs",
+      "category": "semantic",
+      "label": "Table Page References",
+      "status": "pass",
+      "message": "All tables reference valid page names.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-action-page-refs",
+      "category": "semantic",
+      "label": "Action Page References",
+      "status": "pass",
+      "message": "All actions reference valid page names.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-upload-page-refs",
+      "category": "semantic",
+      "label": "Upload Page References",
+      "status": "pass",
+      "message": "All uploads reference valid page names.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-rbac-page-roles",
+      "category": "semantic",
+      "label": "RBAC: Pages Define Roles",
+      "status": "pass",
+      "message": "role-based-access auth flow detected and 7 page(s) define roles.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-auth-login-flow",
+      "category": "semantic",
+      "label": "Auth-Required Pages Have Login Flow",
+      "status": "pass",
+      "message": "7 page(s) require auth and a \"login\" authFlow is declared.",
+      "severity": "error"
+    },
+    {
+      "id": "security-auth-has-login",
+      "category": "security",
+      "label": "Auth Flows Include Login",
+      "status": "pass",
+      "message": "authFlows is non-empty and includes a \"login\" flow.",
+      "severity": "error"
+    },
+    {
+      "id": "security-webhook-signature",
+      "category": "security",
+      "label": "Payment Webhook Signature Verification",
+      "status": "pass",
+      "message": "Payment webhook detected and assumptions reference signature verification.",
+      "severity": "error"
+    },
+    {
+      "id": "completeness-assumptions-declared",
+      "category": "completeness",
+      "label": "Assumptions Declared",
+      "status": "pass",
+      "message": "13 assumption(s) declared by the producing agent.",
+      "severity": "warning"
+    },
+    {
+      "id": "completeness-project-name",
+      "category": "completeness",
+      "label": "Project Name Meaningful",
+      "status": "pass",
+      "message": "project.name is \"EdgeForms\".",
+      "severity": "warning"
+    },
+    {
+      "id": "completeness-forms-or-actions",
+      "category": "completeness",
+      "label": "System Has Interactive Elements",
+      "status": "pass",
+      "message": "5 form(s) and 7 action(s) defined.",
+      "severity": "warning"
+    },
+    {
+      "id": "playbook-pii-encryption-assumption",
+      "category": "security",
+      "label": "PII Fields: Encryption Assumption",
+      "status": "pass",
+      "message": "PII fields detected and an encryption assumption is declared.",
+      "severity": "warning"
+    },
+    {
+      "id": "playbook-cors-assumption",
+      "category": "security",
+      "label": "Auth Flows: CORS Assumption",
+      "status": "pass",
+      "message": "Auth flows detected and a CORS assumption is declared.",
+      "severity": "warning"
+    },
+    {
+      "id": "playbook-public-rate-limiting",
+      "category": "security",
+      "label": "Public Pages: Rate Limiting Assumption",
+      "status": "pass",
+      "message": "2 public page(s) accept user data and rate limiting is referenced in assumptions.",
+      "severity": "warning"
+    },
+    {
+      "id": "data-class-pii-tier",
+      "category": "completeness",
+      "label": "Data Classification: PII Tier Declared",
+      "status": "pass",
+      "message": "3 PII field(s) detected and a data classification tier assumption is present.",
+      "severity": "warning"
+    },
+    {
+      "id": "observability-logging-assumption",
+      "category": "completeness",
+      "label": "Observability: Logging / Health Assumption",
+      "status": "pass",
+      "message": "Non-trivial system (10 pages, 7 actions) and observability assumption is declared.",
+      "severity": "warning"
+    }
+  ],
+  "blockingFailures": [],
+  "warnings": [],
+  "meta": {
+    "validatorVersion": "2.0.0",
+    "pipelineStage": "frontend-to-backend",
+    "commandUsed": "/validate frontend-backend"
+  },
+  "fixHints": []
+}

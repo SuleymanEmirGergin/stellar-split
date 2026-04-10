@@ -1,0 +1,391 @@
+{
+  "project": {
+    "name": "TeleMed",
+    "description": "Telemedicine platform for online doctor consultations, prescription management, and medical record storage.",
+    "frontendStack": "Next.js 14 (App Router)",
+    "backendStackPreference": "Django REST Framework + PostgreSQL + Celery",
+    "notes": "HIPAA-regulated. Patient data (MedicalRecord, Prescription, Diagnosis) is PHI. All PHI must be encrypted at rest. BAA required with all vendors."
+  },
+  "pages": [
+    {
+      "name": "Login",
+      "route": "/login",
+      "requiresAuth": false,
+      "roles": [],
+      "components": ["LoginForm"],
+      "description": "Public login page with email/password and optional TOTP code field."
+    },
+    {
+      "name": "PatientDashboard",
+      "route": "/dashboard/patient",
+      "requiresAuth": true,
+      "roles": ["patient"],
+      "components": ["AppointmentTable"],
+      "description": "Patient home screen showing upcoming appointments and recently accessed medical records."
+    },
+    {
+      "name": "DoctorDashboard",
+      "route": "/dashboard/doctor",
+      "requiresAuth": true,
+      "roles": ["doctor"],
+      "components": ["AppointmentTable"],
+      "description": "Doctor home screen showing today's scheduled appointments and prescriptions pending review."
+    },
+    {
+      "name": "AppointmentBook",
+      "route": "/appointments/book",
+      "requiresAuth": true,
+      "roles": ["patient"],
+      "components": ["BookAppointmentForm"],
+      "description": "Allows a patient to search for an available doctor and book a video consultation time slot."
+    },
+    {
+      "name": "VideoConsult",
+      "route": "/consult/:appointmentId",
+      "requiresAuth": true,
+      "roles": ["patient", "doctor"],
+      "components": ["VideoFrame", "ConsultNotesPanel"],
+      "description": "Live video consultation room powered by Daily.co embed. Doctor can take session notes in the side panel."
+    },
+    {
+      "name": "MedicalRecords",
+      "route": "/records",
+      "requiresAuth": true,
+      "roles": ["patient"],
+      "components": ["MedicalRecordTable", "UploadMedicalRecordForm"],
+      "description": "Patient view of all medical records. Records are read-only for the patient; upload triggers a doctor review workflow."
+    },
+    {
+      "name": "Prescriptions",
+      "route": "/prescriptions",
+      "requiresAuth": true,
+      "roles": ["patient", "doctor"],
+      "components": ["PrescriptionTable", "AddPrescriptionForm"],
+      "description": "Shared prescriptions view. Patients see their own prescriptions (read-only). Doctors can add new prescriptions for their patients."
+    },
+    {
+      "name": "AdminPanel",
+      "route": "/admin",
+      "requiresAuth": true,
+      "roles": ["admin"],
+      "components": ["UserTable", "AuditLogViewer"],
+      "description": "Admin-only panel for managing user accounts, viewing system audit logs, and performing compliance reviews."
+    }
+  ],
+  "forms": [
+    {
+      "name": "LoginForm",
+      "page": "Login",
+      "method": "POST",
+      "endpoint": "/auth/login",
+      "fields": [
+        {
+          "name": "email",
+          "type": "email",
+          "required": true
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "required": true
+        },
+        {
+          "name": "totp_code",
+          "type": "text",
+          "required": false,
+          "notes": "Optional for patients; required at middleware level for doctor and admin roles"
+        }
+      ]
+    },
+    {
+      "name": "BookAppointmentForm",
+      "page": "AppointmentBook",
+      "method": "POST",
+      "endpoint": "/appointments",
+      "fields": [
+        {
+          "name": "doctorId",
+          "type": "select",
+          "required": true,
+          "notes": "Populated from /doctors available-slots endpoint"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "name": "time",
+          "type": "time",
+          "required": true
+        },
+        {
+          "name": "reason",
+          "type": "textarea",
+          "required": true,
+          "maxLength": 500,
+          "notes": "Brief description of consultation reason; stored as PHI"
+        }
+      ]
+    },
+    {
+      "name": "AddPrescriptionForm",
+      "page": "Prescriptions",
+      "method": "POST",
+      "endpoint": "/prescriptions",
+      "roles": ["doctor"],
+      "fields": [
+        {
+          "name": "patientId",
+          "type": "select",
+          "required": true,
+          "notes": "Only shows patients in the doctor's active patient list"
+        },
+        {
+          "name": "medicationName",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "dosage",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "instructions",
+          "type": "textarea",
+          "required": true,
+          "notes": "Full usage instructions; stored as PHI"
+        },
+        {
+          "name": "refills",
+          "type": "number",
+          "required": true,
+          "min": 0,
+          "max": 5
+        }
+      ]
+    },
+    {
+      "name": "UploadMedicalRecordForm",
+      "page": "MedicalRecords",
+      "method": "POST",
+      "endpoint": "/records",
+      "fields": [
+        {
+          "name": "patientId",
+          "type": "hidden",
+          "required": true,
+          "notes": "Injected from auth context; patient can only upload for themselves"
+        },
+        {
+          "name": "recordType",
+          "type": "select",
+          "required": true,
+          "options": ["lab_result", "imaging", "discharge_summary", "consultation_note"]
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "file",
+          "type": "file",
+          "required": true,
+          "notes": "See uploads.MedicalRecordFile for constraints"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "name": "AppointmentTable",
+      "page": "PatientDashboard",
+      "columns": [
+        { "key": "doctorName", "label": "Doctor", "type": "text" },
+        { "key": "specialty", "label": "Specialty", "type": "text" },
+        { "key": "date", "label": "Date", "type": "date" },
+        { "key": "time", "label": "Time", "type": "time" },
+        { "key": "status", "label": "Status", "type": "badge" },
+        { "key": "videoJoinLink", "label": "Join", "type": "custom" }
+      ],
+      "rowActions": ["join", "cancel"]
+    },
+    {
+      "name": "PrescriptionTable",
+      "page": "Prescriptions",
+      "columns": [
+        { "key": "medicationName", "label": "Medication", "type": "text" },
+        { "key": "dosage", "label": "Dosage", "type": "text" },
+        { "key": "prescribedBy", "label": "Prescribed By", "type": "text" },
+        { "key": "prescribedAt", "label": "Date", "type": "date" },
+        { "key": "refillsRemaining", "label": "Refills Left", "type": "number" },
+        { "key": "status", "label": "Status", "type": "badge" }
+      ],
+      "rowActions": ["view", "requestRefill"]
+    },
+    {
+      "name": "MedicalRecordTable",
+      "page": "MedicalRecords",
+      "columns": [
+        { "key": "recordType", "label": "Type", "type": "badge" },
+        { "key": "title", "label": "Title", "type": "text" },
+        { "key": "uploadedAt", "label": "Uploaded", "type": "date" },
+        { "key": "provider", "label": "Provider", "type": "text" }
+      ],
+      "rowActions": ["download"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "CancelAppointment",
+      "page": "PatientDashboard",
+      "type": "update",
+      "target": "Appointment",
+      "requiresConfirmation": true,
+      "confirmationMessage": "Are you sure you want to cancel this appointment? Your doctor will be notified.",
+      "sideEffects": ["notifyDoctor", "releaseTimeSlot"]
+    },
+    {
+      "name": "RequestRefill",
+      "page": "Prescriptions",
+      "type": "custom",
+      "target": "Prescription",
+      "requiresConfirmation": false,
+      "sideEffects": ["notifyDoctor", "createRefillRequest"]
+    },
+    {
+      "name": "DeactivateUser",
+      "page": "AdminPanel",
+      "type": "update",
+      "target": "User",
+      "requiresConfirmation": true,
+      "confirmationMessage": "Deactivating this user will immediately revoke all active sessions. This action is logged. Continue?",
+      "sideEffects": ["revokeAllSessions", "auditLog"]
+    }
+  ],
+  "authFlows": [
+    {
+      "name": "login",
+      "endpoint": "POST /auth/login",
+      "notes": "2FA/TOTP required for doctor and admin roles. Returns short-lived access token + sets HttpOnly refresh cookie."
+    },
+    {
+      "name": "logout",
+      "endpoint": "POST /auth/logout",
+      "notes": "Invalidates refresh token server-side and clears HttpOnly cookie."
+    },
+    {
+      "name": "refresh",
+      "endpoint": "POST /auth/refresh",
+      "notes": "Short-lived access token 15min + HttpOnly refresh cookie 7d. Silent refresh handled by Next.js middleware."
+    },
+    {
+      "name": "forgot-password",
+      "endpoint": "POST /auth/forgot-password",
+      "notes": "Sends time-limited reset link to registered email address."
+    },
+    {
+      "name": "reset-password",
+      "endpoint": "POST /auth/reset-password",
+      "notes": "Token expires in 30 minutes (stricter than standard due to HIPAA requirements)."
+    },
+    {
+      "name": "role-based-access",
+      "roles": ["patient", "doctor", "admin"],
+      "notes": "Strict role separation enforced at API level. Patients can only access their own records. Doctors can only access records for patients within their active patient list. Admin has cross-entity read access plus audit log."
+    }
+  ],
+  "uploads": [
+    {
+      "name": "MedicalRecordFile",
+      "page": "MedicalRecords",
+      "endpoint": "POST /records",
+      "fileTypes": ["application/pdf", "image/jpeg", "image/png", "image/dicom"],
+      "maxSizeMB": 25,
+      "multiple": false,
+      "storageHint": "S3",
+      "visibility": "signed-url",
+      "notes": "Files are PHI. Must be stored in private S3 bucket with SSE-S3. Access via pre-signed URL only, short expiry."
+    }
+  ],
+  "externalTriggers": [
+    {
+      "name": "VideoSessionWebhook",
+      "type": "video-webhook",
+      "providerHint": "Daily.co",
+      "triggerSource": "Daily.co → POST /webhooks/daily",
+      "expectedOutcome": "Update appointment status to completed, record session duration in appointment record.",
+      "notes": "Webhook payload must be verified via HMAC-SHA256 signature using DAILY_WEBHOOK_SECRET."
+    },
+    {
+      "name": "SendAppointmentReminderJob",
+      "type": "scheduled-job",
+      "providerHint": "Celery Beat",
+      "triggerSource": "24h and 1h before appointment start time",
+      "expectedOutcome": "Send reminder email and SMS to patient with appointment details and video join link.",
+      "notes": "Scheduled via Celery Beat. Two separate task triggers per appointment."
+    },
+    {
+      "name": "SendPrescriptionReadyNotification",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "Prescription created by doctor (post-save signal or Celery task)",
+      "expectedOutcome": "Notify patient via email that a new prescription is ready to view in the TeleMed portal.",
+      "notes": "Email must not include PHI in subject line. Body may include medication name only if BAA with Resend is active."
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A01",
+      "category": "compliance",
+      "statement": "HIPAA compliance required — MedicalRecord, Prescription, and Diagnosis entities contain Protected Health Information (PHI) and must be handled accordingly."
+    },
+    {
+      "id": "A02",
+      "category": "security",
+      "statement": "All PHI fields encrypted at rest using AES-256-GCM — includes patient name, date of birth, SSN, diagnosis text, and medication name."
+    },
+    {
+      "id": "A03",
+      "category": "compliance",
+      "statement": "Business Associate Agreement (BAA) must be signed with all vendors that process or store PHI: AWS S3, Daily.co, Resend, and Twilio."
+    },
+    {
+      "id": "A04",
+      "category": "compliance",
+      "statement": "Audit log required for all PHI access events, capturing: actor_id, action type, entity_type, entity_id, source IP address, and timestamp."
+    },
+    {
+      "id": "A05",
+      "category": "security",
+      "statement": "Doctor-patient relationship enforced at API level — doctors cannot query, view, or modify records for patients outside their own active patient list."
+    },
+    {
+      "id": "A06",
+      "category": "security",
+      "statement": "TOTP/2FA is mandatory for all accounts with the doctor or admin role. Login will be blocked at middleware level if TOTP is not configured or not provided."
+    },
+    {
+      "id": "A07",
+      "category": "storage",
+      "statement": "Medical record files stored in a private AWS S3 bucket with server-side encryption (SSE-S3). No public access. All file downloads served via pre-signed URL."
+    },
+    {
+      "id": "A08",
+      "category": "video",
+      "statement": "Appointment video sessions are powered by Daily.co. No video or audio data is stored on TeleMed servers. Session metadata (duration, status) is recorded via webhook."
+    },
+    {
+      "id": "A09",
+      "category": "security",
+      "statement": "Password reset tokens expire in 30 minutes. This is stricter than a typical 1-hour window, required by HIPAA minimum necessary and access control standards."
+    },
+    {
+      "id": "A10",
+      "category": "compliance",
+      "statement": "Minimum necessary principle applied to all API responses. Each role receives only the fields required for its function. Doctor endpoints do not expose admin fields; patient endpoints do not expose other patients' data."
+    }
+  ]
+}

@@ -9,6 +9,8 @@ interface SecurityTabProps {
   group: Group;
   walletAddress: string;
   activeRecovery: { new_address: string; approvals: string[] } | null;
+  guardianConfig: { user: string; guardians: string[]; threshold: number } | null;
+  onRefresh: () => Promise<void>;
   t: (key: TranslationKey) => string;
   addToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }

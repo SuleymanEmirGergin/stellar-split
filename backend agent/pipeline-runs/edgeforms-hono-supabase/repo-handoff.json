@@ -1,0 +1,143 @@
+{
+  "meta": {
+    "generatedBy": "repo-builder-agent",
+    "generatedAt": "2026-04-05T17:50:00.000Z",
+    "modeUsed": "/blueprint",
+    "schemaVersion": "2.1.0",
+    "playbooksApplied": [
+      "backend-integrator/playbooks/hono-cloudflare-workers.md",
+      "backend-integrator/playbooks/supabase-baaS.md",
+      "backend-integrator/playbooks/stripe-payments.md",
+      "backend-integrator/playbooks/resilience.md"
+    ]
+  },
+  "project": {
+    "name": "EdgeForms",
+    "description": "Edge-native form builder SaaS API — Hono on Cloudflare Workers with Supabase backend",
+    "repoType": "monorepo",
+    "deploymentTarget": "custom"
+  },
+  "frontend": {
+    "framework": "Next.js 14 (App Router)",
+    "apps": [
+      { "name": "web", "path": "apps/web" }
+    ]
+  },
+  "backend": {
+    "framework": "hono",
+    "language": "typescript",
+    "services": [
+      {
+        "name": "api-worker",
+        "type": "api",
+        "path": "apps/api"
+      }
+    ],
+    "database": "supabase-postgres",
+    "orm": "supabase-js (RLS-enforced queries)",
+    "auth": "Supabase Auth (JWT)"
+  },
+  "integrations": [
+    {
+      "name": "Supabase",
+      "type": "storage",
+      "provider": "supabase.com",
+      "envVarsRequired": [
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
+    },
+    {
+      "name": "Stripe",
+      "type": "payment",
+      "provider": "stripe.com",
+      "envVarsRequired": [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_PRICE_ID_PRO",
+        "STRIPE_PRICE_ID_TEAM"
+      ]
+    },
+    {
+      "name": "Resend",
+      "type": "email",
+      "provider": "resend.com",
+      "envVarsRequired": ["RESEND_API_KEY", "EMAIL_FROM"]
+    },
+    {
+      "name": "PostHog",
+      "type": "analytics",
+      "provider": "posthog.com",
+      "envVarsRequired": ["POSTHOG_API_KEY"]
+    },
+    {
+      "name": "Cloudflare KV (rate limiting)",
+      "type": "custom",
+      "provider": "cloudflare.com",
+      "envVarsRequired": []
+    }
+  ],
+  "infrastructure": {
+    "queue": "supabase-edge-functions",
+    "cache": "cloudflare-kv",
+    "storage": "supabase-storage",
+    "containerization": "none",
+    "cicd": "github-actions"
+  },
+  "security": {
+    "secretScanningEnabled": true,
+    "securityMdIncluded": true,
+    "gitignoreComprehensive": true,
+    "ciSecurityScanStep": true,
+    "corsWhitelistConfigured": true,
+    "piiFieldsEncrypted": true,
+    "fieldEncryptionAlgorithm": "AES-256-GCM"
+  },
+  "compliance": {
+    "scope": "none"
+  },
+  "observability": {
+    "structuredLogging": true,
+    "loggingLibrary": "cloudflare-workers-built-in",
+    "correlationId": true,
+    "healthEndpointsPlanned": true,
+    "healthLive": "/health/live",
+    "healthReady": "/health/ready",
+    "prometheusMetrics": false,
+    "sentryEnabled": false,
+    "distributedTracing": false,
+    "distributedTracingNote": "Deferred to v1.1 — single Cloudflare Worker deployment, CF-Ray-ID provides sufficient correlation for MVP. OTel will be added when multi-region edge routing is introduced."
+  },
+  "packages": [
+    {
+      "name": "@edgeforms/types",
+      "path": "packages/types",
+      "purpose": "types",
+      "consumedBy": ["api", "web"]
+    },
+    {
+      "name": "@edgeforms/validators",
+      "path": "packages/validators",
+      "purpose": "utils",
+      "consumedBy": ["api", "web"]
+    }
+  ],
+  "assumptions": [
+    "All API routes run on Cloudflare Workers — no traditional server provisioned. deploymentTarget is 'custom' because 'cloudflare-workers' is not in the standard enum.",
+    "Supabase RLS policies are the second line of defence — Hono middleware JWT validation is the first",
+    "Every Supabase table has RLS enabled with explicit workspace_id-based USING clauses — no table is public without a policy",
+    "Supabase service_role key is stored as a Cloudflare Worker secret — never exposed to client or committed to Git",
+    "CORS is enforced via an explicit ALLOWED_ORIGIN environment variable — wildcard is not permitted",
+    "All Stripe webhook events are verified with HMAC-SHA256 before processing — verification key stored in Cloudflare secret",
+    "Public form submission endpoint is rate-limited: 60 submissions/hour per IP via Cloudflare KV sliding window",
+    "IP addresses are stored as SHA-256 hashes (salted) — no raw IP is persisted",
+    "CSV export is asynchronous — triggered via Supabase Edge Function, result stored in private Supabase Storage bucket",
+    "API keys are hashed with bcrypt before storage — raw key is returned only once at creation",
+    "CF-Ray-ID is included as correlationId in every structured log entry",
+    "Distributed tracing deferred to v1.1 — single-region edge deployment, CF-Ray provides sufficient trace context for MVP",
+    "All Stripe PaymentIntent and subscription requests use idempotency keys derived from workspace_id + operation — retried payment calls cannot create duplicate charges.",
+    "External API calls (Stripe, Resend) are wrapped with AbortController timeout (10 seconds). Resend email failures use exponential backoff retry (3 attempts) and do not block the main request path.",
+    "wrangler.toml is committed at the repo root and defines Worker routes, KV namespace bindings, Cloudflare zone, and environment-specific deploy config."
+  ]
+}

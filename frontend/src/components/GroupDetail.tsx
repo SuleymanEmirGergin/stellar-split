@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BarChart3, 
-  Users, 
-  Zap, 
+import {
+  BarChart3,
+  Users,
+  Zap,
   Shield,
   Info,
   CheckCircle2,
@@ -18,7 +18,8 @@ import {
   Plus,
   Share2,
   Link,
-  Target
+  Target,
+  Clock,
 } from 'lucide-react';
 import { getRecovery, getGuardians, type RecoveryRequest, type GuardianConfig, estimateSettleGroupFee, type EstimatedFee, isDemoMode } from '../lib/contract';
 import { useGroup, useGroupExpenses, useBalances, useGroupSettlements, groupKeys } from '../hooks/useGroupQuery';
@@ -26,6 +27,17 @@ import { useAddExpenseMutation, useCancelExpenseMutation, useSettleGroupMutation
 import { useQueryClient } from '@tanstack/react-query';
 import { server, CONTRACT_ID } from '../lib/stellar';
 import { subscribeGroupEvents } from '../lib/events';
+import { useGroupEvents } from '../hooks/useGroupEvents';
+import {
+  useBackendExpenses,
+  useBackendBalances,
+  useBackendRecurring,
+  useBackendAudit,
+  useCreateRecurringMutation,
+  useDeleteRecurringMutation,
+  backendGroupKeys,
+} from '../hooks/useBackendGroups';
+import { getAccessToken } from '../lib/api';
 import { StrKey } from '@stellar/stellar-sdk';
 import { translateError, type Lang } from '../lib/errors';
 import Confetti from './Confetti';
@@ -45,6 +57,7 @@ import RecurringTab from './tabs/RecurringTab';
 import SocialTab from './tabs/SocialTab';
 import GovernanceTab from './tabs/GovernanceTab';
 import SecurityTab from './tabs/SecurityTab';
+import AuditTab from './tabs/AuditTab';
 import { SocialSavings } from './SocialSavings';
 
 import { sendWebhookNotification, sendSettlementReadyNotification, sendLocalNotification, requestNotificationPermission } from '../lib/notifications';
@@ -79,13 +92,13 @@ import { track } from '../lib/analytics';
 
 interface Props {
   walletAddress: string;
-  groupId: number;
+  groupId: number | string;
   onBack: () => void;
   isDemo?: boolean;
   isOffline?: boolean;
 }
 
-type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'savings' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery';
+type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'savings' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery' | 'audit';
 
 export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, isOffline }: Props) {
   const { t, lang } = useI18n();
@@ -99,7 +112,35 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const { data: settlements = [] } = useGroupSettlements(groupId);
   const loading = groupLoading;
 
+  // ── Backend hooks (REST API) ──────────────────────────────────────────────
+  const groupIdStr = String(groupId);
+  const hasJwt = !isDemo && !!getAccessToken();
+  const { data: backendExpenses } = useBackendExpenses(isDemo ? null : groupIdStr);
+  const { data: backendBalancesRaw } = useBackendBalances(isDemo ? null : groupIdStr);
+  const { data: backendRecurringData, isLoading: recurringLoading } = useBackendRecurring(groupIdStr, hasJwt);
+  const createRecurringMutation = useCreateRecurringMutation(groupIdStr);
+  const deleteRecurringMutation = useDeleteRecurringMutation(groupIdStr);
+  const { data: auditData, isLoading: auditLoading } = useBackendAudit(groupIdStr, hasJwt && tab === 'audit');
+
+  // Prefer backend data when available; fall back to Soroban contract data
+  const activeExpenses = (backendExpenses ?? expenses) as typeof expenses;
+  const activeBalances: Map<string, number> = backendBalancesRaw
+    ? new Map(backendBalancesRaw.map((b: { walletAddress: string; net: number }) => [b.walletAddress, b.net]))
+    : balances;
+
+  // SSE: invalidate backend + Soroban caches on live events
+  useGroupEvents(isDemo ? null : groupIdStr, (event) => {
+    queryClient.invalidateQueries({ queryKey: backendGroupKeys.expenses(groupIdStr) });
+    queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
+    queryClient.invalidateQueries({ queryKey: backendGroupKeys.detail(groupIdStr) });
+    queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
+    if (event.type !== 'heartbeat') {
+      addToast(t('group.updated'), 'success');
+    }
+  });
+
   const [tab, setTab] = useState<Tab>('expenses');
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const [contacts] = useState<Record<string, string>>(() => addressBook.getAll());
 
   const [showAdd, setShowAdd] = useState(false);
@@ -215,15 +256,14 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     loadSecurityData();
   }, [loadSecurityData]);
 
-  // Event polling: refresh group when contract events (expense_added, group_settled, etc.) occur
+  // Event polling: refresh group when Soroban contract events fire
   useEffect(() => {
     if (isDemo) return;
     const cleanup = subscribeGroupEvents(server, CONTRACT_ID, groupId, () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
-      addToast(t('group.updated'), 'success');
     });
     return cleanup;
-  }, [groupId, isDemo, queryClient, addToast, t]);
+  }, [groupId, isDemo, queryClient]);
 
   useEffect(() => {
     let cancelled = false;
@@ -231,11 +271,23 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     return () => { cancelled = true; };
   }, []);
 
+  // Sync backend recurring templates into subscriptions state (backend takes precedence)
   useEffect(() => {
-    loadSubscriptionsFromApi(groupId).then(apiSubs => {
-      if (apiSubs && apiSubs.length >= 0) setSubscriptions(apiSubs);
-    });
-  }, [groupId]);
+    if (!hasJwt || !backendRecurringData?.data?.items) return;
+    const mapped: RecurringTemplate[] = backendRecurringData.data.items.map((bt) => ({
+      id: bt.id,
+      name: bt.description,
+      amount: bt.amount,
+      interval: (bt.frequency.toLowerCase() as RecurringTemplate['interval']) === 'daily' ? 'daily'
+        : (bt.frequency.toLowerCase() as RecurringTemplate['interval']) === 'weekly' ? 'weekly'
+        : (bt.frequency.toLowerCase() as RecurringTemplate['interval']) === 'yearly' ? 'yearly'
+        : 'monthly',
+      status: bt.isActive ? 'active' : 'paused',
+      nextDue: new Date(bt.nextDue).getTime(),
+      createdAt: new Date(bt.createdAt).getTime(),
+    }));
+    setSubscriptions(mapped);
+  }, [hasJwt, backendRecurringData]);
 
   useEffect(() => {
     if (!webhookUrl || !webhookNotifySettlement || !group || settlements.length === 0) return;
@@ -423,6 +475,23 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
 
   const handleAddSubscription = useCallback(async (sub: Omit<RecurringTemplate, 'id' | 'createdAt'>) => {
+    if (hasJwt) {
+      try {
+        await createRecurringMutation.mutateAsync({
+          groupId: groupIdStr,
+          description: sub.name,
+          amount: sub.amount,
+          frequency: sub.interval === 'daily' ? 'DAILY'
+            : sub.interval === 'weekly' ? 'WEEKLY'
+            : sub.interval === 'yearly' ? 'YEARLY'
+            : 'MONTHLY',
+          nextDue: sub.nextDue ? new Date(sub.nextDue).toISOString() : new Date().toISOString(),
+        });
+        return;
+      } catch {
+        // fall through to localStorage
+      }
+    }
     const newSub: RecurringTemplate = {
       ...sub,
       id: Math.random().toString(36).substr(2, 9),
@@ -431,7 +500,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     const updated = [...subscriptions, newSub];
     setSubscriptions(updated);
     await saveSubscriptions(groupId, updated);
-  }, [groupId, subscriptions]);
+  }, [hasJwt, groupIdStr, groupId, subscriptions, createRecurringMutation]);
 
   const handleAddProposal = useCallback(() => {
     if (!newPropTitle.trim()) return;
@@ -502,6 +571,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     { key: 'governance', label: 'Voting', icon: Users },
     { key: 'security', label: 'Safety', icon: Shield },
     { key: 'gallery', label: 'Fiş/Makbuzlar', icon: ImageIcon },
+    { key: 'audit', label: 'Activity', icon: Clock },
   ];
 
   return (
@@ -585,29 +655,30 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
       {/* Layout: left sidebar menu + main content */}
       <div className="flex gap-6 items-start">
-        {/* Left sidebar – tab navigation */}
+        {/* Left sidebar – hidden on mobile, icon-only on tablet, full on desktop */}
         <nav
           role="tablist"
           aria-label={t('group.tabs_nav')}
-          className="shrink-0 w-[220px] sticky top-4 rounded-2xl bg-secondary/30 border border-white/5 p-2 space-y-1"
+          className="hidden sm:flex shrink-0 sm:w-14 md:w-[220px] sticky top-4 rounded-2xl bg-secondary/30 border border-white/5 p-2 space-y-1 flex-col"
         >
-          {tabItems.map((t) => (
+          {tabItems.map((item) => (
             <button
-              key={t.key}
+              key={item.key}
               role="tab"
-              aria-selected={tab === t.key}
-              data-testid={`tab-${t.key}`}
-              onClick={() => setTab(t.key)}
-              className={`w-full px-4 py-3 rounded-xl text-left text-[11px] font-black uppercase tracking-wider flex items-center gap-3 transition-all ${tab === t.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-muted-foreground hover:bg-white/5 hover:text-white border border-transparent'}`}
+              aria-selected={tab === item.key}
+              data-testid={`tab-${item.key}`}
+              onClick={() => setTab(item.key)}
+              title={item.label}
+              className={`w-full px-3 py-3 rounded-xl text-left text-[11px] font-black uppercase tracking-wider flex items-center gap-3 transition-all ${tab === item.key ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-muted-foreground hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
-              <t.icon size={16} className="shrink-0" />
-              <span className="truncate">{t.label}</span>
+              <item.icon size={16} className="shrink-0" />
+              <span className="hidden md:inline truncate">{item.label}</span>
             </button>
           ))}
         </nav>
 
         {/* Tab content area */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pb-20 sm:pb-0">
       <motion.div
         key={tab}
         initial={{ opacity: 0, x: 10 }}
@@ -617,7 +688,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         {tab === 'expenses' && (
           <ExpensesTab
             group={group}
-            expenses={expenses}
+            expenses={activeExpenses}
             walletAddress={walletAddress}
             currencyLabel={currencyLabel}
             xlmUsd={xlmUsd}
@@ -643,7 +714,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
         {tab === 'gallery' && (
           <GalleryTab
-            expenses={expenses}
+            expenses={activeExpenses}
             currencyLabel={currencyLabel}
             xlmUsd={xlmUsd}
           />
@@ -652,9 +723,9 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         {tab === 'balances' && (
           <BalancesTab
             group={group}
-            expenses={expenses}
+            expenses={activeExpenses}
             settlements={settlements}
-            balances={balances}
+            balances={activeBalances}
             walletAddress={walletAddress}
             currencyLabel={currencyLabel}
             showVisualGraph={showVisualGraph}
@@ -693,7 +764,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             groupId={groupId}
             groupMembers={group.members}
             walletAddress={walletAddress}
-            expenses={expenses}
+            expenses={activeExpenses}
             settlements={settlements}
             currencyLabel={currencyLabel}
             xlmUsd={xlmUsd}
@@ -709,7 +780,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           </>
         )}
 
-        {tab === 'insights' && <InsightsPanel expenses={expenses} members={group.members} group={group} currentUser={walletAddress} />}
+        {tab === 'insights' && <InsightsPanel expenses={activeExpenses} members={group.members} group={group} currentUser={walletAddress} />}
 
         {tab === 'defi' && (
           <DeFiTab
@@ -724,15 +795,21 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           <RecurringTab
             subscriptions={subscriptions}
             setShowAddSub={setShowAddSub}
-            onToggle={(id) => {
+            isLoading={recurringLoading}
+            isBackend={hasJwt}
+            onToggle={(id: string) => {
               const updated = subscriptions.map(s => s.id === id ? { ...s, status: s.status === 'active' ? 'paused' : 'active' } : s);
               setSubscriptions(updated);
               saveSubscriptions(groupId, updated);
             }}
-            onDelete={(id) => {
-              const updated = subscriptions.filter(s => s.id !== id);
-              setSubscriptions(updated);
-              saveSubscriptions(groupId, updated);
+            onDelete={async (id: string) => {
+              if (hasJwt) {
+                await deleteRecurringMutation.mutateAsync(id);
+              } else {
+                const updated = subscriptions.filter(s => s.id !== id);
+                setSubscriptions(updated);
+                saveSubscriptions(groupId, updated);
+              }
             }}
           />
         )}
@@ -792,6 +869,14 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             onRefresh={loadSecurityData}
             t={t}
             addToast={addToast}
+          />
+        )}
+
+        {tab === 'audit' && (
+          <AuditTab
+            entries={auditData?.data?.items ?? []}
+            isLoading={auditLoading}
+            hasJwt={hasJwt}
           />
         )}
       </motion.div>
@@ -1027,12 +1112,80 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
       )}
 
       <Confetti active={showConfetti} />
-      
-      <SubscriptionModal 
-        isOpen={showAddSub} 
-        onClose={() => setShowAddSub(false)} 
-        onSave={handleAddSubscription} 
+
+      <SubscriptionModal
+        isOpen={showAddSub}
+        onClose={() => setShowAddSub(false)}
+        onSave={handleAddSubscription}
       />
+
+      {/* Mobile bottom tab bar – visible only on sm and below */}
+      {(() => {
+        const primaryTabs = tabItems.slice(0, 5);
+        const moreTabs = tabItems.slice(5);
+        return (
+          <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-white/5">
+            <div className="flex items-center justify-around px-2 py-2">
+              {primaryTabs.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => { setTab(item.key); setShowMobileMore(false); }}
+                  className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
+                    tab === item.key && !showMobileMore
+                      ? 'text-indigo-400'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  <item.icon size={18} />
+                  <span className="text-[9px] font-black uppercase tracking-wider">{item.label.slice(0, 6)}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setShowMobileMore((v) => !v)}
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
+                  showMobileMore ? 'text-indigo-400' : 'text-muted-foreground'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
+                </svg>
+                <span className="text-[9px] font-black uppercase tracking-wider">More</span>
+              </button>
+            </div>
+
+            {/* "More" bottom sheet */}
+            <AnimatePresence>
+              {showMobileMore && (
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                  className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-white/5 rounded-t-3xl p-4"
+                >
+                  <div className="w-8 h-1 rounded-full bg-white/20 mx-auto mb-4" />
+                  <div className="grid grid-cols-3 gap-2">
+                    {moreTabs.map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={() => { setTab(item.key); setShowMobileMore(false); }}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${
+                          tab === item.key
+                            ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                            : 'bg-white/5 text-muted-foreground hover:text-foreground border border-transparent'
+                        }`}
+                      >
+                        <item.icon size={20} />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-center leading-tight">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })()}
     </div>
   );
 }

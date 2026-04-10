@@ -5,6 +5,7 @@ import Logo from './Logo';
 
 interface Props {
   onConnect: () => void;
+  onPasskey: () => void;
   freighterAvailable: boolean;
   connecting: boolean;
   isDemo?: boolean;
@@ -27,7 +28,7 @@ const itemVars: Variants = {
   }
 };
 
-export default function Landing({ onConnect, freighterAvailable, connecting, isDemo }: Props) {
+export default function Landing({ onConnect, onPasskey, freighterAvailable, connecting, isDemo }: Props) {
   const { t } = useI18n();
   const canConnect = freighterAvailable || !!isDemo;
 
@@ -51,54 +52,65 @@ export default function Landing({ onConnect, freighterAvailable, connecting, isD
       <CreditCard className="absolute bottom-32 right-[12%] w-16 h-16 text-foreground/5 pointer-events-none z-0 rotate-12" strokeWidth={1.5} aria-hidden />
 
       <div className="relative z-10">
-      {/* Hero Section */}
-      <div className="text-center py-20 pb-16 relative">
-        <motion.div variants={itemVars} className="flex flex-col items-center gap-6 mb-10">
-          <Logo size={48} variant="hero" className="rounded-2xl ring-2 ring-white/10 ring-offset-4 ring-offset-background" />
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-primary text-[10px] font-bold uppercase tracking-[0.2em]">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            {t('landing.powered_by')}
-          </span>
-        </motion.div>
-        
-        <motion.h1 variants={itemVars} className="text-5xl md:text-7xl font-black leading-[1.1] mb-6 tracking-tighter">
-          {t('landing.hero_title').split('.').map((part, i) => (
-            <span key={i} className={i === 1 ? "bg-gradient-to-r from-indigo-400 via-white to-purple-400 bg-clip-text text-transparent block" : "block"}>
-              {part}{i === 0 ? '.' : ''}
+        {/* Hero Section */}
+        <div className="text-center py-20 pb-16 relative px-6">
+          <motion.div variants={itemVars} className="flex flex-col items-center gap-6 mb-10">
+            <Logo size={48} variant="hero" className="rounded-2xl ring-2 ring-white/10 ring-offset-4 ring-offset-background" />
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-primary text-[10px] font-bold uppercase tracking-[0.2em]">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              {t('landing.powered_by')}
             </span>
-          ))}
-        </motion.h1>
+          </motion.div>
+          
+          <motion.h1 variants={itemVars} className="text-5xl md:text-7xl font-black leading-[1.1] mb-6 tracking-tighter">
+            {t('landing.hero_title').split('.').map((part, i) => (
+              <span key={i} className={i === 1 ? "bg-gradient-to-r from-indigo-400 via-white to-purple-400 bg-clip-text text-transparent block" : "block"}>
+                {part}{i === 0 ? '.' : ''}
+              </span>
+            ))}
+          </motion.h1>
 
-        <motion.p variants={itemVars} className="text-lg text-muted-foreground max-w-[650px] mx-auto mb-12 leading-relaxed font-medium">
-          {t('landing.hero_subtitle')}
-        </motion.p>
+          <motion.p variants={itemVars} className="text-lg text-muted-foreground max-w-[650px] mx-auto mb-12 leading-relaxed font-medium">
+            {t('landing.hero_subtitle')}
+          </motion.p>
 
-        {/* Hero CTA */}
-        <motion.div variants={itemVars} className="flex justify-center flex-col items-center gap-6">
-          <button
-            className="group relative inline-flex items-center gap-3 px-10 py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:shadow-[0_0_50px_rgba(79,70,229,0.6)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-            onClick={onConnect}
-            disabled={!canConnect || connecting}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            {connecting ? (
-              <Zap size={22} className="animate-spin" />
-            ) : (
-              <Logo size={28} variant="hero" />
-            )}
-            {t('landing.cta_connect')}
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-          </button>
+          {/* Hero CTA */}
+          <motion.div variants={itemVars} className="flex justify-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
+              <button
+                className="group relative flex-1 inline-flex items-center justify-center gap-3 px-10 py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:shadow-[0_0_50px_rgba(79,70,229,0.6)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                onClick={onConnect}
+                disabled={!canConnect || connecting}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                {connecting ? (
+                  <Zap size={22} className="animate-spin" />
+                ) : (
+                  <Logo size={28} variant="hero" />
+                )}
+                {canConnect ? t('landing.cta_connect') : t('header.install_freighter')}
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                onClick={onPasskey}
+                className="flex-1 px-8 py-4 bg-secondary/50 hover:bg-secondary text-foreground rounded-2xl font-black text-sm transition-all border border-white/5 flex items-center justify-center gap-2 group"
+              >
+                <Lock size={16} className="group-hover:text-indigo-400 transition-colors" />
+                TRY PASSKEYS
+              </button>
+            </div>
+          </motion.div>
 
           {!canConnect && (
-            <motion.p variants={itemVars} className="text-muted-foreground text-sm font-medium flex items-center gap-2">
+            <motion.p variants={itemVars} className="text-muted-foreground text-sm font-medium flex items-center justify-center gap-2">
               <AlertTriangle size={14} className="text-amber-500" />
               {t('landing.install_freighter_before')}
               <a href="https://freighter.app" target="_blank" rel="noopener" className="text-indigo-400 hover:text-indigo-300 underline font-bold transition-colors">{t('landing.install_freighter_link')}</a>
               {t('landing.install_freighter_after')}
             </motion.p>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Stats Section */}
@@ -198,7 +210,6 @@ export default function Landing({ onConnect, freighterAvailable, connecting, isD
             <Rocket size={20} /> Let's Go
           </button>
         </motion.div>
-      </div>
       </div>
     </motion.div>
   );

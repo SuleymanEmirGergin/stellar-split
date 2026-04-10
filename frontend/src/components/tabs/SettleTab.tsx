@@ -13,6 +13,7 @@ import type { TranslationKey } from '../../lib/i18n';
 interface SettleTabProps {
   groupId: number;
   walletAddress: string;
+  groupMembers: string[];
   expenses: Expense[];
   settlements: Settlement[];
   currencyLabel: string;
@@ -22,6 +23,7 @@ interface SettleTabProps {
   setShowPayQRIndex: (val: number | null) => void;
   settling: boolean;
   handleSettle: () => void;
+  onRefresh?: () => Promise<void>;
   estimatedSettleFee?: EstimatedFee | null;
   t: (key: TranslationKey) => string;
   isOffline?: boolean;

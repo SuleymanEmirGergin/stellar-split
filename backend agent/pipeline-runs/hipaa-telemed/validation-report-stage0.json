@@ -1,0 +1,220 @@
+{
+  "meta": {
+    "validatorVersion": "1.5.0",
+    "pipelineStage": "frontend-to-backend",
+    "commandUsed": "/validate frontend-backend",
+    "validatedFile": "pipeline-runs/hipaa-telemed/frontend-backend-handoff.json",
+    "validatedAt": "2026-04-02T09:45:00Z",
+    "project": "TeleMed"
+  },
+  "summary": {
+    "status": "pass",
+    "totalChecks": 15,
+    "passed": 15,
+    "warnings": 0,
+    "failures": 0
+  },
+  "checks": [
+    {
+      "id": "schema-required-fields",
+      "category": "schema",
+      "status": "pass",
+      "message": "All 9 required top-level fields present: project, pages, forms, tables, actions, authFlows, uploads, externalTriggers, assumptions.",
+      "details": {
+        "requiredFields": ["project", "pages", "forms", "tables", "actions", "authFlows", "uploads", "externalTriggers", "assumptions"],
+        "presentFields": ["project", "pages", "forms", "tables", "actions", "authFlows", "uploads", "externalTriggers", "assumptions"],
+        "missingFields": []
+      }
+    },
+    {
+      "id": "schema-enum-values",
+      "category": "schema",
+      "status": "pass",
+      "message": "All enum-constrained fields contain valid values.",
+      "details": {
+        "checked": [
+          { "field": "uploads[0].visibility", "value": "signed-url", "validEnum": ["public", "private", "signed-url"] },
+          { "field": "uploads[0].storageHint", "value": "S3", "validEnum": ["S3", "GCS", "Azure", "local"] },
+          { "field": "forms[2].fields[4].type", "value": "number", "validEnum": ["text", "email", "password", "textarea", "select", "date", "time", "number", "file", "hidden"] },
+          { "field": "forms[1].fields[2].type", "value": "select", "validEnum": ["text", "email", "password", "textarea", "select", "date", "time", "number", "file", "hidden"] }
+        ]
+      }
+    },
+    {
+      "id": "schema-min-lengths",
+      "category": "schema",
+      "status": "pass",
+      "message": "All array fields meet minimum length requirements: pages >= 1, forms >= 1, tables >= 1, actions >= 1, authFlows >= 1, assumptions >= 3.",
+      "details": {
+        "pages": 8,
+        "forms": 4,
+        "tables": 3,
+        "actions": 3,
+        "authFlows": 6,
+        "uploads": 1,
+        "externalTriggers": 3,
+        "assumptions": 10
+      }
+    },
+    {
+      "id": "form-page-reference",
+      "category": "schema",
+      "status": "pass",
+      "message": "All 4 forms reference a valid page name declared in pages[].",
+      "details": {
+        "checked": [
+          { "form": "LoginForm", "referencedPage": "Login", "found": true },
+          { "form": "BookAppointmentForm", "referencedPage": "AppointmentBook", "found": true },
+          { "form": "AddPrescriptionForm", "referencedPage": "Prescriptions", "found": true },
+          { "form": "UploadMedicalRecordForm", "referencedPage": "MedicalRecords", "found": true }
+        ]
+      }
+    },
+    {
+      "id": "table-page-reference",
+      "category": "schema",
+      "status": "pass",
+      "message": "All 3 tables reference a valid page name declared in pages[].",
+      "details": {
+        "checked": [
+          { "table": "AppointmentTable", "referencedPage": "PatientDashboard", "found": true },
+          { "table": "PrescriptionTable", "referencedPage": "Prescriptions", "found": true },
+          { "table": "MedicalRecordTable", "referencedPage": "MedicalRecords", "found": true }
+        ]
+      }
+    },
+    {
+      "id": "action-page-reference",
+      "category": "schema",
+      "status": "pass",
+      "message": "All 3 actions reference a valid page name declared in pages[].",
+      "details": {
+        "checked": [
+          { "action": "CancelAppointment", "referencedPage": "PatientDashboard", "found": true },
+          { "action": "RequestRefill", "referencedPage": "Prescriptions", "found": true },
+          { "action": "DeactivateUser", "referencedPage": "AdminPanel", "found": true }
+        ]
+      }
+    },
+    {
+      "id": "upload-page-reference",
+      "category": "schema",
+      "status": "pass",
+      "message": "All upload definitions reference a valid page name declared in pages[].",
+      "details": {
+        "checked": [
+          { "upload": "MedicalRecordFile", "referencedPage": "MedicalRecords", "found": true }
+        ]
+      }
+    },
+    {
+      "id": "auth-protected-pages-login",
+      "category": "auth",
+      "status": "pass",
+      "message": "7 of 8 pages have requiresAuth: true. 1 page (Login) is intentionally public (requiresAuth: false). All protected pages have at least one role declared.",
+      "details": {
+        "totalPages": 8,
+        "protectedPages": 7,
+        "publicPages": ["Login"],
+        "pagesWithMissingRoles": []
+      }
+    },
+    {
+      "id": "auth-rbac-consistency",
+      "category": "auth",
+      "status": "pass",
+      "message": "All roles referenced in pages[].roles are declared in authFlows[name=role-based-access].roles.",
+      "details": {
+        "rolesInPages": ["patient", "doctor", "admin"],
+        "rolesDeclaredInAuthFlow": ["patient", "doctor", "admin"],
+        "undeclaredRoles": []
+      }
+    },
+    {
+      "id": "auth-2fa-detected",
+      "category": "auth",
+      "status": "pass",
+      "message": "authFlows includes a login entry with 2FA/TOTP noted in the notes field. TOTP requirement for doctor and admin roles is explicitly stated.",
+      "details": {
+        "loginFlowFound": true,
+        "totpMentioned": true,
+        "rolesRequiring2FA": ["doctor", "admin"],
+        "assumptionBackingId": "A06"
+      }
+    },
+    {
+      "id": "security-phi-assumptions-declared",
+      "category": "security",
+      "status": "pass",
+      "message": "assumptions[] contains HIPAA/PHI/encryption statements (A01, A02, A03). Full PHI compliance validation — encryption algorithm, audit log schema, BAA vendor list — occurs at stage 1 against repo-handoff.json.",
+      "details": {
+        "hipaaAssumptions": ["A01", "A02", "A03", "A04"],
+        "encryptionMentioned": true,
+        "auditLogMentioned": true,
+        "baaMentioned": true
+      }
+    },
+    {
+      "id": "security-upload-file-types",
+      "category": "security",
+      "status": "pass",
+      "message": "All upload definitions include an explicit fileTypes array. No wildcard types detected.",
+      "details": {
+        "checked": [
+          {
+            "upload": "MedicalRecordFile",
+            "fileTypes": ["application/pdf", "image/jpeg", "image/png", "image/dicom"],
+            "hasWildcard": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "security-auth-flow-completeness",
+      "category": "security",
+      "status": "pass",
+      "message": "All 6 expected auth flows are present: login, logout, refresh, forgot-password, reset-password, role-based-access.",
+      "details": {
+        "requiredFlows": ["login", "logout", "refresh", "forgot-password", "reset-password", "role-based-access"],
+        "presentFlows": ["login", "logout", "refresh", "forgot-password", "reset-password", "role-based-access"],
+        "missingFlows": []
+      }
+    },
+    {
+      "id": "security-upload-signed-url",
+      "category": "security",
+      "status": "pass",
+      "message": "MedicalRecordFile upload has visibility: signed-url. This is appropriate for PHI file storage — pre-signed URLs prevent unauthorized direct access.",
+      "details": {
+        "checked": [
+          { "upload": "MedicalRecordFile", "visibility": "signed-url", "storageHint": "S3", "phiContent": true }
+        ]
+      }
+    },
+    {
+      "id": "completeness-assumptions",
+      "category": "completeness",
+      "status": "pass",
+      "message": "10 assumptions declared, covering required categories: HIPAA compliance, field encryption, BAA vendors, audit logging, access control, 2FA, storage, video provider, password policy, and minimum-necessary principle.",
+      "details": {
+        "totalAssumptions": 10,
+        "categoriesCovered": ["compliance", "security", "storage", "video"],
+        "minimumRequired": 5,
+        "coverageCheck": {
+          "hipaa": true,
+          "encryption": true,
+          "baa": true,
+          "audit": true,
+          "accessControl": true,
+          "mfa": true,
+          "storage": true,
+          "video": true,
+          "passwordPolicy": true,
+          "minimumNecessary": true
+        }
+      }
+    }
+  ],
+  "blockingFailures": [],
+  "warnings": []
+}

@@ -1,0 +1,141 @@
+{
+  "validatedFile": "repo-handoff.json",
+  "validatedAt": "2026-04-05T17:52:17.026Z",
+  "schema": "repo-builder-agent\\repo-handoff.schema.json",
+  "status": "pass",
+  "summary": {
+    "totalChecks": 15,
+    "passed": 15,
+    "warnings": 0,
+    "failures": 0
+  },
+  "checks": [
+    {
+      "id": "schema-compliance",
+      "category": "schema",
+      "label": "JSON Schema Compliance",
+      "status": "pass",
+      "message": "Handoff file is fully compliant with repo-handoff.schema.json.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-monorepo-packages",
+      "category": "semantic",
+      "label": "Monorepo Has Packages",
+      "status": "pass",
+      "message": "Monorepo declared with 2 package(s) defined.",
+      "severity": "error"
+    },
+    {
+      "id": "semantic-payment-secret-scan",
+      "category": "semantic",
+      "label": "Payment Integration: Secret Scanning",
+      "status": "pass",
+      "message": "Payment integration detected and security.secretScanningEnabled is true.",
+      "severity": "error"
+    },
+    {
+      "id": "security-secret-scanning",
+      "category": "security",
+      "label": "Secret Scanning Enabled",
+      "status": "pass",
+      "message": "security.secretScanningEnabled is true (.gitleaks.toml or equivalent present).",
+      "severity": "warning"
+    },
+    {
+      "id": "security-md-included",
+      "category": "security",
+      "label": "SECURITY.md Included",
+      "status": "pass",
+      "message": "security.securityMdIncluded is true (SECURITY.md present in repo).",
+      "severity": "warning"
+    },
+    {
+      "id": "security-gitignore",
+      "category": "security",
+      "label": ".gitignore Comprehensive",
+      "status": "pass",
+      "message": "security.gitignoreComprehensive is true.",
+      "severity": "warning"
+    },
+    {
+      "id": "security-ci-scan",
+      "category": "security",
+      "label": "CI Security Scan Step",
+      "status": "pass",
+      "message": "security.ciSecurityScanStep is true (npm audit / pip-audit step in CI).",
+      "severity": "info"
+    },
+    {
+      "id": "completeness-assumptions-declared",
+      "category": "completeness",
+      "label": "Assumptions Declared",
+      "status": "pass",
+      "message": "12 assumption(s) declared by the producing agent.",
+      "severity": "warning"
+    },
+    {
+      "id": "completeness-project-name",
+      "category": "completeness",
+      "label": "Project Name Meaningful",
+      "status": "pass",
+      "message": "project.name is \"EdgeForms\".",
+      "severity": "warning"
+    },
+    {
+      "id": "completeness-services-declared",
+      "category": "completeness",
+      "label": "Backend Services Declared",
+      "status": "pass",
+      "message": "1 service(s) declared: 1 API, 0 worker.",
+      "severity": "warning"
+    },
+    {
+      "id": "playbook-security-md",
+      "category": "security",
+      "label": "Security Playbook: SECURITY.md",
+      "status": "pass",
+      "message": "security.securityMdIncluded is true. SECURITY.md file will be scaffolded.",
+      "severity": "error"
+    },
+    {
+      "id": "playbook-secret-scanning-sensitive",
+      "category": "security",
+      "label": "Security Playbook: Secret Scanning for Payment/Auth",
+      "status": "pass",
+      "message": "Payment/auth integration found and secret scanning is enabled.",
+      "severity": "error"
+    },
+    {
+      "id": "observability-health-endpoints-planned",
+      "category": "completeness",
+      "label": "Observability: Health Endpoints Planned",
+      "status": "pass",
+      "message": "API service(s) detected and observability.healthEndpointsPlanned is true.",
+      "severity": "warning"
+    },
+    {
+      "id": "observability-health-routes",
+      "category": "completeness",
+      "label": "Observability: Health Routes Defined",
+      "status": "pass",
+      "message": "Health routes defined: live=\"/health/live\", ready=\"/health/ready\".",
+      "severity": "warning"
+    },
+    {
+      "id": "observability-structured-logging",
+      "category": "completeness",
+      "label": "Observability: Structured Logging",
+      "status": "pass",
+      "message": "Deployment target \"custom\" set and observability.structuredLogging is true (cloudflare-workers-built-in).",
+      "severity": "info"
+    }
+  ],
+  "blockingFailures": [],
+  "warnings": [],
+  "meta": {
+    "validatorVersion": "2.0.0",
+    "pipelineStage": "backend-to-repo",
+    "commandUsed": "/validate repo"
+  }
+}

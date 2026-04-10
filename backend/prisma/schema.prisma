@@ -1,0 +1,346 @@
+// StellarSplit Prisma Schema — Prisma 7
+// PostgreSQL 15
+//
+// NOTE: The database connection URL is intentionally absent from this block.
+// Prisma 7 removed `url` from schema.prisma in favour of prisma.config.ts.
+// See: https://pris.ly/d/config-datasource
+//
+// If your IDE's Prisma LSP extension reports "Argument url is missing", update
+// the Prisma VS Code extension to a version that supports Prisma 7 schema syntax.
+// The Prisma 7 CLI (`npx prisma validate`) accepts this schema correctly.
+//
+// Connection URL is supplied via: prisma/prisma.config.ts → defineConfig({ datasourceUrl: process.env.DATABASE_URL })
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// User — identified by Stellar wallet address
+// ─────────────────────────────────────────────
+model User {
+  id              String   @id @default(uuid())
+  walletAddress   String   @unique
+  reputationScore Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  groupsCreated    Group[]          @relation("GroupCreator")
+  groupMemberships GroupMember[]
+  expensesPaid     Expense[]        @relation("ExpensePaidBy")
+  settlements      Settlement[]     @relation("SettlementSettledBy")
+  guardiansOwned   Guardian[]       @relation("GuardianUser")
+  guardianFor      Guardian[]       @relation("GuardianOf")
+  recoveryRequests RecoveryRequest[]
+  notifications    Notification[]
+  refreshTokens    RefreshToken[]
+  badges           UserBadge[]
+
+  @@index([walletAddress])
+}
+
+// ─────────────────────────────────────────────
+// Group
+// ─────────────────────────────────────────────
+model Group {
+  id          String    @id @default(uuid())
+  name        String
+  currency    Currency  @default(XLM)
+  isSettled   Boolean   @default(false)
+  inviteCode  String    @unique @default(uuid())
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  creator     User              @relation("GroupCreator", fields: [createdById], references: [id])
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+  recurring   RecurringTemplate[]
+  guardians   Guardian[]
+
+  @@index([createdById])
+  @@index([inviteCode])
+}
+
+// ─────────────────────────────────────────────
+// GroupMember — many-to-many with role
+// ─────────────────────────────────────────────
+model GroupMember {
+  id       String          @id @default(uuid())
+  groupId  String
+  userId   String
+  role     GroupMemberRole @default(MEMBER)
+  joinedAt DateTime        @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+enum GroupMemberRole {
+  MEMBER
+  CREATOR
+}
+
+enum Currency {
+  XLM
+  USDC
+}
+
+// ─────────────────────────────────────────────
+// Expense
+// ─────────────────────────────────────────────
+model Expense {
+  id          String        @id @default(uuid())
+  groupId     String
+  description String
+  amount      Decimal       @db.Decimal(18, 7)
+  currency    Currency      @default(XLM)
+  paidById    String
+  splitType   SplitType     @default(EQUAL)
+  receiptUrl  String?
+  status      ExpenseStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  group  Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy User         @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  splits ExpenseSplit[]
+
+  @@index([groupId])
+  @@index([paidById])
+  @@index([status])
+}
+
+enum SplitType {
+  EQUAL
+  CUSTOM
+  PERCENTAGE
+}
+
+enum ExpenseStatus {
+  ACTIVE
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────
+// ExpenseSplit — individual share per member
+// ─────────────────────────────────────────────
+model ExpenseSplit {
+  id         String   @id @default(uuid())
+  expenseId  String
+  userId     String
+  amount     Decimal  @db.Decimal(18, 7)
+  percentage Decimal? @db.Decimal(5, 2)
+  isPaid     Boolean  @default(false)
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// Settlement
+// ─────────────────────────────────────────────
+model Settlement {
+  id          String           @id @default(uuid())
+  groupId     String
+  settledById String
+  txHash      String           @unique
+  amount      Decimal          @db.Decimal(18, 7)
+  currency    Currency         @default(XLM)
+  status      SettlementStatus @default(PENDING)
+  confirmedAt DateTime?
+  timestamp   DateTime         @default(now())
+
+  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  settledBy User  @relation("SettlementSettledBy", fields: [settledById], references: [id])
+
+  @@index([groupId])
+  @@index([txHash])
+  @@index([status])
+}
+
+enum SettlementStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+// ─────────────────────────────────────────────
+// RecurringTemplate
+// ─────────────────────────────────────────────
+model RecurringTemplate {
+  id          String             @id @default(uuid())
+  groupId     String
+  description String
+  amount      Decimal            @db.Decimal(18, 7)
+  currency    Currency           @default(XLM)
+  frequency   RecurringFrequency
+  nextDue     DateTime
+  isActive    Boolean            @default(true)
+  memberIds   String[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([nextDue, isActive])
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+// ─────────────────────────────────────────────
+// Guardian — social recovery
+// ─────────────────────────────────────────────
+model Guardian {
+  id             String   @id @default(uuid())
+  userId         String
+  groupId        String
+  guardianUserId String
+  isActive       Boolean  @default(true)
+  addedAt        DateTime @default(now())
+
+  user     User  @relation("GuardianUser", fields: [userId], references: [id])
+  guardian User  @relation("GuardianOf", fields: [guardianUserId], references: [id])
+  group    Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guardianUserId, groupId])
+  @@index([userId])
+  @@index([groupId])
+}
+
+// ─────────────────────────────────────────────
+// RecoveryRequest
+// ─────────────────────────────────────────────
+model RecoveryRequest {
+  id          String                @id @default(uuid())
+  userId      String
+  groupId     String
+  requestedAt DateTime              @default(now())
+  status      RecoveryRequestStatus @default(PENDING)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum RecoveryRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─────────────────────────────────────────────
+// Notification
+// ─────────────────────────────────────────────
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+enum NotificationType {
+  EXPENSE_ADDED
+  EXPENSE_CANCELLED
+  SETTLEMENT_CONFIRMED
+  MEMBER_JOINED
+  MEMBER_LEFT
+  RECURRING_TRIGGERED
+  GUARDIAN_ADDED
+}
+
+// ─────────────────────────────────────────────
+// AnalyticsEvent
+// ─────────────────────────────────────────────
+model AnalyticsEvent {
+  id      String   @id @default(uuid())
+  event   String
+  userId  String?
+  payload Json?
+  ts      DateTime @default(now())
+
+  @@index([event, ts])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// RefreshToken — stored hashed for revocation
+// ─────────────────────────────────────────────
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+// ─────────────────────────────────────────────
+// AuditLog — append-only, never update/delete
+// ─────────────────────────────────────────────
+model AuditLog {
+  id            String   @id @default(uuid())
+  actorType     String   // "user" | "system"
+  actorId       String?  // userId (null for system events)
+  actorWallet   String?  // denormalized wallet address — survives user deletion
+  groupId       String?  // context group (nullable for global actions)
+  entityType    String   // "group" | "expense" | "settlement" | "member" | "guardian"
+  entityId      String
+  action        String   // e.g. "expense.created", "settlement.confirmed"
+  beforeState   Json?    // snapshot before mutation (sensitive fields redacted)
+  afterState    Json?    // snapshot after mutation
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([groupId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────
+// UserBadge
+// ─────────────────────────────────────────────
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  badge     String
+  awardedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badge])
+  @@index([userId])
+}

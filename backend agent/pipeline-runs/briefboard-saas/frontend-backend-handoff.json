@@ -1,0 +1,457 @@
+{
+  "project": {
+    "name": "BriefBoard",
+    "description": "Client portal SaaS for agencies to share project updates, milestones, and files with their clients.",
+    "frontendStack": "Next.js 14 (App Router)",
+    "backendStackPreference": "NestJS + PostgreSQL + Prisma + BullMQ",
+    "notes": "Multi-tenant by organization. Two user types: agency members and client users. Client users have read-only access to their assigned projects."
+  },
+  "pages": [
+    {
+      "name": "Login",
+      "route": "/login",
+      "purpose": "Email + password login for both agency members and client users",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["LoginForm"],
+      "errorStates": ["invalid credentials", "account not found", "too many attempts"]
+    },
+    {
+      "name": "Register",
+      "route": "/register",
+      "purpose": "Agency owner creates a new organization account",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["RegisterForm"],
+      "errorStates": ["email already taken", "weak password", "invalid plan"]
+    },
+    {
+      "name": "AcceptInvite",
+      "route": "/invite/:token",
+      "purpose": "Agency member or client accepts invite via token link in email",
+      "requiresAuth": false,
+      "dataDependencies": ["invitation token"],
+      "components": ["AcceptInviteForm"],
+      "errorStates": ["token expired", "token already used", "token invalid"]
+    },
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "purpose": "Agency member overview: active projects, recent updates, KPI cards",
+      "requiresAuth": true,
+      "roles": ["owner", "member"],
+      "dataDependencies": ["projects", "recentActivity", "kpiSummary"],
+      "components": ["ProjectGrid", "ActivityFeed", "KPICards"],
+      "emptyStates": ["no projects yet"],
+      "errorStates": ["failed to load projects"]
+    },
+    {
+      "name": "ProjectList",
+      "route": "/projects",
+      "purpose": "List of all projects with status filter, search, and sort",
+      "requiresAuth": true,
+      "roles": ["owner", "member"],
+      "dataDependencies": ["projects", "clients"],
+      "components": ["ProjectTable", "StatusFilter", "SearchBar"],
+      "emptyStates": ["no projects match filter"],
+      "errorStates": ["failed to load"]
+    },
+    {
+      "name": "ProjectDetail",
+      "route": "/projects/:id",
+      "purpose": "Full project view: updates timeline, milestones, attached files, comments",
+      "requiresAuth": true,
+      "roles": ["owner", "member", "client"],
+      "dataDependencies": ["project", "updates", "milestones", "files", "comments"],
+      "components": ["UpdateTimeline", "MilestoneTracker", "FileList", "CommentThread"],
+      "emptyStates": ["no updates yet", "no files", "no milestones"],
+      "errorStates": ["project not found", "access denied"]
+    },
+    {
+      "name": "CreateProject",
+      "route": "/projects/new",
+      "purpose": "Create a new project and assign a client",
+      "requiresAuth": true,
+      "roles": ["owner", "member"],
+      "dataDependencies": ["clients"],
+      "components": ["CreateProjectForm"],
+      "errorStates": ["client not found", "validation error"]
+    },
+    {
+      "name": "TeamMembers",
+      "route": "/team",
+      "purpose": "Manage agency team: list members, invite new, change roles, remove",
+      "requiresAuth": true,
+      "roles": ["owner"],
+      "dataDependencies": ["members", "pendingInvitations"],
+      "components": ["MembersTable", "InviteMemberModal", "RoleSelector"],
+      "emptyStates": ["only you in the team"],
+      "errorStates": ["invitation failed"]
+    },
+    {
+      "name": "Clients",
+      "route": "/clients",
+      "purpose": "List of all clients with their assigned projects and portal access status",
+      "requiresAuth": true,
+      "roles": ["owner", "member"],
+      "dataDependencies": ["clients"],
+      "components": ["ClientsTable", "InviteClientModal"],
+      "emptyStates": ["no clients yet"],
+      "errorStates": ["failed to load"]
+    },
+    {
+      "name": "Billing",
+      "route": "/billing",
+      "purpose": "Plan overview, usage metrics, upgrade/downgrade, invoice history",
+      "requiresAuth": true,
+      "roles": ["owner"],
+      "dataDependencies": ["subscription", "invoices", "usageMetrics"],
+      "components": ["PlanCard", "UsageMeter", "InvoiceTable", "UpgradeModal"],
+      "emptyStates": ["no invoices yet"],
+      "errorStates": ["billing info unavailable"]
+    },
+    {
+      "name": "NotificationSettings",
+      "route": "/settings/notifications",
+      "purpose": "Toggle email notification preferences per event type",
+      "requiresAuth": true,
+      "roles": ["owner", "member"],
+      "dataDependencies": ["notificationPreferences"],
+      "components": ["NotificationToggleList"],
+      "errorStates": ["failed to save"]
+    },
+    {
+      "name": "ClientPortal",
+      "route": "/portal/:projectSlug",
+      "purpose": "Read-only client view of their project updates, milestones and files",
+      "requiresAuth": true,
+      "roles": ["client"],
+      "dataDependencies": ["project", "updates", "milestones", "files"],
+      "components": ["ClientUpdateTimeline", "ClientMilestoneView", "ClientFileList"],
+      "emptyStates": ["no updates shared yet"],
+      "errorStates": ["project not found", "access denied"]
+    }
+  ],
+  "forms": [
+    {
+      "name": "LoginForm",
+      "page": "Login",
+      "submitAction": "POST /auth/login",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect to /dashboard or /portal/:projectSlug based on role",
+      "errorBehavior": "Show inline error message"
+    },
+    {
+      "name": "RegisterForm",
+      "page": "Register",
+      "submitAction": "POST /auth/register",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "organizationName", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 80 } },
+        { "name": "fullName", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 100 } },
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } },
+        { "name": "planId", "type": "select", "required": true, "options": ["starter", "pro", "agency"] }
+      ],
+      "successBehavior": "Redirect to /dashboard with welcome modal",
+      "errorBehavior": "Inline field errors"
+    },
+    {
+      "name": "AcceptInviteForm",
+      "page": "AcceptInvite",
+      "submitAction": "POST /invitations/accept",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "token", "type": "text", "required": true },
+        { "name": "fullName", "type": "text", "required": true, "validation": { "minLength": 2 } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect based on role (dashboard or portal)",
+      "errorBehavior": "Show token error message"
+    },
+    {
+      "name": "CreateProjectForm",
+      "page": "CreateProject",
+      "submitAction": "POST /projects",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "name", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 120 } },
+        { "name": "description", "type": "textarea", "required": false, "validation": { "maxLength": 2000 } },
+        { "name": "clientId", "type": "select", "required": true, "mapsToEntity": "Client" },
+        { "name": "startDate", "type": "date", "required": false },
+        { "name": "dueDate", "type": "date", "required": false },
+        { "name": "status", "type": "select", "required": true, "options": ["active", "paused", "completed"] }
+      ],
+      "successBehavior": "Redirect to /projects/:id",
+      "errorBehavior": "Inline validation errors"
+    },
+    {
+      "name": "PostUpdateForm",
+      "page": "ProjectDetail",
+      "submitAction": "POST /projects/:id/updates",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "title", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 150 } },
+        { "name": "body", "type": "textarea", "required": true, "validation": { "minLength": 10 } },
+        { "name": "isVisibleToClient", "type": "boolean", "required": true },
+        { "name": "attachments", "type": "file", "required": false }
+      ],
+      "successBehavior": "Update appears at top of timeline",
+      "errorBehavior": "Inline errors, file errors shown separately"
+    },
+    {
+      "name": "InviteMemberForm",
+      "page": "TeamMembers",
+      "submitAction": "POST /team/invitations",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true },
+        { "name": "role", "type": "select", "required": true, "options": ["member", "owner"] }
+      ],
+      "successBehavior": "Invitation appears in pending list",
+      "errorBehavior": "Show email conflict or send failure error"
+    },
+    {
+      "name": "InviteClientForm",
+      "page": "Clients",
+      "submitAction": "POST /clients/invitations",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "clientName", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 100 } },
+        { "name": "email", "type": "email", "required": true },
+        { "name": "projectId", "type": "select", "required": true, "mapsToEntity": "Project" }
+      ],
+      "successBehavior": "Client appears in list with invite pending",
+      "errorBehavior": "Show email conflict or send failure"
+    },
+    {
+      "name": "NotificationSettingsForm",
+      "page": "NotificationSettings",
+      "submitAction": "PATCH /users/me/notification-preferences",
+      "methodHint": "PATCH",
+      "fields": [
+        { "name": "onProjectUpdate", "type": "boolean", "required": true },
+        { "name": "onMilestoneReached", "type": "boolean", "required": true },
+        { "name": "onNewComment", "type": "boolean", "required": true },
+        { "name": "onFileUploaded", "type": "boolean", "required": true },
+        { "name": "onBillingEvent", "type": "boolean", "required": true }
+      ],
+      "successBehavior": "Toast: preferences saved",
+      "errorBehavior": "Toast: failed to save"
+    }
+  ],
+  "tables": [
+    {
+      "name": "ProjectTable",
+      "page": "ProjectList",
+      "columns": [
+        { "name": "name", "type": "text", "sortable": true, "filterable": false },
+        { "name": "client", "type": "text", "sortable": false, "filterable": true },
+        { "name": "status", "type": "badge", "sortable": false, "filterable": true },
+        { "name": "dueDate", "type": "date", "sortable": true, "filterable": false },
+        { "name": "lastUpdate", "type": "datetime", "sortable": true, "filterable": false }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": true,
+      "supportsSort": true,
+      "supportsFilters": true,
+      "rowActions": ["view", "edit", "archive"]
+    },
+    {
+      "name": "MembersTable",
+      "page": "TeamMembers",
+      "columns": [
+        { "name": "fullName", "type": "text", "sortable": false, "filterable": false },
+        { "name": "email", "type": "text", "sortable": false, "filterable": false },
+        { "name": "role", "type": "badge", "sortable": false, "filterable": true },
+        { "name": "joinedAt", "type": "date", "sortable": true, "filterable": false }
+      ],
+      "supportsPagination": false,
+      "supportsSearch": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["changeRole", "remove"]
+    },
+    {
+      "name": "ClientsTable",
+      "page": "Clients",
+      "columns": [
+        { "name": "clientName", "type": "text", "sortable": true, "filterable": false },
+        { "name": "email", "type": "text", "sortable": false, "filterable": false },
+        { "name": "assignedProject", "type": "text", "sortable": false, "filterable": false },
+        { "name": "portalStatus", "type": "badge", "sortable": false, "filterable": true }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": true,
+      "supportsSort": false,
+      "supportsFilters": true,
+      "rowActions": ["viewPortal", "resendInvite", "revokeAccess"]
+    },
+    {
+      "name": "InvoiceTable",
+      "page": "Billing",
+      "columns": [
+        { "name": "invoiceDate", "type": "date", "sortable": true, "filterable": false },
+        { "name": "amount", "type": "currency", "sortable": false, "filterable": false },
+        { "name": "status", "type": "badge", "sortable": false, "filterable": true },
+        { "name": "downloadLink", "type": "custom", "sortable": false, "filterable": false }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["download"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "ArchiveProject",
+      "page": "ProjectList",
+      "type": "update",
+      "target": "Project",
+      "requiresConfirmation": true,
+      "sideEffects": ["notifyTeamMembersOfArchive", "revokeClientPortalAccess"]
+    },
+    {
+      "name": "RemoveTeamMember",
+      "page": "TeamMembers",
+      "type": "delete",
+      "target": "Membership",
+      "requiresConfirmation": true,
+      "sideEffects": ["revokeSessionsForUser"]
+    },
+    {
+      "name": "RevokeClientAccess",
+      "page": "Clients",
+      "type": "update",
+      "target": "ClientAccess",
+      "requiresConfirmation": true,
+      "sideEffects": ["revokeClientSessions", "sendRevokeNotificationEmail"]
+    },
+    {
+      "name": "ResendClientInvite",
+      "page": "Clients",
+      "type": "custom",
+      "target": "ClientInvitation",
+      "requiresConfirmation": false,
+      "sideEffects": ["sendInvitationEmail"]
+    },
+    {
+      "name": "CancelSubscription",
+      "page": "Billing",
+      "type": "update",
+      "target": "Subscription",
+      "requiresConfirmation": true,
+      "sideEffects": ["scheduleDowngradeAtPeriodEnd", "sendCancellationEmail"]
+    }
+  ],
+  "authFlows": [
+    {
+      "type": "login",
+      "protectedPages": ["Dashboard", "ProjectList", "ProjectDetail", "CreateProject", "TeamMembers", "Clients", "Billing", "NotificationSettings", "ClientPortal"],
+      "roles": ["owner", "member", "client"],
+      "notes": "Role-based redirect after login: agency roles go to /dashboard, client role goes to /portal/:projectSlug"
+    },
+    {
+      "type": "register",
+      "notes": "Creates organization + owner membership in one transaction"
+    },
+    {
+      "type": "logout"
+    },
+    {
+      "type": "refresh",
+      "notes": "Silent refresh via HttpOnly cookie"
+    },
+    {
+      "type": "forgot-password"
+    },
+    {
+      "type": "reset-password"
+    },
+    {
+      "type": "email-verification",
+      "notes": "Required before accessing dashboard"
+    },
+    {
+      "type": "role-based-access",
+      "roles": ["owner", "member", "client"],
+      "notes": "Owner: full access. Member: all except billing and member management. Client: read-only portal access only."
+    }
+  ],
+  "uploads": [
+    {
+      "name": "ProjectUpdateAttachments",
+      "page": "ProjectDetail",
+      "fileTypes": ["image/jpeg", "image/png", "image/webp", "application/pdf", "application/zip", "video/mp4"],
+      "maxSizeMB": 50,
+      "multiple": true,
+      "storageHint": "S3",
+      "visibility": "signed-url"
+    },
+    {
+      "name": "AgencyLogo",
+      "page": "Dashboard",
+      "fileTypes": ["image/jpeg", "image/png", "image/webp", "image/svg+xml"],
+      "maxSizeMB": 2,
+      "multiple": false,
+      "storageHint": "S3",
+      "visibility": "public"
+    }
+  ],
+  "externalTriggers": [
+    {
+      "name": "StripeSubscriptionWebhook",
+      "type": "payment-webhook",
+      "providerHint": "Stripe",
+      "triggerSource": "Stripe → POST /webhooks/stripe",
+      "expectedOutcome": "Update subscription status, trigger plan change logic, send billing emails"
+    },
+    {
+      "name": "SendInvitationEmail",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "InviteTeamMember or InviteClient action",
+      "expectedOutcome": "Deliver invitation link to recipient email"
+    },
+    {
+      "name": "SendProjectUpdateNotification",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "PostUpdate form submit (if isVisibleToClient = true)",
+      "expectedOutcome": "Notify assigned client of new update"
+    },
+    {
+      "name": "SendPasswordResetEmail",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "Forgot password form",
+      "expectedOutcome": "Deliver password reset link"
+    },
+    {
+      "name": "TrackUsageEvent",
+      "type": "analytics-event",
+      "providerHint": "PostHog",
+      "triggerSource": "Key user actions: project created, update posted, client invited",
+      "expectedOutcome": "Usage event recorded for product analytics"
+    }
+  ],
+  "assumptions": [
+    "Multi-tenant by organization — all data is scoped to an organization_id",
+    "Client users belong to exactly one organization and can only view their assigned project(s)",
+    "Agency members can belong to multiple organizations (not required in v1, scoped to one)",
+    "File attachments are stored in private S3 buckets and accessed via signed URLs (1 hour expiry)",
+    "Email delivery is asynchronous via BullMQ queue — not synchronous in request handler",
+    "Stripe is the sole payment provider — no self-hosted billing in v1",
+    "Webhook signature verification is required for all Stripe events",
+    "Password reset tokens expire in 1 hour",
+    "Invitation tokens (team + client) expire in 7 days",
+    "Email verification is required before accessing the dashboard",
+    "Soft delete is used for projects — never hard delete",
+    "PostHog analytics adapter is isolated — failure must not break core flows"
+  ]
+}

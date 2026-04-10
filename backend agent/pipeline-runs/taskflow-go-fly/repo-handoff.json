@@ -1,0 +1,143 @@
+{
+  "$schema": "../../repo-builder-agent/repo-handoff.schema.json",
+  "meta": {
+    "generatedBy": "repo-builder-agent",
+    "generatedAt": "2026-04-06T09:00:00Z",
+    "modeUsed": "/blueprint",
+    "playbooksApplied": [
+      "auth.md",
+      "rate-limiting.md",
+      "security.md",
+      "observability.md",
+      "realtime.md",
+      "file-storage.md",
+      "resilience.md"
+    ]
+  },
+  "project": {
+    "name": "taskflow",
+    "repoType": "single-app",
+    "runtime": "go",
+    "language": "go",
+    "framework": "gin",
+    "deploymentTarget": "fly.io"
+  },
+  "backend": {
+    "framework": "gin",
+    "language": "go",
+    "database": "postgresql",
+    "orm": "pgx/v5 (no ORM — raw SQL + sqlc)",
+    "auth": "jwt-refresh",
+    "authStrategy": "JWT RS256 access tokens (15 min) + rotating refresh tokens (7 days, HttpOnly cookie)",
+    "roles": ["member", "admin"],
+    "entities": [
+      "User", "Workspace", "WorkspaceMember", "WorkspaceInvite",
+      "Board", "Task", "Label", "TaskLabel", "Comment",
+      "Attachment", "RefreshToken", "ActivityEvent"
+    ],
+    "services": [
+      {
+        "name": "api",
+        "type": "api",
+        "port": 8080,
+        "entrypoint": "cmd/api/main.go",
+        "healthCheck": {
+          "live": "/health/live",
+          "ready": "/health/ready"
+        }
+      }
+    ]
+  },
+  "databases": [
+    {
+      "name": "taskflow-db",
+      "type": "postgresql",
+      "provider": "fly-postgres",
+      "migrationTool": "golang-migrate",
+      "migrationCommand": "migrate -path ./migrations -database $DATABASE_URL up"
+    }
+  ],
+  "infrastructure": {
+    "cache": "redis",
+    "storage": "tigris",
+    "containerization": "docker",
+    "cicd": "github-actions"
+  },
+  "integrations": [
+    {
+      "name": "Resend",
+      "type": "email",
+      "provider": "Resend",
+      "envVarsRequired": ["RESEND_API_KEY"]
+    },
+    {
+      "name": "Tigris",
+      "type": "storage",
+      "provider": "Tigris (Fly.io S3-compatible)",
+      "envVarsRequired": [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_ENDPOINT_URL_S3",
+        "S3_BUCKET_NAME"
+      ]
+    },
+    {
+      "name": "Redis",
+      "type": "cache",
+      "provider": "Upstash Redis (or Fly.io Redis)",
+      "envVarsRequired": ["REDIS_URL"]
+    }
+  ],
+  "security": {
+    "secretScanningEnabled": true,
+    "securityMdIncluded": true,
+    "gitignoreComprehensive": true,
+    "ciSecurityScanStep": true,
+    "corsWhitelistConfigured": true,
+    "piiFieldsEncrypted": true,
+    "fieldEncryptionAlgorithm": "AES-256-GCM",
+    "authStrategy": "JWT RS256 + rotating refresh tokens",
+    "passwordHashing": "argon2id via golang.org/x/crypto/argon2",
+    "rateLimitingEnabled": true,
+    "rateLimitingStrategy": "Redis sliding window — per-route and global limits"
+  },
+  "compliance": {
+    "scope": "none"
+  },
+  "observability": {
+    "structuredLogging": true,
+    "loggingLibrary": "zerolog",
+    "correlationId": true,
+    "correlationIdHeader": "X-Request-ID",
+    "healthEndpointsPlanned": true,
+    "healthLive": "/health/live",
+    "healthReady": "/health/ready",
+    "prometheusMetrics": true,
+    "sentryEnabled": true
+  },
+  "files": {
+    "dockerfile": "Dockerfile",
+    "ciWorkflow": ".github/workflows/ci.yml",
+    "flyToml": "fly.toml",
+    "envExample": ".env.example",
+    "gitleaksConfig": ".gitleaks.toml",
+    "securityMd": "SECURITY.md",
+    "migrations": "migrations/"
+  },
+  "assumptions": [
+    "Go 1.22 selected for native concurrency, zero-overhead goroutines, and excellent SSE support via Gin's streaming response.",
+    "sqlc used for type-safe SQL query generation from .sql files — no ORM, full SQL control, no reflection overhead.",
+    "golang-migrate handles schema migrations — SQL-first, CI-friendly, works with raw PostgreSQL.",
+    "argon2id via golang.org/x/crypto/argon2 for password hashing (OWASP recommended, pure Go, no CGO).",
+    "RS256 JWT signing — private key loaded from JWT_PRIVATE_KEY env var at startup; public key for verification.",
+    "User email stored AES-256-GCM encrypted; email_hash (SHA-256) used for login lookup.",
+    "Redis pub/sub fan-out for SSE — all Fly.io regions subscribe to same channel; no sticky sessions needed.",
+    "Tigris (Fly.io's S3-compatible storage) for file attachments — presigned PUT URLs, backend never buffers files.",
+    "go-redis/v9 client with connection pooling (max 20); gobreaker circuit breaker on rate-limit Redis calls.",
+    "retry-go library for Resend email delivery: 3 attempts, exponential backoff + jitter, 10s per-attempt timeout.",
+    "Fly.io fly.toml declares primary PostgreSQL region (iad); read replicas auto-provisioned in secondary regions.",
+    "CORS_ALLOWED_ORIGINS env var (comma-separated) loaded at startup — wildcard origin not permitted.",
+    "GitHub Actions CI: go vet → staticcheck → gosec → test (Postgres service container) → build → fly deploy.",
+    "Prometheus /metrics endpoint exposed on internal port only — not publicly accessible."
+  ]
+}

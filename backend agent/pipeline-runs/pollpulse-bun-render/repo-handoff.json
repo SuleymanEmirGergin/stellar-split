@@ -1,0 +1,112 @@
+{
+  "$schema": "../../repo-builder-agent/repo-handoff.schema.json",
+  "meta": {
+    "version": "2.1.0",
+    "generatedBy": "Backend Integrator Agent v4.3",
+    "generatedAt": "2026-04-05T10:30:00Z",
+    "projectName": "PollPulse",
+    "playbooksApplied": ["auth.md", "rate-limiting.md", "security.md", "observability.md", "realtime.md", "gdpr-data-export.md", "resilience.md"]
+  },
+  "project": {
+    "name": "pollpulse",
+    "repoType": "single-app",
+    "runtime": "bun",
+    "language": "typescript",
+    "framework": "elysia",
+    "deploymentTarget": "render"
+  },
+  "backend": {
+    "services": [
+      {
+        "name": "api",
+        "type": "api",
+        "port": 3000,
+        "entrypoint": "src/index.ts",
+        "endpoints": [
+          "POST /api/auth/register",
+          "POST /api/auth/login",
+          "POST /api/auth/logout",
+          "POST /api/auth/refresh",
+          "GET /api/auth/me",
+          "GET /api/polls/my",
+          "POST /api/polls",
+          "GET /api/polls/:id",
+          "PATCH /api/polls/:id",
+          "DELETE /api/polls/:id",
+          "PATCH /api/polls/:id/close",
+          "GET /api/polls/:id/results",
+          "GET /api/polls/:id/stream",
+          "GET /api/public/polls/:slug",
+          "POST /api/public/polls/:id/vote",
+          "GET /api/admin/users",
+          "PATCH /api/admin/users/:id/role",
+          "PATCH /api/admin/users/:id/suspend",
+          "DELETE /api/admin/users/:id",
+          "GET /api/admin/polls",
+          "DELETE /api/admin/polls/:id",
+          "GET /health/live",
+          "GET /health/ready"
+        ]
+      },
+      {
+        "name": "cron-expire-polls",
+        "type": "cron",
+        "schedule": "0 2 * * *",
+        "entrypoint": "cron/expire-polls.ts",
+        "description": "Daily job — mark expired polls, clean up old drafts"
+      }
+    ],
+    "entities": ["User", "Poll", "PollOption", "Vote", "RefreshToken"],
+    "authStrategy": "jwt-refresh",
+    "roles": ["user", "admin"]
+  },
+  "databases": [
+    {
+      "name": "pollpulse-db",
+      "type": "postgresql",
+      "orm": "drizzle",
+      "migrationTool": "drizzle-kit",
+      "managedBy": "render"
+    }
+  ],
+  "infrastructure": {
+    "cache": "upstash-redis",
+    "queue": "",
+    "storage": ""
+  },
+  "integrations": [],
+  "security": {
+    "secretScanningEnabled": true,
+    "securityMdIncluded": true,
+    "gitignoreComprehensive": true,
+    "ciSecurityScanStep": true
+  },
+  "observability": {
+    "structuredLogging": true,
+    "healthEndpoints": ["/health/live", "/health/ready"],
+    "correlationIds": true
+  },
+  "files": {
+    "dockerfile": "infra/Dockerfile",
+    "dockerCompose": "docker-compose.yml",
+    "renderYaml": "render.yaml",
+    "ciWorkflow": ".github/workflows/ci.yml"
+  },
+  "assumptions": [
+    "Bun runtime selected for native TypeScript execution and built-in test runner (bun test)",
+    "Elysia.js framework for typed routes, onAfterHandle security headers, derive() request context",
+    "Drizzle ORM with drizzle-kit for PostgreSQL migrations — type-safe schema definitions",
+    "argon2id password hashing via @node-rs/argon2 (Wasm — Bun-compatible)",
+    "Upstash Redis REST API for rate limiting (sliding window) — no TCP Redis connection pooling issues with Bun HTTP mode",
+    "SSE results stream is single-instance in v1 — sticky sessions configured in render.yaml",
+    "Vote deduplication: DB UNIQUE constraint (authoritative) + Redis hot-path check (performance)",
+    "IP stored as SHA-256 hash only — raw IP never persisted (GDPR data minimization)",
+    "Email classified as PII: Confidential — no third-party email marketing in v1",
+    "Render Web Service for API + Render managed PostgreSQL + Render Cron Job for poll expiry",
+    "render.yaml declares all services — zero-downtime deploy via Render's rolling deploy",
+    "CORS allowlist loaded from CORS_ALLOWED_ORIGINS env var (comma-separated origins)",
+    "Health check: GET /health/ready pings Postgres — Render readiness probe configured",
+    "Resilience patterns applied: Upstash REST calls wrapped with p-retry (3 retries, exponential backoff + jitter)",
+    "GitHub Actions CI: lint → type-check → test → security audit → build → deploy to Render"
+  ]
+}

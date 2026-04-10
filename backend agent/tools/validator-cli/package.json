@@ -1,0 +1,40 @@
+{
+  "name": "validator-cli",
+  "version": "2.1.0",
+  "description": "Programmatic validation CLI for Backend Agent System handoff files. Enforces all 17 validator agent rules across 9 check categories.",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "validate-agent": "./index.js"
+  },
+  "scripts": {
+    "validate:fb": "node index.js validate frontend-backend",
+    "validate:repo": "node index.js validate repo",
+    "test": "node --test tests/*.test.js",
+    "test:unit": "node --test tests/cat1-schema.test.js tests/cat2-semantic.test.js tests/cat3-security.test.js tests/cat4-completeness.test.js tests/cat5-playbook.test.js tests/cat6-data-class.test.js tests/cat7-observability.test.js tests/cat8-resilience.test.js tests/cat9-edge-runtime.test.js",
+    "test:cat": "node --test",
+    "test:briefboard": "node index.js validate frontend-backend ../../pipeline-runs/briefboard-saas/frontend-backend-handoff.json --fix-hints",
+    "test:briefboard-repo": "node index.js validate repo ../../pipeline-runs/briefboard-saas/repo-handoff.json --fix-hints",
+    "test:hipaa": "node index.js validate frontend-backend ../../pipeline-runs/hipaa-telemed/frontend-backend-handoff.json --fix-hints",
+    "test:hipaa-repo": "node index.js validate repo ../../pipeline-runs/hipaa-telemed/repo-handoff.json --fix-hints",
+    "test:linkpulse": "node index.js validate frontend-backend ../../pipeline-runs/linkpulse-fastapi/frontend-backend-handoff.json --fix-hints",
+    "test:linkpulse-repo": "node index.js validate repo ../../pipeline-runs/linkpulse-fastapi/repo-handoff.json --fix-hints",
+    "test:snaplink": "node index.js validate frontend-backend ../../pipeline-runs/snaplink-hono-workers/frontend-backend-handoff.json --fix-hints",
+    "test:snaplink-repo": "node index.js validate repo ../../pipeline-runs/snaplink-hono-workers/repo-handoff.json --fix-hints",
+    "test:edgeforms": "node index.js validate frontend-backend ../../pipeline-runs/edgeforms-hono-supabase/frontend-backend-handoff.json --fix-hints",
+    "test:edgeforms-repo": "node index.js validate repo ../../pipeline-runs/edgeforms-hono-supabase/repo-handoff.json --fix-hints",
+    "test:pollpulse": "node index.js validate frontend-backend ../../pipeline-runs/pollpulse-bun-render/frontend-backend-handoff.json --fix-hints",
+    "test:pollpulse-repo": "node index.js validate repo ../../pipeline-runs/pollpulse-bun-render/repo-handoff.json --fix-hints",
+    "test:meditrack": "node index.js validate frontend-backend ../../pipeline-runs/meditrack-django-render/frontend-backend-handoff.json --fix-hints",
+    "test:meditrack-repo": "node index.js validate repo ../../pipeline-runs/meditrack-django-render/repo-handoff.json --fix-hints",
+    "test:all": "npm run test:briefboard && npm run test:briefboard-repo && npm run test:hipaa && npm run test:hipaa-repo && npm run test:linkpulse && npm run test:linkpulse-repo && npm run test:snaplink && npm run test:snaplink-repo && npm run test:edgeforms && npm run test:edgeforms-repo && npm run test:pollpulse && npm run test:pollpulse-repo && npm run test:taskflow && npm run test:taskflow-repo",
+    "test:taskflow": "node index.js validate frontend-backend ../../pipeline-runs/taskflow-go-fly/frontend-backend-handoff.json --fix-hints",
+    "test:taskflow-repo": "node index.js validate repo ../../pipeline-runs/taskflow-go-fly/repo-handoff.json --fix-hints"
+  },
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0"
+  }
+}

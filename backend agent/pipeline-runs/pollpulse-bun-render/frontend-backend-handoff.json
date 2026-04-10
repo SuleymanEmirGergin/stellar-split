@@ -1,0 +1,191 @@
+{
+  "$schema": "../../backend-integrator/frontend-backend-handoff.schema.json",
+  "meta": {
+    "version": "2.0.0",
+    "generatedBy": "Backend Integrator Agent v4.3",
+    "generatedAt": "2026-04-05T10:00:00Z",
+    "projectName": "PollPulse",
+    "description": "Real-time polling and survey platform — create polls, collect responses, view live results with charts"
+  },
+  "pages": [
+    {
+      "name": "landing",
+      "path": "/",
+      "requiresAuth": false,
+      "description": "Marketing landing page — create a quick poll CTA, feature highlights, pricing"
+    },
+    {
+      "name": "register",
+      "path": "/register",
+      "requiresAuth": false,
+      "description": "User registration with email + password"
+    },
+    {
+      "name": "login",
+      "path": "/login",
+      "requiresAuth": false,
+      "description": "User login"
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "requiresAuth": true,
+      "roles": ["user", "admin"],
+      "description": "User dashboard — list of polls created by the user, quick stats (total votes, active polls)"
+    },
+    {
+      "name": "poll-create",
+      "path": "/polls/new",
+      "requiresAuth": true,
+      "roles": ["user", "admin"],
+      "description": "Create a new poll — title, description, options, settings (multiple choice, expiry, public/private)"
+    },
+    {
+      "name": "poll-edit",
+      "path": "/polls/:id/edit",
+      "requiresAuth": true,
+      "roles": ["user", "admin"],
+      "description": "Edit a draft poll — title, options, expiry date, access settings"
+    },
+    {
+      "name": "poll-results",
+      "path": "/polls/:id/results",
+      "requiresAuth": true,
+      "roles": ["user", "admin"],
+      "description": "Live results view — bar chart, vote count per option, participation rate, real-time updates via SSE"
+    },
+    {
+      "name": "poll-vote",
+      "path": "/p/:slug",
+      "requiresAuth": false,
+      "description": "Public voting page — shows poll question + options, submit vote, see result after voting (if configured)"
+    },
+    {
+      "name": "admin-panel",
+      "path": "/admin",
+      "requiresAuth": true,
+      "roles": ["admin"],
+      "description": "Admin panel — user list, poll moderation, system stats"
+    }
+  ],
+  "forms": [
+    {
+      "id": "register-form",
+      "page": "register",
+      "fields": [
+        { "name": "displayName", "type": "text", "required": true },
+        { "name": "email", "type": "email", "required": true },
+        { "name": "password", "type": "password", "required": true }
+      ],
+      "submitAction": "POST /api/auth/register",
+      "validations": ["email format", "password min 8 chars", "display name min 2 chars"]
+    },
+    {
+      "id": "login-form",
+      "page": "login",
+      "fields": [
+        { "name": "email", "type": "email", "required": true },
+        { "name": "password", "type": "password", "required": true }
+      ],
+      "submitAction": "POST /api/auth/login"
+    },
+    {
+      "id": "poll-create-form",
+      "page": "poll-create",
+      "fields": [
+        { "name": "title", "type": "text", "required": true },
+        { "name": "description", "type": "text", "required": false },
+        { "name": "options", "type": "text", "required": true, "description": "Array of option labels (min 2, max 10)" },
+        { "name": "allowMultiple", "type": "checkbox", "required": false },
+        { "name": "isPublic", "type": "checkbox", "required": false },
+        { "name": "expiresAt", "type": "datetime-local", "required": false },
+        { "name": "slug", "type": "text", "required": false, "description": "Custom URL slug — auto-generated if empty" }
+      ],
+      "submitAction": "POST /api/polls"
+    },
+    {
+      "id": "poll-edit-form",
+      "page": "poll-edit",
+      "fields": [
+        { "name": "title", "type": "text", "required": true },
+        { "name": "description", "type": "text", "required": false },
+        { "name": "expiresAt", "type": "datetime-local", "required": false },
+        { "name": "isPublic", "type": "checkbox", "required": false }
+      ],
+      "submitAction": "PATCH /api/polls/:id",
+      "note": "Options cannot be edited after first vote is cast"
+    },
+    {
+      "id": "vote-form",
+      "page": "poll-vote",
+      "fields": [
+        { "name": "optionIds", "type": "text", "required": true, "description": "Selected option ID(s)" }
+      ],
+      "submitAction": "POST /api/polls/:id/vote"
+    }
+  ],
+  "tables": [
+    {
+      "id": "polls-table",
+      "page": "dashboard",
+      "columns": ["title", "status", "totalVotes", "expiresAt", "createdAt", "actions"],
+      "dataSource": "GET /api/polls/my",
+      "actions": ["view results", "edit", "delete", "share link", "close poll"]
+    },
+    {
+      "id": "admin-users-table",
+      "page": "admin-panel",
+      "columns": ["displayName", "email", "role", "pollCount", "createdAt", "actions"],
+      "dataSource": "GET /api/admin/users",
+      "actions": ["promote to admin", "suspend", "delete"]
+    }
+  ],
+  "actions": [
+    {
+      "id": "delete-poll",
+      "page": "dashboard",
+      "type": "button",
+      "label": "Delete Poll",
+      "endpoint": "DELETE /api/polls/:id",
+      "confirmRequired": true
+    },
+    {
+      "id": "close-poll",
+      "page": "dashboard",
+      "type": "button",
+      "label": "Close Poll",
+      "endpoint": "PATCH /api/polls/:id/close",
+      "description": "Closes poll early — no more votes accepted"
+    },
+    {
+      "id": "share-poll",
+      "page": "dashboard",
+      "type": "button",
+      "label": "Copy Share Link",
+      "description": "Copies public voting URL to clipboard — no API call"
+    }
+  ],
+  "authFlows": ["register", "login", "logout", "refresh-token", "role-based-access"],
+  "externalTriggers": [],
+  "assumptions": [
+    "Email and password are the only auth method; no OAuth in v1",
+    "JWT access token (15min) + refresh token (7d) stored in httpOnly cookies",
+    "All passwords hashed with argon2id",
+    "Email field is PII — data classification: Confidential",
+    "displayName field is PII — data classification: Confidential",
+    "No email storage beyond authentication — no marketing emails in v1",
+    "Vote deduplication: one vote per IP per poll for anonymous; one vote per user per poll for authenticated",
+    "Votes are immutable once cast — no vote changes allowed",
+    "Poll options cannot be modified after the first vote is recorded",
+    "Poll results are visible to the poll owner at all times; public results shown to voters only if poll.showResultsAfterVote = true",
+    "Real-time results via SSE (Server-Sent Events) — no WebSocket needed for one-way push",
+    "CORS: allowlist-based — only configured origins accepted",
+    "All auth endpoints rate-limited: 10 requests per minute per IP (argon2 is CPU-intensive)",
+    "Vote endpoint rate-limited: 30 requests per minute per IP to prevent ballot stuffing",
+    "Public vote page (/p/:slug) is accessible without auth; IP-based deduplication applied",
+    "Admin role assigned manually via database — no self-serve admin promotion",
+    "Structured JSON logging on all API routes; correlation ID injected via X-Request-Id header",
+    "Health check endpoints: GET /health/live and GET /health/ready",
+    "Deployment target: Render.com — Web Service (API) + managed PostgreSQL + Cron Job (cleanup)"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "validatedFile": "repo-handoff.json",
+  "validatedAt": "2026-04-06T09:00:00Z",
+  "schema": "repo-builder-agent/repo-handoff.schema.json",
+  "status": "pass",
+  "summary": {
+    "totalChecks": 13,
+    "passed": 13,
+    "warnings": 0,
+    "failures": 0
+  },
+  "checks": [
+    { "id": "schema-compliance",               "category": "schema",       "label": "JSON Schema Compliance",                    "status": "pass", "message": "repo-handoff.json is fully schema-compliant." },
+    { "id": "semantic-worker-needs-queue",      "category": "semantic",     "label": "Worker Service Has Queue",                  "status": "pass", "message": "No worker-type services declared — check skipped." },
+    { "id": "semantic-monorepo-needs-packages", "category": "semantic",     "label": "Monorepo Needs Packages",                   "status": "pass", "message": "Single-app repo — packages[] check skipped." },
+    { "id": "semantic-payment-needs-scanning",  "category": "semantic",     "label": "Payment Integration Needs Secret Scanning", "status": "pass", "message": "No payment integrations — check skipped." },
+    { "id": "security-secret-scanning",         "category": "security",     "label": "Secret Scanning Enabled",                  "status": "pass", "message": "security.secretScanningEnabled: true — .gitleaks.toml declared." },
+    { "id": "security-security-md",             "category": "security",     "label": "SECURITY.md Included",                     "status": "pass", "message": "security.securityMdIncluded: true." },
+    { "id": "security-gitignore",               "category": "security",     "label": "Comprehensive .gitignore",                 "status": "pass", "message": "security.gitignoreComprehensive: true." },
+    { "id": "security-ci-scan",                 "category": "security",     "label": "CI Security Scan Step",                    "status": "pass", "message": "security.ciSecurityScanStep: true — gosec in CI pipeline." },
+    { "id": "completeness-assumptions-declared","category": "completeness", "label": "Assumptions Declared",                     "status": "pass", "message": "14 assumption(s) declared by the producing agent." },
+    { "id": "completeness-project-name",        "category": "completeness", "label": "Project Name Meaningful",                  "status": "pass", "message": "project.name is 'taskflow' — meaningful and descriptive." },
+    { "id": "data-class-repo-pii",              "category": "completeness", "label": "Data Classification: Repo PII Declared",   "status": "pass", "message": "security.piiFieldsEncrypted: true, fieldEncryptionAlgorithm: AES-256-GCM." },
+    { "id": "observability-repo-structured-logging","category":"completeness","label":"Observability: Structured Logging",        "status": "pass", "message": "observability.structuredLogging: true — zerolog." },
+    { "id": "resilience-integration-patterns",  "category": "completeness", "label": "Resilience: Integration Patterns Declared","status": "pass", "message": "1 resilience-relevant integration(s): email (Resend) — resilience.md in playbooksApplied." }
+  ],
+  "blockingFailures": [],
+  "warnings": [],
+  "meta": {
+    "validatorVersion": "2.1.0",
+    "pipelineStage": "backend-to-repo",
+    "commandUsed": "/validate repo",
+    "notes": [
+      "semantic-007: project.runtime='go' — Rule 17 edge runtime checks not applicable.",
+      "observability-002: single-service API — distributed tracing not required in v1.",
+      "resilience-001: Email (Resend) integration wrapped with retry-go; resilience.md in playbooksApplied."
+    ]
+  }
+}

@@ -1,0 +1,326 @@
+{
+  "meta": {
+    "validatorVersion": "1.5.0",
+    "pipelineStage": "backend-to-repo",
+    "commandUsed": "/validate repo",
+    "validatedFile": "pipeline-runs/hipaa-telemed/repo-handoff.json",
+    "validatedAt": "2026-04-02T10:22:00Z",
+    "project": "TeleMed"
+  },
+  "summary": {
+    "status": "pass",
+    "totalChecks": 20,
+    "passed": 19,
+    "warnings": 1,
+    "failures": 0
+  },
+  "checks": [
+    {
+      "id": "schema-required-fields",
+      "ruleId": "rule01",
+      "category": "schema",
+      "status": "pass",
+      "message": "All required top-level fields present in repo-handoff.json: meta, project, frontend, backend, integrations, infrastructure, security, compliance, observability, packages, assumptions.",
+      "details": {
+        "requiredFields": ["meta", "project", "frontend", "backend", "integrations", "infrastructure", "security", "compliance", "observability", "packages", "assumptions"],
+        "presentFields": ["meta", "project", "frontend", "backend", "integrations", "infrastructure", "security", "compliance", "observability", "packages", "models", "apiEndpoints", "celeryTasks", "assumptions"],
+        "missingFields": []
+      }
+    },
+    {
+      "id": "schema-meta-timestamp",
+      "ruleId": "rule02",
+      "category": "schema",
+      "status": "pass",
+      "message": "meta.generatedAt is present and is a valid ISO 8601 timestamp.",
+      "details": {
+        "generatedAt": "2026-04-02T10:15:00Z",
+        "format": "ISO 8601",
+        "valid": true
+      }
+    },
+    {
+      "id": "schema-meta-mode",
+      "ruleId": "rule03",
+      "category": "schema",
+      "status": "pass",
+      "message": "meta.modeUsed = '/blueprint', which is a valid pipeline mode enum value.",
+      "details": {
+        "modeUsed": "/blueprint",
+        "validModes": ["/blueprint", "/extend", "/patch"],
+        "valid": true
+      }
+    },
+    {
+      "id": "schema-deployment-target",
+      "ruleId": "rule04",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.deploymentTarget = 'fly-io', which is a valid deployment target enum value.",
+      "details": {
+        "deploymentTarget": "fly-io",
+        "validTargets": ["fly-io", "vercel", "aws", "gcp", "azure", "railway", "render"],
+        "valid": true
+      }
+    },
+    {
+      "id": "schema-backend-framework",
+      "ruleId": "rule05",
+      "category": "schema",
+      "status": "pass",
+      "message": "backend.framework = 'Django REST Framework', which is a recognized and supported backend framework.",
+      "details": {
+        "framework": "Django REST Framework",
+        "language": "python",
+        "pythonVersion": "3.12",
+        "recognizedFramework": true
+      }
+    },
+    {
+      "id": "semantic-worker-queue",
+      "ruleId": "rule06",
+      "category": "semantic",
+      "status": "pass",
+      "message": "A worker service is declared (apps/worker) and infrastructure.queue = 'Celery + Redis'. Worker/queue pairing is consistent.",
+      "details": {
+        "workerServiceFound": true,
+        "workerServiceName": "worker",
+        "infrastructureQueue": "Celery + Redis",
+        "celeryTasksDeclared": 3,
+        "consistent": true
+      }
+    },
+    {
+      "id": "semantic-monorepo-packages",
+      "ruleId": "rule07",
+      "category": "semantic",
+      "status": "pass",
+      "message": "project.repoType = 'monorepo' and 2 shared packages are declared. Both packages have consumedBy arrays referencing valid service names.",
+      "details": {
+        "repoType": "monorepo",
+        "packagesCount": 2,
+        "packages": [
+          { "name": "telemed-types", "consumedBy": ["api", "web", "worker"], "validRefs": true },
+          { "name": "telemed-config", "consumedBy": ["api", "web", "worker"], "validRefs": true }
+        ]
+      }
+    },
+    {
+      "id": "semantic-payment-secret-scanning",
+      "ruleId": "rule08",
+      "category": "semantic",
+      "status": "pass",
+      "message": "No payment integration detected. A video webhook integration (Daily.co) is present with a webhook secret. security.secretScanningEnabled = true, which covers DAILY_WEBHOOK_SECRET and all other integration secrets.",
+      "details": {
+        "paymentIntegrationFound": false,
+        "webhookIntegrationFound": true,
+        "webhookProvider": "Daily.co",
+        "webhookSecretEnvVar": "DAILY_WEBHOOK_SECRET",
+        "secretScanningEnabled": true
+      }
+    },
+    {
+      "id": "completeness-assumptions",
+      "ruleId": "rule09",
+      "category": "completeness",
+      "status": "pass",
+      "message": "12 assumptions declared, exceeding the minimum of 5. Assumptions cover: deployment, database, infrastructure, security, integrations, observability.",
+      "details": {
+        "totalAssumptions": 12,
+        "minimumRequired": 5,
+        "categoriesCovered": ["deployment", "database", "infrastructure", "security", "integrations", "compliance", "observability"],
+        "ids": ["RA01", "RA02", "RA03", "RA04", "RA05", "RA06", "RA07", "RA08", "RA09", "RA10", "RA11", "RA12"]
+      }
+    },
+    {
+      "id": "rule13-security-md",
+      "ruleId": "rule13",
+      "subCheck": "security-md",
+      "category": "security",
+      "status": "pass",
+      "message": "security.securityMdIncluded = true. A SECURITY.md file will be present in the repository root documenting the vulnerability disclosure policy.",
+      "details": {
+        "securityMdIncluded": true,
+        "ciSecurityScanStep": true,
+        "gitignoreComprehensive": true
+      }
+    },
+    {
+      "id": "rule13-pii-encryption",
+      "ruleId": "rule13",
+      "subCheck": "pii-encryption",
+      "category": "security",
+      "status": "pass",
+      "message": "security.piiFieldsEncrypted = true with fieldEncryptionAlgorithm = 'AES-256-GCM'. Encrypted fields listed: patientName, dateOfBirth, ssn, diagnosis, medicationName, instructions. Backing assumption RA04 confirms encryption key management via environment variable.",
+      "details": {
+        "piiFieldsEncrypted": true,
+        "fieldEncryptionAlgorithm": "AES-256-GCM",
+        "encryptedFields": ["patientName", "dateOfBirth", "ssn", "diagnosis", "medicationName", "instructions"],
+        "backingAssumption": "RA04",
+        "searchableHashingAlgorithm": "HMAC-SHA256",
+        "hashingBackingAssumption": "RA05"
+      }
+    },
+    {
+      "id": "rule13-cors-whitelist",
+      "ruleId": "rule13",
+      "subCheck": "cors-whitelist",
+      "category": "security",
+      "status": "pass",
+      "message": "security.corsWhitelistConfigured = true. CORS_ALLOWED_ORIGINS is declared as an environment variable in the api service, ensuring only whitelisted origins can access the API.",
+      "details": {
+        "corsWhitelistConfigured": true,
+        "corsEnvVar": "CORS_ALLOWED_ORIGINS",
+        "presentInServiceEnvVars": true
+      }
+    },
+    {
+      "id": "rule14-phi-scope",
+      "ruleId": "rule14",
+      "subCheck": "phi-scope",
+      "category": "compliance",
+      "status": "pass",
+      "message": "compliance.scope = 'HIPAA' and compliance.hipaaCompliant = true. Project is correctly scoped as a HIPAA-regulated system.",
+      "details": {
+        "scope": "HIPAA",
+        "hipaaCompliant": true,
+        "baaRequired": true,
+        "baaVendors": ["AWS S3", "Daily.co", "Resend", "Twilio"],
+        "dataRetentionYears": 7,
+        "incidentResponseTimeline": "60 days (HIPAA breach notification rule)"
+      }
+    },
+    {
+      "id": "rule14-phi-encrypted",
+      "ruleId": "rule14",
+      "subCheck": "phi-encrypted",
+      "category": "compliance",
+      "status": "pass",
+      "message": "compliance.phiEntities = [MedicalRecord, Prescription, Diagnosis] and compliance.phiEntitiesEncrypted = true. All 3 PHI entity types have corresponding encrypted model fields confirmed in models[].",
+      "details": {
+        "phiEntities": ["MedicalRecord", "Prescription", "Diagnosis"],
+        "phiEntitiesEncrypted": true,
+        "modelFieldVerification": [
+          { "entity": "MedicalRecord", "encryptedFields": ["title_encrypted", "s3_key"], "verified": true },
+          { "entity": "Prescription", "encryptedFields": ["medication_name_encrypted", "dosage_encrypted", "instructions_encrypted"], "verified": true },
+          { "entity": "Diagnosis", "encryptedFields": ["diagnosis_text_encrypted"], "verified": true }
+        ]
+      }
+    },
+    {
+      "id": "rule14-phi-audit-log",
+      "ruleId": "rule14",
+      "subCheck": "phi-audit-log",
+      "category": "compliance",
+      "status": "pass",
+      "message": "compliance.phiAuditLogging = true. AuditLog model declared with fields: actor_id, action, entity_type, entity_id, ip_address, user_agent, timestamp. Assumption RA09 confirms append-only enforcement.",
+      "details": {
+        "phiAuditLogging": true,
+        "auditLogTable": "audit_log",
+        "auditLogModelDeclared": true,
+        "auditLogFields": ["actor_id", "action", "entity_type", "entity_id", "ip_address", "user_agent", "timestamp"],
+        "appendOnlyEnforced": true,
+        "backingAssumption": "RA09",
+        "minimumNecessaryEnforced": true
+      }
+    },
+    {
+      "id": "rule15-health-endpoints",
+      "ruleId": "rule15",
+      "subCheck": "health-endpoints",
+      "category": "observability",
+      "status": "pass",
+      "message": "observability.healthEndpointsPlanned = true. Both /health/live and /health/ready are declared and present in apiEndpoints[]. Prometheus metrics endpoint at /metrics also declared.",
+      "details": {
+        "healthEndpointsPlanned": true,
+        "healthLive": "/health/live",
+        "healthReady": "/health/ready",
+        "prometheusMetrics": true,
+        "prometheusEndpoint": "/metrics",
+        "structuredLogging": true,
+        "loggingLibrary": "structlog",
+        "correlationId": true,
+        "correlationIdHeader": "X-Request-ID"
+      }
+    },
+    {
+      "id": "rule15-distributed-tracing",
+      "ruleId": "rule15",
+      "subCheck": "distributed-tracing",
+      "category": "observability",
+      "status": "warn",
+      "message": "2 backend services detected (api, worker). observability.distributedTracing = false. OTel distributed tracing is recommended for multi-service deployments to trace requests across service boundaries. Deferred to v1.1 per assumption RA12.",
+      "severity": "warn",
+      "fixHint": "Add OTel SDK (opentelemetry-sdk + opentelemetry-exporter-otlp) to both api and worker services before v1.1 launch. Configure OTLPTraceExporter pointing to your collector. Inject trace context into Celery task headers for cross-service trace propagation.",
+      "details": {
+        "backendServicesCount": 2,
+        "backendServices": ["api", "worker"],
+        "distributedTracing": false,
+        "deferralNote": "OTel tracing deferred to v1.1 — api and worker share the same database and cross-service call volume in v1 is low (only Celery task dispatch). Full OTel instrumentation planned before v1.1 launch.",
+        "deferralAssumption": "RA12",
+        "sentryEnabled": true,
+        "sentryNote": "Sentry provides error tracking and basic performance monitoring. Does not replace distributed tracing for cross-service request flows."
+      }
+    },
+    {
+      "id": "rule10-env-vars-declared",
+      "ruleId": "rule10",
+      "category": "infrastructure",
+      "status": "pass",
+      "message": "All integration envVars are declared in at least one service's envVars array. No integration references an undeclared environment variable.",
+      "details": {
+        "integrationsChecked": ["Daily.co", "Resend", "AWS S3", "Twilio"],
+        "allVarsDeclared": true,
+        "criticalVars": ["PHI_ENCRYPTION_KEY", "JWT_SIGNING_KEY", "DJANGO_SECRET_KEY", "DAILY_WEBHOOK_SECRET"]
+      }
+    },
+    {
+      "id": "rule11-docker-compose",
+      "ruleId": "rule11",
+      "category": "infrastructure",
+      "status": "pass",
+      "message": "infrastructure.containerization = 'docker-compose'. Monorepo structure with separate service paths (apps/api, apps/worker, apps/web) is compatible with multi-service docker-compose configuration.",
+      "details": {
+        "containerization": "docker-compose",
+        "cicd": "github-actions",
+        "serviceCount": 3,
+        "services": ["api", "worker", "web"]
+      }
+    },
+    {
+      "id": "rule12-integrations-baa",
+      "ruleId": "rule12",
+      "category": "compliance",
+      "status": "pass",
+      "message": "All 4 integrations that handle PHI have baaRequired: true declared. BAA vendor list in compliance.baaVendors matches integration declarations.",
+      "details": {
+        "integrationsWithBaa": [
+          { "name": "Daily.co", "baaRequired": true, "inComplianceBaaVendors": true },
+          { "name": "Resend", "baaRequired": true, "inComplianceBaaVendors": true },
+          { "name": "AWS S3", "baaRequired": true, "inComplianceBaaVendors": true },
+          { "name": "Twilio", "baaRequired": true, "inComplianceBaaVendors": true }
+        ],
+        "allMatch": true
+      }
+    }
+  ],
+  "blockingFailures": [],
+  "warnings": [
+    {
+      "ruleId": "rule15-distributed-tracing",
+      "checkId": "rule15-distributed-tracing",
+      "severity": "warn",
+      "message": "2 backend services detected (api, worker). observability.distributedTracing = false. OTel distributed tracing recommended for multi-service deployments.",
+      "fixHint": "Add OTel SDK to api and worker services. Configure OTLPTraceExporter and inject trace context into Celery task headers before v1.1 launch.",
+      "deferredTo": "v1.1"
+    }
+  ],
+  "nextSteps": [
+    "Run /scaffold to generate the monorepo directory structure and boilerplate files.",
+    "Run /generate models to produce Django model files for User, DoctorProfile, PatientProfile, Appointment, Prescription, MedicalRecord, Diagnosis, AuditLog.",
+    "Run /generate api to produce DRF serializers, viewsets, and URL routes for all declared apiEndpoints.",
+    "Configure Fly.io apps for api and worker per fly-io.md deployment guide.",
+    "Sign BAA with AWS S3, Daily.co, Resend, and Twilio before handling any real PHI.",
+    "Add OTel distributed tracing to api and worker before v1.1 launch (resolve rule15 warning)."
+  ]
+}

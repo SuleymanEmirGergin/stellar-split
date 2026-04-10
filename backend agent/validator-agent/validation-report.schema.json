@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/validation-report.schema.json",
+  "title": "Validator Agent Report Schema",
+  "description": "Structured validation report produced by the Validator Agent after inspecting a handoff file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "validatedFile",
+    "validatedAt",
+    "schema",
+    "status",
+    "summary",
+    "checks",
+    "blockingFailures",
+    "warnings"
+  ],
+  "properties": {
+    "validatedFile": {
+      "type": "string",
+      "description": "Filename of the validated handoff file",
+      "examples": ["frontend-backend-handoff.json", "repo-handoff.json"]
+    },
+    "validatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when validation was performed"
+    },
+    "schema": {
+      "type": "string",
+      "description": "Path to the JSON schema used for validation",
+      "examples": [
+        "backend-integrator/frontend-backend-handoff.schema.json",
+        "repo-builder-agent/repo-handoff.schema.json"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pass", "warn", "fail"],
+      "description": "Overall validation result. 'fail' means the downstream agent must not proceed."
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalChecks", "passed", "warnings", "failures"],
+      "properties": {
+        "totalChecks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of checks executed"
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that passed"
+        },
+        "warnings": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that raised warnings"
+        },
+        "failures": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that failed (blocking)"
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "description": "Full list of all validation checks, including passed ones",
+      "items": {
+        "$ref": "#/definitions/check"
+      }
+    },
+    "blockingFailures": {
+      "type": "array",
+      "description": "List of check IDs that are blocking (severity: error). Downstream agent must not proceed if non-empty.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "description": "List of check IDs that raised warnings. Downstream agent may proceed with caution.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fixHints": {
+      "type": "array",
+      "description": "Actionable fix suggestions for failed checks. Populated when /fix-hints is invoked.",
+      "items": {
+        "$ref": "#/definitions/fixHint"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "validatorVersion": {
+          "type": "string",
+          "description": "Version of the Validator Agent that produced this report"
+        },
+        "pipelineStage": {
+          "type": "string",
+          "enum": ["frontend-to-backend", "backend-to-repo", "full-pipeline"],
+          "description": "Which pipeline stage was validated"
+        },
+        "commandUsed": {
+          "type": "string",
+          "enum": ["/validate frontend-backend", "/validate repo", "/validate all"],
+          "description": "The command that triggered validation"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "label", "status", "message", "severity"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this check",
+          "examples": [
+            "schema-compliance",
+            "form-page-reference",
+            "auth-flow-login-required",
+            "security-secret-scanning"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "enum": ["schema", "semantic", "security", "completeness"],
+          "description": "Category of the check"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable name for the check"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "warn", "fail"],
+          "description": "Result of this specific check"
+        },
+        "message": {
+          "type": "string",
+          "description": "Explanation of the check result"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warning", "info"],
+          "description": "Severity if the check failed or warned"
+        },
+        "field": {
+          "type": "string",
+          "description": "Optional: the JSON path of the field that failed, e.g. forms[0].page"
+        }
+      }
+    },
+    "fixHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkId", "problem", "fix"],
+      "properties": {
+        "checkId": {
+          "type": "string",
+          "description": "The ID of the check this hint addresses"
+        },
+        "problem": {
+          "type": "string",
+          "description": "What failed and why"
+        },
+        "fix": {
+          "type": "string",
+          "description": "Exact change needed in the handoff file"
+        },
+        "example": {
+          "type": "string",
+          "description": "Optional: corrected JSON fragment showing the fix"
+        }
+      }
+    }
+  }
+}

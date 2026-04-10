@@ -1,0 +1,404 @@
+{
+  "meta": {
+    "generatedBy": "backend-integrator-agent",
+    "generatedAt": "2026-04-02T10:15:00Z",
+    "modeUsed": "/blueprint",
+    "schemaVersion": "2.1.0",
+    "playbooksApplied": ["security.md", "compliance.md", "observability.md", "auth.md", "storage.md", "video.md"],
+    "sourceHandoff": "pipeline-runs/hipaa-telemed/frontend-backend-handoff.json"
+  },
+  "project": {
+    "name": "TeleMed",
+    "description": "Telemedicine platform for online doctor consultations, prescription management, and medical record storage.",
+    "repoType": "monorepo",
+    "deploymentTarget": "fly-io"
+  },
+  "frontend": {
+    "framework": "Next.js 14 (App Router)",
+    "apps": [
+      {
+        "name": "web",
+        "path": "apps/web",
+        "port": 3000,
+        "envVars": [
+          "NEXT_PUBLIC_API_URL",
+          "NEXT_PUBLIC_DAILY_DOMAIN",
+          "NEXTAUTH_SECRET",
+          "NEXTAUTH_URL"
+        ]
+      }
+    ]
+  },
+  "backend": {
+    "framework": "Django REST Framework",
+    "language": "python",
+    "pythonVersion": "3.12",
+    "services": [
+      {
+        "name": "api",
+        "path": "apps/api",
+        "type": "api",
+        "port": 8000,
+        "wsgi": "gunicorn",
+        "envVars": [
+          "DJANGO_SECRET_KEY",
+          "DJANGO_DEBUG",
+          "DJANGO_ALLOWED_HOSTS",
+          "DATABASE_URL",
+          "REDIS_URL",
+          "CORS_ALLOWED_ORIGINS",
+          "JWT_SIGNING_KEY",
+          "JWT_ACCESS_TOKEN_LIFETIME_MINUTES",
+          "JWT_REFRESH_TOKEN_LIFETIME_DAYS",
+          "PHI_ENCRYPTION_KEY",
+          "DAILY_API_KEY",
+          "DAILY_WEBHOOK_SECRET",
+          "RESEND_API_KEY",
+          "EMAIL_FROM",
+          "AWS_ACCESS_KEY_ID",
+          "AWS_SECRET_ACCESS_KEY",
+          "AWS_REGION",
+          "AWS_S3_BUCKET",
+          "STORAGE_SIGNED_URL_TTL",
+          "TWILIO_ACCOUNT_SID",
+          "TWILIO_AUTH_TOKEN",
+          "TWILIO_FROM_NUMBER",
+          "SENTRY_DSN"
+        ]
+      },
+      {
+        "name": "worker",
+        "path": "apps/worker",
+        "type": "worker",
+        "workerCommand": "celery -A telemed worker --loglevel=info",
+        "beatCommand": "celery -A telemed beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler",
+        "envVars": [
+          "DJANGO_SECRET_KEY",
+          "DATABASE_URL",
+          "REDIS_URL",
+          "PHI_ENCRYPTION_KEY",
+          "RESEND_API_KEY",
+          "EMAIL_FROM",
+          "TWILIO_ACCOUNT_SID",
+          "TWILIO_AUTH_TOKEN",
+          "TWILIO_FROM_NUMBER",
+          "SENTRY_DSN"
+        ]
+      }
+    ],
+    "database": {
+      "engine": "PostgreSQL",
+      "version": "16",
+      "notes": "Provisioned via Fly Postgres dedicated cluster. Dedicated cluster used for HIPAA data isolation requirements."
+    },
+    "auth": {
+      "strategy": "JWT (access 15min + refresh HttpOnly cookie 7d, TOTP for doctor/admin)",
+      "library": "djangorestframework-simplejwt",
+      "totpLibrary": "django-otp",
+      "passwordResetTokenExpiryMinutes": 30,
+      "notes": "TOTP enforced at middleware level for doctor and admin roles. Refresh token stored server-side for revocation support."
+    }
+  },
+  "integrations": [
+    {
+      "name": "Daily.co",
+      "type": "video",
+      "purpose": "Video consultation sessions for appointments. TeleMed does not store any video/audio data.",
+      "envVars": ["DAILY_API_KEY", "DAILY_WEBHOOK_SECRET"],
+      "webhookEndpoint": "POST /webhooks/daily",
+      "webhookVerification": "HMAC-SHA256 signature using DAILY_WEBHOOK_SECRET",
+      "baaRequired": true
+    },
+    {
+      "name": "Resend",
+      "type": "email",
+      "purpose": "Transactional email: prescription ready notification, appointment reminders, password reset links.",
+      "envVars": ["RESEND_API_KEY", "EMAIL_FROM"],
+      "baaRequired": true,
+      "notes": "PHI may appear in email body only after BAA is active. Subject lines must not contain PHI."
+    },
+    {
+      "name": "AWS S3",
+      "type": "storage",
+      "purpose": "Private storage for medical record file uploads (PHI). Files accessed via pre-signed URL only.",
+      "envVars": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "AWS_S3_BUCKET", "STORAGE_SIGNED_URL_TTL"],
+      "encryption": "SSE-S3 (server-side encryption)",
+      "signedUrlExpirySeconds": 300,
+      "baaRequired": true
+    },
+    {
+      "name": "Twilio",
+      "type": "sms",
+      "purpose": "SMS notifications for appointment reminders and prescription ready alerts.",
+      "envVars": ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER"],
+      "baaRequired": true
+    }
+  ],
+  "infrastructure": {
+    "queue": "Celery + Redis",
+    "cache": "Redis",
+    "storage": "S3",
+    "containerization": "docker-compose",
+    "cicd": "github-actions",
+    "redisProvider": "Upstash Redis",
+    "redisNotes": "BAA available on Upstash enterprise plan. Required for HIPAA compliance given task payloads may contain PHI references.",
+    "deploymentNotes": "api and worker deployed as separate Fly Apps in the same Fly.io organization. Celery Beat runs as a separate Fly Machine within the worker app."
+  },
+  "security": {
+    "secretScanningEnabled": true,
+    "securityMdIncluded": true,
+    "ciSecurityScanStep": true,
+    "gitignoreComprehensive": true,
+    "corsWhitelistConfigured": true,
+    "piiFieldsEncrypted": true,
+    "fieldEncryptionAlgorithm": "AES-256-GCM",
+    "encryptedFields": ["patientName", "dateOfBirth", "ssn", "diagnosis", "medicationName", "instructions"],
+    "searchableHashedFields": ["email", "phone"],
+    "hashAlgorithm": "HMAC-SHA256",
+    "sentryPhiStripping": true,
+    "sentryPhiFields": ["patientName", "ssn", "diagnosis"],
+    "structlogRedactList": ["password", "token", "ssn", "diagnosis", "medication_name"]
+  },
+  "compliance": {
+    "scope": "HIPAA",
+    "hipaaCompliant": true,
+    "phiEntities": ["MedicalRecord", "Prescription", "Diagnosis"],
+    "phiEntitiesEncrypted": true,
+    "phiAuditLogging": true,
+    "auditLogTable": "audit_log",
+    "auditLogFields": ["actor_id", "action", "entity_type", "entity_id", "ip_address", "timestamp"],
+    "minimumNecessaryEnforced": true,
+    "doctorPatientRelationshipEnforced": true,
+    "baaRequired": true,
+    "baaVendors": ["AWS S3", "Daily.co", "Resend", "Twilio"],
+    "dataRetentionYears": 7,
+    "incidentResponseTimeline": "60 days (HIPAA breach notification rule)",
+    "notes": "All PHI access events trigger an audit_log write regardless of success/failure. Audit log is append-only; no UPDATE or DELETE permitted on audit_log rows."
+  },
+  "observability": {
+    "structuredLogging": true,
+    "loggingLibrary": "structlog",
+    "correlationId": true,
+    "correlationIdHeader": "X-Request-ID",
+    "healthEndpointsPlanned": true,
+    "healthLive": "/health/live",
+    "healthReady": "/health/ready",
+    "prometheusMetrics": true,
+    "prometheusEndpoint": "/metrics",
+    "sentryEnabled": true,
+    "sentryEnvironments": ["production", "staging"],
+    "distributedTracing": false,
+    "distributedTracingNote": "OTel tracing deferred to v1.1 — api and worker share the same database and cross-service call volume in v1 is low (only Celery task dispatch). Full OTel instrumentation planned before v1.1 launch."
+  },
+  "packages": [
+    {
+      "name": "telemed-types",
+      "path": "packages/types",
+      "purpose": "types",
+      "description": "Shared TypeScript types and Python dataclasses for API contracts (Appointment, Prescription, MedicalRecord, User).",
+      "consumedBy": ["api", "web", "worker"]
+    },
+    {
+      "name": "telemed-config",
+      "path": "packages/config",
+      "purpose": "config",
+      "description": "Shared ESLint, Prettier, and base TypeScript/Python configuration. Includes environment variable validation schemas.",
+      "consumedBy": ["api", "web", "worker"]
+    }
+  ],
+  "models": [
+    {
+      "name": "User",
+      "app": "accounts",
+      "fields": ["id", "email_hash", "email_encrypted", "role", "is_active", "totp_enabled", "created_at", "updated_at"],
+      "notes": "email stored as HMAC-SHA256 hash for lookups + encrypted value for display. role: patient | doctor | admin."
+    },
+    {
+      "name": "DoctorProfile",
+      "app": "accounts",
+      "fields": ["id", "user", "specialty", "license_number_encrypted", "bio"],
+      "notes": "license_number is PHI, stored encrypted."
+    },
+    {
+      "name": "PatientProfile",
+      "app": "accounts",
+      "fields": ["id", "user", "dob_encrypted", "ssn_encrypted", "phone_hash", "phone_encrypted"],
+      "notes": "dob and ssn are PHI, stored encrypted. phone stored as hash + encrypted value."
+    },
+    {
+      "name": "Appointment",
+      "app": "appointments",
+      "fields": ["id", "patient", "doctor", "scheduled_at", "status", "reason_encrypted", "daily_room_url", "session_duration_seconds", "created_at"],
+      "notes": "reason is PHI, stored encrypted. status: scheduled | in_progress | completed | cancelled."
+    },
+    {
+      "name": "Prescription",
+      "app": "prescriptions",
+      "fields": ["id", "patient", "doctor", "medication_name_encrypted", "dosage_encrypted", "instructions_encrypted", "refills_total", "refills_remaining", "status", "created_at"],
+      "notes": "medication_name, dosage, instructions are PHI, all stored encrypted."
+    },
+    {
+      "name": "MedicalRecord",
+      "app": "records",
+      "fields": ["id", "patient", "uploaded_by", "record_type", "title_encrypted", "s3_key", "file_size_bytes", "mime_type", "created_at"],
+      "notes": "title is PHI, stored encrypted. s3_key is the S3 object key for the private bucket; never exposed directly."
+    },
+    {
+      "name": "Diagnosis",
+      "app": "records",
+      "fields": ["id", "patient", "doctor", "appointment", "diagnosis_text_encrypted", "icd_code", "created_at"],
+      "notes": "diagnosis_text is PHI, stored encrypted. icd_code is a standard code, not encrypted."
+    },
+    {
+      "name": "AuditLog",
+      "app": "core",
+      "fields": ["id", "actor_id", "action", "entity_type", "entity_id", "ip_address", "user_agent", "timestamp"],
+      "notes": "Append-only table. No UPDATE or DELETE allowed at the application or DB layer. Retained for 7 years per HIPAA."
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "group": "auth",
+      "endpoints": [
+        "POST /auth/login",
+        "POST /auth/logout",
+        "POST /auth/refresh",
+        "POST /auth/forgot-password",
+        "POST /auth/reset-password",
+        "POST /auth/totp/setup",
+        "POST /auth/totp/verify"
+      ]
+    },
+    {
+      "group": "appointments",
+      "endpoints": [
+        "GET /appointments",
+        "POST /appointments",
+        "GET /appointments/:id",
+        "PATCH /appointments/:id",
+        "DELETE /appointments/:id"
+      ]
+    },
+    {
+      "group": "prescriptions",
+      "endpoints": [
+        "GET /prescriptions",
+        "POST /prescriptions",
+        "GET /prescriptions/:id",
+        "POST /prescriptions/:id/refill-request"
+      ]
+    },
+    {
+      "group": "records",
+      "endpoints": [
+        "GET /records",
+        "POST /records",
+        "GET /records/:id",
+        "GET /records/:id/download"
+      ]
+    },
+    {
+      "group": "admin",
+      "endpoints": [
+        "GET /admin/users",
+        "PATCH /admin/users/:id/deactivate",
+        "GET /admin/audit-log"
+      ]
+    },
+    {
+      "group": "webhooks",
+      "endpoints": [
+        "POST /webhooks/daily"
+      ]
+    },
+    {
+      "group": "health",
+      "endpoints": [
+        "GET /health/live",
+        "GET /health/ready"
+      ]
+    }
+  ],
+  "celeryTasks": [
+    {
+      "name": "send_appointment_reminder",
+      "queue": "notifications",
+      "trigger": "Celery Beat — 24h and 1h before appointment.scheduled_at",
+      "description": "Sends email (Resend) and SMS (Twilio) reminder to the patient."
+    },
+    {
+      "name": "send_prescription_ready_notification",
+      "queue": "notifications",
+      "trigger": "Post-save signal on Prescription creation",
+      "description": "Sends email (Resend) to the patient notifying them a prescription is available."
+    },
+    {
+      "name": "process_daily_webhook",
+      "queue": "default",
+      "trigger": "POST /webhooks/daily (dispatched to Celery after signature verification)",
+      "description": "Updates appointment status to completed and records session duration."
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "RA01",
+      "category": "deployment",
+      "statement": "Fly.io deployment chosen: api and worker deployed as separate Fly Apps within the same Fly.io organization for resource isolation and independent scaling."
+    },
+    {
+      "id": "RA02",
+      "category": "database",
+      "statement": "PostgreSQL 16 provisioned via Fly Postgres as a dedicated cluster. Dedicated (non-shared) cluster used for HIPAA data isolation — no co-tenancy with other projects."
+    },
+    {
+      "id": "RA03",
+      "category": "infrastructure",
+      "statement": "Redis provisioned via Upstash Redis. BAA is available on the Upstash enterprise plan and must be signed before launch, as Celery task payloads may reference PHI entity IDs."
+    },
+    {
+      "id": "RA04",
+      "category": "security",
+      "statement": "PHI fields (patientName, dateOfBirth, ssn, diagnosis, medicationName, instructions) are encrypted with AES-256-GCM before write to PostgreSQL. Encryption key stored in PHI_ENCRYPTION_KEY environment variable, not in codebase."
+    },
+    {
+      "id": "RA05",
+      "category": "security",
+      "statement": "Searchable PHI fields (email, phone) are stored as HMAC-SHA256 hash alongside the AES-256-GCM encrypted value. Lookups use the hash; decrypted value is returned only to authorized roles."
+    },
+    {
+      "id": "RA06",
+      "category": "integrations",
+      "statement": "Daily.co webhook payload signature verified via HMAC-SHA256 using DAILY_WEBHOOK_SECRET on every incoming request to POST /webhooks/daily. Unverified requests are rejected with HTTP 401."
+    },
+    {
+      "id": "RA07",
+      "category": "deployment",
+      "statement": "Celery Beat scheduler runs as a separate Fly Machine within the worker Fly App. A single Beat instance is enforced to prevent duplicate scheduled task dispatch."
+    },
+    {
+      "id": "RA08",
+      "category": "storage",
+      "statement": "Medical record files uploaded to a private AWS S3 bucket with SSE-S3 server-side encryption. Pre-signed download URLs expire in 5 minutes (300 seconds). No public-read ACL permitted."
+    },
+    {
+      "id": "RA09",
+      "category": "compliance",
+      "statement": "All PHI access events (read, write, download) are logged to the audit_log table with actor_id, action, entity_type, entity_id, ip_address, and timestamp. Audit log rows are append-only."
+    },
+    {
+      "id": "RA10",
+      "category": "security",
+      "statement": "TOTP (2FA via django-otp) is enforced at Django middleware level for all accounts with the doctor or admin role. Login succeeds but subsequent API calls return HTTP 403 until TOTP is verified."
+    },
+    {
+      "id": "RA11",
+      "category": "observability",
+      "statement": "Sentry beforeSend hook configured to strip PHI fields (patientName, ssn, diagnosis) from all error events before transmission to Sentry servers. This is required because Sentry is not a HIPAA-covered entity under BAA in the free/team plan."
+    },
+    {
+      "id": "RA12",
+      "category": "observability",
+      "statement": "structlog configured with a redact processor for the following keys: password, token, ssn, diagnosis, medication_name. Redacted values are replaced with [REDACTED] in all log output."
+    }
+  ]
+}

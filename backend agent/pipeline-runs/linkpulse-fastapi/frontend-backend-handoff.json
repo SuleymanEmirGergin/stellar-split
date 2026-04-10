@@ -1,0 +1,301 @@
+{
+  "project": {
+    "name": "LinkPulse",
+    "description": "Link-in-bio analytics platform. Users create a public page with a list of links and get detailed click analytics (geo, referrer, time series).",
+    "frontendStack": "React + Vite (SPA, hosted on Vercel)",
+    "backendStackPreference": "FastAPI + PostgreSQL + SQLAlchemy + ARQ (async Redis queue)",
+    "deploymentTarget": "railway",
+    "complianceScope": "none",
+    "observabilityBaseline": {
+      "healthEndpoints": true,
+      "structuredLogging": true,
+      "distributedTracing": false,
+      "metricsEnabled": false
+    },
+    "notes": "Single-tenant by user. Each user has one public link page at /{username}. Click tracking endpoint is public (no auth) and high-volume. API keys allow programmatic link management for integrations."
+  },
+  "pages": [
+    {
+      "name": "Login",
+      "route": "/login",
+      "purpose": "Email + password login",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["LoginForm"],
+      "errorStates": ["invalid credentials", "email not verified", "too many attempts"]
+    },
+    {
+      "name": "Register",
+      "route": "/register",
+      "purpose": "Create a new account and choose a username for the public link page",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["RegisterForm"],
+      "errorStates": ["email already taken", "username already taken", "username invalid format"]
+    },
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "purpose": "Overview: KPI cards (total clicks today / this week / all time), sparkline chart of clicks last 14 days, top 5 links by clicks",
+      "requiresAuth": true,
+      "dataDependencies": ["analyticsSummary", "topLinks", "clickTimeSeries"],
+      "components": ["KPICards", "SparklineChart", "TopLinksWidget"],
+      "emptyStates": ["no clicks yet — share your page"],
+      "errorStates": ["analytics unavailable"]
+    },
+    {
+      "name": "LinkEditor",
+      "route": "/links",
+      "purpose": "Manage the list of links: create, reorder (drag & drop), toggle active, edit, delete. Preview panel shows live public page appearance.",
+      "requiresAuth": true,
+      "dataDependencies": ["links"],
+      "components": ["DraggableLinkList", "LinkFormModal", "PublicPagePreview"],
+      "emptyStates": ["no links yet — add your first link"],
+      "errorStates": ["failed to save order", "link save failed"]
+    },
+    {
+      "name": "Analytics",
+      "route": "/analytics",
+      "purpose": "Detailed analytics: click volume chart (daily/weekly/monthly toggle), geographic breakdown (country bar chart), top referrers table, top links table, date range picker",
+      "requiresAuth": true,
+      "dataDependencies": ["clickTimeSeries", "geoBreakdown", "referrerBreakdown", "topLinks"],
+      "components": ["ClickVolumeChart", "GeoBreakdownChart", "ReferrersTable", "TopLinksTable", "DateRangePicker"],
+      "emptyStates": ["no data in selected period"],
+      "errorStates": ["analytics unavailable"]
+    },
+    {
+      "name": "ApiKeys",
+      "route": "/settings/api-keys",
+      "purpose": "Manage API keys for programmatic access: list keys (prefix, scopes, last used), create new key (shown once after creation), revoke",
+      "requiresAuth": true,
+      "dataDependencies": ["apiKeys"],
+      "components": ["ApiKeysTable", "CreateApiKeyModal", "CreatedKeyReveal"],
+      "emptyStates": ["no API keys yet"],
+      "errorStates": ["failed to create", "failed to revoke"]
+    },
+    {
+      "name": "ProfileSettings",
+      "route": "/settings/profile",
+      "purpose": "Edit profile: display name, bio (max 160 chars), avatar upload, public page theme (color preset selector), email notification preferences",
+      "requiresAuth": true,
+      "dataDependencies": ["userProfile", "notificationPreferences"],
+      "components": ["AvatarUpload", "ProfileForm", "ThemeSelector", "NotificationToggles"],
+      "emptyStates": [],
+      "errorStates": ["upload failed", "username taken", "save failed"]
+    }
+  ],
+  "forms": [
+    {
+      "name": "LoginForm",
+      "page": "Login",
+      "submitAction": "POST /auth/login",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect to /dashboard",
+      "errorBehavior": "Inline error message"
+    },
+    {
+      "name": "RegisterForm",
+      "page": "Register",
+      "submitAction": "POST /auth/register",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "username", "type": "text", "required": true, "validation": { "pattern": "^[a-z0-9_]{3,30}$", "note": "lowercase alphanumeric and underscore only" } },
+        { "name": "displayName", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 60 } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8, "maxLength": 128 } }
+      ],
+      "successBehavior": "Redirect to /dashboard with email verification prompt",
+      "errorBehavior": "Inline field errors"
+    },
+    {
+      "name": "LinkForm",
+      "page": "LinkEditor",
+      "submitAction": "POST /links or PATCH /links/:id",
+      "methodHint": "POST/PATCH",
+      "fields": [
+        { "name": "title", "type": "text", "required": true, "validation": { "minLength": 1, "maxLength": 80 } },
+        { "name": "url", "type": "url", "required": true, "validation": { "format": "url" } },
+        { "name": "thumbnailImage", "type": "file", "required": false, "validation": { "mimeTypes": ["image/jpeg", "image/png", "image/webp"], "maxSizeMB": 5 } },
+        { "name": "isActive", "type": "boolean", "required": true }
+      ],
+      "successBehavior": "Link appears/updates in list, preview panel refreshes",
+      "errorBehavior": "Inline errors in modal"
+    },
+    {
+      "name": "ProfileForm",
+      "page": "ProfileSettings",
+      "submitAction": "PATCH /users/me",
+      "methodHint": "PATCH",
+      "fields": [
+        { "name": "displayName", "type": "text", "required": false, "validation": { "maxLength": 60 } },
+        { "name": "bio", "type": "textarea", "required": false, "validation": { "maxLength": 160 } },
+        { "name": "theme", "type": "select", "required": false, "options": ["default", "dark", "ocean", "forest", "sunset"] },
+        { "name": "notifyWeeklyDigest", "type": "boolean", "required": false },
+        { "name": "notifyMilestone", "type": "boolean", "required": false }
+      ],
+      "successBehavior": "Toast: profile saved",
+      "errorBehavior": "Toast: failed to save"
+    },
+    {
+      "name": "ApiKeyCreateForm",
+      "page": "ApiKeys",
+      "submitAction": "POST /api-keys",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "name", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 60 } },
+        { "name": "scopes", "type": "checkbox-group", "required": true, "options": ["links:read", "links:write", "analytics:read"] }
+      ],
+      "successBehavior": "Show full key once (CreatedKeyReveal component), then show in masked list",
+      "errorBehavior": "Inline errors"
+    }
+  ],
+  "tables": [
+    {
+      "name": "LinkEditorList",
+      "page": "LinkEditor",
+      "columns": [
+        { "name": "thumbnail", "type": "image", "sortable": false, "filterable": false },
+        { "name": "title", "type": "text", "sortable": false, "filterable": false },
+        { "name": "url", "type": "text", "sortable": false, "filterable": false },
+        { "name": "clicks", "type": "number", "sortable": false, "filterable": false },
+        { "name": "isActive", "type": "toggle", "sortable": false, "filterable": true }
+      ],
+      "supportsPagination": false,
+      "supportsSearch": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["edit", "delete", "toggle"]
+    },
+    {
+      "name": "ApiKeysTable",
+      "page": "ApiKeys",
+      "columns": [
+        { "name": "name", "type": "text", "sortable": false, "filterable": false },
+        { "name": "keyPrefix", "type": "text", "sortable": false, "filterable": false },
+        { "name": "scopes", "type": "badge-list", "sortable": false, "filterable": false },
+        { "name": "lastUsedAt", "type": "datetime", "sortable": false, "filterable": false },
+        { "name": "createdAt", "type": "date", "sortable": false, "filterable": false }
+      ],
+      "supportsPagination": false,
+      "supportsSearch": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["revoke"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "ToggleLinkActive",
+      "page": "LinkEditor",
+      "type": "update",
+      "target": "Link",
+      "requiresConfirmation": false,
+      "sideEffects": ["updatePublicPage"]
+    },
+    {
+      "name": "ReorderLinks",
+      "page": "LinkEditor",
+      "type": "update",
+      "target": "Link",
+      "requiresConfirmation": false,
+      "sideEffects": ["updatePublicPageOrder"]
+    },
+    {
+      "name": "DeleteLink",
+      "page": "LinkEditor",
+      "type": "delete",
+      "target": "Link",
+      "requiresConfirmation": true,
+      "sideEffects": ["reindexLinkPositions", "analyticsClicksOrphaned"]
+    },
+    {
+      "name": "RevokeApiKey",
+      "page": "ApiKeys",
+      "type": "delete",
+      "target": "ApiKey",
+      "requiresConfirmation": true,
+      "sideEffects": ["immediatelyInvalidateKey"]
+    }
+  ],
+  "authFlows": [
+    {
+      "type": "login",
+      "protectedPages": ["Dashboard", "LinkEditor", "Analytics", "ApiKeys", "ProfileSettings"],
+      "notes": "JWT access token (15 min) + refresh token (7 days) in HttpOnly cookie"
+    },
+    {
+      "type": "register",
+      "notes": "Sends verification email via ARQ task. Dashboard accessible before verification but with persistent banner."
+    },
+    {
+      "type": "logout"
+    },
+    {
+      "type": "refresh",
+      "notes": "Silent refresh via HttpOnly cookie before access token expires"
+    },
+    {
+      "type": "email-verification",
+      "notes": "GET /auth/verify-email?token=... link in email. Token expires in 24 hours."
+    }
+  ],
+  "uploads": [
+    {
+      "name": "ProfileAvatar",
+      "page": "ProfileSettings",
+      "fileTypes": ["image/jpeg", "image/png", "image/webp"],
+      "maxSizeMB": 2,
+      "multiple": false,
+      "storageHint": "S3",
+      "visibility": "public"
+    },
+    {
+      "name": "LinkThumbnail",
+      "page": "LinkEditor",
+      "fileTypes": ["image/jpeg", "image/png", "image/webp"],
+      "maxSizeMB": 5,
+      "multiple": false,
+      "storageHint": "S3",
+      "visibility": "public"
+    }
+  ],
+  "externalTriggers": [
+    {
+      "name": "PublicClickTracking",
+      "type": "custom",
+      "providerHint": "internal",
+      "triggerSource": "Public page visitor clicks a link → POST /p/:username/:linkId/click",
+      "expectedOutcome": "ClickEvent row written async via ARQ task (non-blocking); link clickCount incremented"
+    },
+    {
+      "name": "ResendEmailDelivery",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "Register → email verification; milestone → notification email; cron → weekly digest",
+      "expectedOutcome": "Transactional email delivered"
+    },
+    {
+      "name": "WeeklyDigestCron",
+      "type": "cron",
+      "providerHint": "ARQ",
+      "triggerSource": "Every Monday 09:00 UTC — ARQ scheduled job",
+      "expectedOutcome": "Weekly click summary email sent to all users with notifyWeeklyDigest = true"
+    }
+  ],
+  "assumptions": [
+    "Each user has exactly one public link page at /{username} — no multi-page support in v1",
+    "Click tracking is fire-and-forget: POST /p/:username/:linkId/click returns 204 immediately; ClickEvent is written by an ARQ task (eventual consistency acceptable)",
+    "Analytics aggregation (AnalyticsSummary table) is pre-computed hourly by an ARQ cron job — raw ClickEvent table is not queried directly by the analytics API",
+    "Redis cache layer sits in front of analytics queries — cache TTL 5 minutes; invalidated on new click batch",
+    "API keys are hashed with SHA-256 before storage — only the prefix (first 8 chars) is stored in plaintext for display",
+    "Avatar and link thumbnails are stored in a public S3 bucket — no signed URLs, direct CDN access",
+    "No compliance requirements (no PHI, no PCI-DSS) — standard security baseline applies",
+    "Rate limiting on click tracking endpoint: 200 req/min per IP via Redis sliding window — above threshold returns 429",
+    "Idempotency key required on POST /links to prevent double-creation from network retry",
+    "Weekly digest is dispatched via ARQ scheduled job with deterministic job_id — double-enqueue is prevented"
+  ]
+}

@@ -388,7 +388,8 @@ export async function addExpense(
   amount: number,
   splitAmong: string[],
   description: string,
-  category: string = ''
+  category: string = '',
+  attachmentUrl?: string
 ): Promise<number> {
 
   if (isDemoMode()) {

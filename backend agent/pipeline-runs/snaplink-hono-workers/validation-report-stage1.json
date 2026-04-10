@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "1.0.0",
+  "reportType": "repo",
+  "status": "pass",
+  "timestamp": "2026-04-05T10:55:00Z",
+  "projectName": "SnapLink",
+  "sourceFile": "repo-handoff.json",
+  "summary": {
+    "total": 17,
+    "passed": 17,
+    "warned": 0,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "id": "schema-version",
+      "category": "schema",
+      "status": "pass",
+      "message": "schemaVersion '2.1.0' matches expected schema"
+    },
+    {
+      "id": "schema-required-top-level",
+      "category": "schema",
+      "status": "pass",
+      "message": "All required top-level fields present: project, services, databases, entities, endpoints, workers, integrations, security, observability, meta, envVars, files"
+    },
+    {
+      "id": "schema-deployment-target-enum",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.deploymentTarget 'cloudflare-workers' is a valid enum value"
+    },
+    {
+      "id": "schema-framework-enum",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.framework 'hono' is a valid enum value"
+    },
+    {
+      "id": "semantic-service-health-check",
+      "category": "semantic",
+      "status": "pass",
+      "message": "API service declares healthCheck.live=/health and healthCheck.ready=/health. Workers do not expose traditional ports — single /health endpoint is correct for this runtime."
+    },
+    {
+      "id": "semantic-worker-trigger-consistency",
+      "category": "semantic",
+      "status": "pass",
+      "message": "2 workers declared: queue-consumer (trigger: cf-queue-batch, queue: click-events) and cron-aggregator (trigger: cron:0 * * * *). Both consistent with D1 database declared in databases[]."
+    },
+    {
+      "id": "semantic-integration-env-vars",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All integration envVars declared: Upstash (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN). Both appear in envVars.api[]."
+    },
+    {
+      "id": "semantic-d1-migration-command",
+      "category": "semantic",
+      "status": "pass",
+      "message": "databases[0].migrationCommand='wrangler d1 migrations apply snaplink-db --remote' — correct for Cloudflare D1 deployment."
+    },
+    {
+      "id": "semantic-playbooks-stack-guide",
+      "category": "semantic",
+      "status": "pass",
+      "message": "meta.stackGuidesApplied=['hono.md'] matches project.framework='hono'"
+    },
+    {
+      "id": "semantic-deployment-guide",
+      "category": "semantic",
+      "status": "pass",
+      "message": "meta.deploymentGuideApplied='cloudflare-workers (wrangler)' matches project.deploymentTarget='cloudflare-workers'"
+    },
+    {
+      "id": "security-rule13-baseline",
+      "category": "security-playbook",
+      "status": "pass",
+      "message": "security.securityMdIncluded=true, security.secretScanningEnabled=true, security.corsWhitelistConfigured=true, security.rateLimitingStrategy='upstash-sliding-window' — Rule 13 baseline met. Rate limiting uses Upstash REST API (correct for CF Workers — no TCP Redis available)."
+    },
+    {
+      "id": "security-auth-strategy",
+      "category": "security-playbook",
+      "status": "pass",
+      "message": "security.authStrategy='jwt-hs256', security.passwordHashing='argon2id' — compliant with security.md. argon2id is Wasm-compatible in CF Workers via @node-rs/argon2."
+    },
+    {
+      "id": "security-pii-handling",
+      "category": "security-playbook",
+      "status": "pass",
+      "message": "security.piiFieldsEncrypted=false; security.notes confirms raw IP not stored — only CF-IPCountry country code in ClickEvent. Privacy-by-design for analytics without PHI scope."
+    },
+    {
+      "id": "rule14-data-classification",
+      "category": "data-classification",
+      "status": "pass",
+      "message": "No PHI entity names detected. project.complianceScope='none' — no HIPAA/PCI requirements. Entities: User, ShortLink, ClickEvent, AnalyticsSummary — standard consumer data."
+    },
+    {
+      "id": "rule15-health-endpoints",
+      "category": "observability",
+      "status": "pass",
+      "message": "observability.healthEndpointsPlanned=true; healthLive='/health' and healthReady='/health'. Single endpoint is correct for CF Workers (no traditional process health distinction)."
+    },
+    {
+      "id": "rule15-structured-logging",
+      "category": "observability",
+      "status": "pass",
+      "message": "observability.structuredLogging=true, correlationId=true via X-Request-Id middleware. Cloudflare Workers logs are streamed to Cloudflare Logpush for structured access."
+    },
+    {
+      "id": "rule15-distributed-tracing",
+      "category": "observability",
+      "status": "pass",
+      "message": "services[] includes 3 Workers (api, queue-consumer, cron-aggregator). observability.distributedTracing=false — acceptable for this deployment. All Workers run on the same Cloudflare infrastructure; Cloudflare Trace Analytics covers cross-worker visibility. distributedTracingNote acknowledges deferral with a concrete plan (Cloudflare Analytics)."
+    }
+  ],
+  "assumptions": [
+    "KV eventual consistency (~60s propagation) accepted for redirect cache — stale redirect window is a product trade-off, not a security issue",
+    "CF Queue at-least-once delivery: duplicate ClickEvent rows are acceptable for analytics; no deduplication required",
+    "D1 SQLite used instead of PostgreSQL — standard SQL subset only; no ARRAY, JSON_AGG, or pg-specific functions used in blueprint",
+    "Upstash REST API used for rate limiting instead of TCP Redis — required for CF Workers compatibility; confirmed in integrations[]",
+    "Guest links expire after 30 days — enforced by Cron Trigger daily cleanup (WHERE is_guest=1 AND expires_at < unixepoch())",
+    "argon2id via @node-rs/argon2 (Wasm) — compatible with CF Workers; bcrypt not used (CPU-bound, exceeds Workers CPU limit)"
+  ],
+  "fixHints": []
+}

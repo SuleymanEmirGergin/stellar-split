@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "2.1.0",
+  "project": {
+    "name": "SnapLink",
+    "description": "URL shortener with click analytics. Hono + Cloudflare Workers + D1 + KV + Queues. Zero cold start, global edge deployment.",
+    "framework": "hono",
+    "language": "typescript",
+    "runtime": "cloudflare-workers",
+    "packageManager": "npm",
+    "deploymentTarget": "cloudflare-workers",
+    "monorepo": false
+  },
+  "services": [
+    {
+      "name": "api",
+      "type": "api",
+      "entryPoint": "src/index.ts",
+      "startCommand": "wrangler dev",
+      "healthCheck": {
+        "live": "/health",
+        "ready": "/health"
+      }
+    },
+    {
+      "name": "queue-consumer",
+      "type": "worker",
+      "entryPoint": "src/consumer.ts",
+      "startCommand": "wrangler dev --env consumer"
+    },
+    {
+      "name": "cron-aggregator",
+      "type": "worker",
+      "entryPoint": "src/cron.ts",
+      "startCommand": "wrangler dev --env cron"
+    }
+  ],
+  "databases": [
+    {
+      "type": "d1",
+      "provider": "cloudflare",
+      "migrationTool": "wrangler-d1",
+      "migrationCommand": "wrangler d1 migrations apply snaplink-db --remote"
+    }
+  ],
+  "entities": [
+    "User",
+    "ShortLink",
+    "ClickEvent",
+    "AnalyticsSummary"
+  ],
+  "endpoints": {
+    "total": 20,
+    "modules": ["auth", "links", "analytics", "users", "redirect", "health"]
+  },
+  "workers": [
+    {
+      "name": "queue-consumer",
+      "queue": "click-events",
+      "trigger": "cf-queue-batch",
+      "idempotency": "at-least-once delivery; duplicate clicks acceptable for analytics",
+      "retries": 3
+    },
+    {
+      "name": "cron-aggregator",
+      "queue": "cron",
+      "trigger": "cron:0 * * * *",
+      "idempotency": "ON CONFLICT DO UPDATE (upsert on user_id + date unique constraint)",
+      "retries": 2
+    }
+  ],
+  "integrations": [
+    {
+      "name": "Upstash",
+      "type": "rate-limiting",
+      "adapter": "src/middleware/rate-limit.ts",
+      "envVars": ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+      "note": "REST API — no TCP; required for CF Workers compatibility"
+    }
+  ],
+  "security": {
+    "authStrategy": "jwt-hs256",
+    "passwordHashing": "argon2id",
+    "secretScanningEnabled": true,
+    "securityMdIncluded": true,
+    "gitignoreComprehensive": true,
+    "ciSecurityScanStep": true,
+    "corsWhitelistConfigured": true,
+    "piiFieldsEncrypted": false,
+    "rateLimitingStrategy": "upstash-sliding-window",
+    "notes": "IP not stored — only CF-IPCountry country code persisted in ClickEvent"
+  },
+  "observability": {
+    "healthEndpointsPlanned": true,
+    "healthLive": "/health",
+    "healthReady": "/health",
+    "structuredLogging": true,
+    "loggingLibrary": "hono/logger + Cloudflare Workers logs",
+    "correlationId": true,
+    "distributedTracing": false,
+    "distributedTracingNote": "Single-region Workers deployment — distributed tracing deferred; all telemetry via Cloudflare Analytics"
+  },
+  "meta": {
+    "stackGuidesApplied": ["hono.md"],
+    "deploymentGuideApplied": "cloudflare-workers (wrangler)",
+    "playbooksApplied": ["security.md", "rate-limiting.md", "analytics.md", "caching.md", "auth.md"],
+    "pipelineVersion": "v4.2",
+    "notes": "First edge-native pipeline run. No Docker. No traditional server. D1 replaces PostgreSQL; KV replaces Redis for caching; CF Queue replaces BullMQ; Upstash replaces TCP Redis for rate limiting."
+  },
+  "envVars": {
+    "api": [
+      { "key": "JWT_SECRET", "required": true, "secret": true },
+      { "key": "UPSTASH_REDIS_REST_URL", "required": true, "secret": true },
+      { "key": "UPSTASH_REDIS_REST_TOKEN", "required": true, "secret": true },
+      { "key": "CORS_ALLOWED_ORIGINS", "required": true, "secret": false, "example": "https://snaplink.app,https://www.snaplink.app" }
+    ]
+  },
+  "files": {
+    "wranglerConfig": "wrangler.toml",
+    "migrations": "migrations/*.sql",
+    "ciWorkflow": ".github/workflows/ci.yml",
+    "gitleaksConfig": ".gitleaks.toml",
+    "securityMd": "SECURITY.md",
+    "envExample": ".dev.vars.example"
+  }
+}

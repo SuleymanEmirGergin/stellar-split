@@ -16,3 +16,5 @@ export { ReceivePanel } from './ReceivePanel';
 export type { ReceivePanelProps } from './ReceivePanel';
 export { NetworkBadge } from './NetworkBadge';
 export type { NetworkBadgeProps } from './NetworkBadge';
+export { EasterEgg } from './EasterEgg';
+export { AutoPitch } from './AutoPitch';

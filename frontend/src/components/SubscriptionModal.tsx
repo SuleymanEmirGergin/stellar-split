@@ -9,24 +9,45 @@ interface Props {
   onSave: (sub: Omit<RecurringTemplate, 'id' | 'createdAt'>) => void;
 }
 
+const INTERVAL_OPTIONS: { value: Interval; label: string }[] = [
+  { value: 'daily',   label: 'Günlük' },
+  { value: 'weekly',  label: 'Haftalık' },
+  { value: 'monthly', label: 'Aylık' },
+  { value: 'yearly',  label: 'Yıllık' },
+];
+
+const CATEGORIES = ['entertainment', 'home', 'services', 'other'];
+
+function defaultNextDue(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
 export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
+  const [name, setName]         = useState('');
+  const [amount, setAmount]     = useState('');
   const [interval, setInterval] = useState<Interval>('monthly');
   const [category, setCategory] = useState('entertainment');
+  const [nextDue, setNextDue]   = useState<string>(defaultNextDue);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !amount) return;
+    if (!name.trim() || !amount) return;
     onSave({
-      name,
+      name: name.trim(),
       amount: parseFloat(amount),
       interval,
       category,
-      members: [], // Template for the whole group
+      members: [],
+      status: 'active',
+      nextDue: new Date(nextDue).getTime(),
     });
     setName('');
     setAmount('');
+    setInterval('monthly');
+    setCategory('entertainment');
+    setNextDue(defaultNextDue());
     onClose();
   };
 
@@ -56,25 +77,31 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Name */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Hizmet Adı</label>
-                <div className="group relative">
-                  <input
-                    autoFocus
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Netflix, Spotify, Kira..."
-                    className="w-full bg-secondary/50 border border-border group-focus-within:border-indigo-500/50 rounded-2xl py-4 px-5 outline-none font-bold transition-all"
-                  />
-                </div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                  Hizmet Adı
+                </label>
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Netflix, Spotify, Kira..."
+                  className="w-full bg-secondary/50 border border-border focus:border-indigo-500/50 rounded-2xl py-4 px-5 outline-none font-bold transition-all"
+                />
               </div>
 
+              {/* Amount + Interval */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Miktar (XLM)</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                    Miktar (XLM)
+                  </label>
                   <input
                     type="number"
+                    min="0"
+                    step="any"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
@@ -82,28 +109,50 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Periyot</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                    Periyot
+                  </label>
                   <select
                     value={interval}
                     onChange={(e) => setInterval(e.target.value as Interval)}
                     className="w-full bg-secondary/50 border border-border focus:border-indigo-500/50 rounded-2xl py-4 px-5 outline-none font-bold transition-all appearance-none"
                   >
-                    <option value="weekly">Haftalık</option>
-                    <option value="monthly">Aylık</option>
+                    {INTERVAL_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
+              {/* Next due date */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Kategori</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                  İlk Ödeme Tarihi
+                </label>
+                <input
+                  type="date"
+                  value={nextDue}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setNextDue(e.target.value)}
+                  className="w-full bg-secondary/50 border border-border focus:border-indigo-500/50 rounded-2xl py-4 px-5 outline-none font-mono font-bold transition-all"
+                />
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
+                  Kategori
+                </label>
                 <div className="flex flex-wrap gap-2">
-                  {['entertainment', 'home', 'services', 'other'].map((cat) => (
+                  {CATEGORIES.map((cat) => (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => setCategory(cat)}
                       className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                        category === cat ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-secondary/50 border-border text-muted-foreground hover:border-indigo-500/30'
+                        category === cat
+                          ? 'bg-indigo-500 text-white border-indigo-500'
+                          : 'bg-secondary/50 border-border text-muted-foreground hover:border-indigo-500/30'
                       }`}
                     >
                       {cat.toUpperCase()}
@@ -114,7 +163,8 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
 
               <button
                 type="submit"
-                className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
+                disabled={!name.trim() || !amount}
+                className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 <Check size={20} /> Aboneliği Başlat
               </button>

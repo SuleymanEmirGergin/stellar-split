@@ -1,0 +1,363 @@
+{
+  "$schema": "../../backend-integrator/frontend-backend-handoff.schema.json",
+  "project": {
+    "name": "TaskFlow",
+    "description": "Collaborative project management tool — workspaces, boards, tasks, comments, file attachments, and real-time activity feeds.",
+    "frontendStack": "Next.js 14 (App Router)",
+    "backendStackPreference": "Go + Gin + PostgreSQL + Redis + Fly.io",
+    "deploymentTarget": "fly.io",
+    "complianceScope": "none"
+  },
+  "pages": [
+    {
+      "name": "login",
+      "route": "/login",
+      "purpose": "Email + password login. Google OAuth button.",
+      "requiresAuth": false
+    },
+    {
+      "name": "register",
+      "route": "/register",
+      "purpose": "Create account with name, email, password.",
+      "requiresAuth": false
+    },
+    {
+      "name": "dashboard",
+      "route": "/dashboard",
+      "purpose": "Overview of all workspaces the user belongs to. Quick-create workspace button.",
+      "requiresAuth": true,
+      "roles": ["member", "admin"]
+    },
+    {
+      "name": "workspace",
+      "route": "/workspaces/:id",
+      "purpose": "Workspace home — lists all boards. Workspace settings link for admins.",
+      "requiresAuth": true,
+      "roles": ["member", "admin"]
+    },
+    {
+      "name": "board",
+      "route": "/workspaces/:workspaceId/boards/:boardId",
+      "purpose": "Kanban board — columns (To Do / In Progress / Done) with draggable task cards. Add task button per column.",
+      "requiresAuth": true,
+      "roles": ["member", "admin"]
+    },
+    {
+      "name": "task-detail",
+      "route": "/workspaces/:workspaceId/boards/:boardId/tasks/:taskId",
+      "purpose": "Full task detail — title, description, assignee, due date, labels, subtasks, comments thread, file attachments.",
+      "requiresAuth": true,
+      "roles": ["member", "admin"]
+    },
+    {
+      "name": "activity-feed",
+      "route": "/workspaces/:id/activity",
+      "purpose": "Real-time activity feed for the workspace — task created/updated/completed/commented events.",
+      "requiresAuth": true,
+      "roles": ["member", "admin"]
+    },
+    {
+      "name": "workspace-settings",
+      "route": "/workspaces/:id/settings",
+      "purpose": "Manage workspace name, invite members, set member roles, danger zone (delete workspace).",
+      "requiresAuth": true,
+      "roles": ["admin"]
+    },
+    {
+      "name": "profile",
+      "route": "/profile",
+      "purpose": "Edit display name, avatar, change password, manage notification preferences.",
+      "requiresAuth": true,
+      "roles": ["member", "admin"]
+    }
+  ],
+  "forms": [
+    {
+      "name": "login-form",
+      "page": "login",
+      "submitAction": "POST /api/auth/login",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email",    "type": "email",    "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect to /dashboard",
+      "errorBehavior": "Inline error message"
+    },
+    {
+      "name": "register-form",
+      "page": "register",
+      "submitAction": "POST /api/auth/register",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "name",     "type": "text",     "required": true, "validation": { "minLength": 2, "maxLength": 100 } },
+        { "name": "email",    "type": "email",    "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect to /dashboard",
+      "errorBehavior": "Inline field errors"
+    },
+    {
+      "name": "create-workspace-form",
+      "page": "dashboard",
+      "submitAction": "POST /api/workspaces",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "name",        "type": "text",     "required": true,  "validation": { "minLength": 2, "maxLength": 80 } },
+        { "name": "description", "type": "textarea", "required": false, "validation": { "maxLength": 500 } }
+      ],
+      "successBehavior": "Redirect to /workspaces/:id",
+      "errorBehavior": "Modal inline error"
+    },
+    {
+      "name": "create-board-form",
+      "page": "workspace",
+      "submitAction": "POST /api/workspaces/:id/boards",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "name",  "type": "text",   "required": true, "validation": { "minLength": 2, "maxLength": 80 } },
+        { "name": "color", "type": "color",  "required": false }
+      ],
+      "successBehavior": "Navigate to new board",
+      "errorBehavior": "Inline error"
+    },
+    {
+      "name": "create-task-form",
+      "page": "board",
+      "submitAction": "POST /api/boards/:id/tasks",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "title",       "type": "text",     "required": true,  "validation": { "minLength": 1, "maxLength": 255 } },
+        { "name": "description", "type": "textarea", "required": false },
+        { "name": "assigneeId",  "type": "select",   "required": false },
+        { "name": "dueDate",     "type": "date",     "required": false },
+        { "name": "labels",      "type": "tags",     "required": false },
+        { "name": "priority",    "type": "select",   "required": false, "options": ["low", "medium", "high", "urgent"] }
+      ],
+      "successBehavior": "Task card appears in column",
+      "errorBehavior": "Inline form error"
+    },
+    {
+      "name": "edit-task-form",
+      "page": "task-detail",
+      "submitAction": "PATCH /api/tasks/:id",
+      "methodHint": "PATCH",
+      "fields": [
+        { "name": "title",       "type": "text",     "required": true,  "validation": { "minLength": 1, "maxLength": 255 } },
+        { "name": "description", "type": "textarea", "required": false },
+        { "name": "assigneeId",  "type": "select",   "required": false },
+        { "name": "dueDate",     "type": "date",     "required": false },
+        { "name": "status",      "type": "select",   "required": true,  "options": ["todo", "in_progress", "done", "archived"] },
+        { "name": "priority",    "type": "select",   "required": false, "options": ["low", "medium", "high", "urgent"] },
+        { "name": "labels",      "type": "tags",     "required": false }
+      ],
+      "successBehavior": "Task updated in-place",
+      "errorBehavior": "Inline field errors"
+    },
+    {
+      "name": "add-comment-form",
+      "page": "task-detail",
+      "submitAction": "POST /api/tasks/:id/comments",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "body", "type": "textarea", "required": true, "validation": { "minLength": 1, "maxLength": 5000 } }
+      ],
+      "successBehavior": "Comment appended to thread",
+      "errorBehavior": "Inline error below textarea"
+    },
+    {
+      "name": "invite-member-form",
+      "page": "workspace-settings",
+      "submitAction": "POST /api/workspaces/:id/invites",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email",  "required": true, "validation": { "format": "email" } },
+        { "name": "role",  "type": "select", "required": true, "options": ["member", "admin"] }
+      ],
+      "successBehavior": "Invite email sent, member appears as pending",
+      "errorBehavior": "Error if email already member or invite exists"
+    },
+    {
+      "name": "update-profile-form",
+      "page": "profile",
+      "submitAction": "PATCH /api/users/me",
+      "methodHint": "PATCH",
+      "fields": [
+        { "name": "name",     "type": "text",  "required": true,  "validation": { "minLength": 2, "maxLength": 100 } },
+        { "name": "timezone", "type": "select","required": false }
+      ],
+      "successBehavior": "Profile updated",
+      "errorBehavior": "Inline error"
+    }
+  ],
+  "tables": [
+    {
+      "name": "workspaces-table",
+      "page": "dashboard",
+      "columns": [
+        { "name": "name",       "type": "text" },
+        { "name": "role",       "type": "badge" },
+        { "name": "members",    "type": "number" },
+        { "name": "boards",     "type": "number" },
+        { "name": "updatedAt",  "type": "datetime" },
+        { "name": "actions",    "type": "actions" }
+      ],
+      "supportsPagination": false,
+      "supportsSearch": true
+    },
+    {
+      "name": "members-table",
+      "page": "workspace-settings",
+      "columns": [
+        { "name": "name",      "type": "text" },
+        { "name": "email",     "type": "text" },
+        { "name": "role",      "type": "badge" },
+        { "name": "joinedAt",  "type": "date" },
+        { "name": "actions",   "type": "actions" }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": true,
+      "rowActions": ["change-role", "remove-member"]
+    },
+    {
+      "name": "activity-table",
+      "page": "activity-feed",
+      "columns": [
+        { "name": "actor",     "type": "text" },
+        { "name": "action",    "type": "text" },
+        { "name": "target",    "type": "text" },
+        { "name": "timestamp", "type": "datetime" }
+      ],
+      "supportsPagination": true,
+      "supportsFilters": true
+    }
+  ],
+  "actions": [
+    {
+      "name": "delete-task",
+      "page": "task-detail",
+      "type": "delete",
+      "target": "task",
+      "requiresConfirmation": true,
+      "sideEffects": ["Remove task from board column", "Delete all comments and attachments"]
+    },
+    {
+      "name": "move-task",
+      "page": "board",
+      "type": "update",
+      "target": "task.status",
+      "requiresConfirmation": false,
+      "sideEffects": ["Update task column position", "Emit activity event"]
+    },
+    {
+      "name": "delete-workspace",
+      "page": "workspace-settings",
+      "type": "delete",
+      "target": "workspace",
+      "requiresConfirmation": true,
+      "sideEffects": ["Delete all boards, tasks, comments, and files in this workspace"]
+    },
+    {
+      "name": "remove-member",
+      "page": "workspace-settings",
+      "type": "delete",
+      "target": "workspace-member",
+      "requiresConfirmation": true,
+      "sideEffects": ["Revoke all workspace access", "Unassign all tasks assigned to this member"]
+    },
+    {
+      "name": "accept-invite",
+      "page": "dashboard",
+      "type": "update",
+      "target": "workspace-invite",
+      "requiresConfirmation": false,
+      "sideEffects": ["Add user to workspace", "Consume invite token"]
+    }
+  ],
+  "authFlows": [
+    {
+      "type": "login",
+      "protectedPages": ["dashboard", "workspace", "board", "task-detail", "activity-feed", "workspace-settings", "profile"]
+    },
+    {
+      "type": "register"
+    },
+    {
+      "type": "logout",
+      "notes": "Revoke refresh token server-side, clear HttpOnly cookie."
+    },
+    {
+      "type": "refresh",
+      "notes": "Silent refresh via rotating refresh tokens stored in HttpOnly cookies."
+    },
+    {
+      "type": "forgot-password"
+    },
+    {
+      "type": "reset-password"
+    },
+    {
+      "type": "role-based-access",
+      "roles": ["member", "admin"],
+      "notes": "Workspace admins can invite/remove members and delete the workspace. Members can create/edit tasks and comment."
+    }
+  ],
+  "uploads": [
+    {
+      "name": "task-attachment",
+      "page": "task-detail",
+      "fileTypes": ["image/jpeg", "image/png", "image/gif", "application/pdf", "text/plain",
+                    "application/zip", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+      "maxSizeMB": 25,
+      "multiple": true,
+      "storageHint": "S3-compatible object storage (Tigris on Fly.io)",
+      "visibility": "signed-url"
+    },
+    {
+      "name": "avatar-upload",
+      "page": "profile",
+      "fileTypes": ["image/jpeg", "image/png", "image/webp"],
+      "maxSizeMB": 2,
+      "multiple": false,
+      "storageHint": "S3-compatible object storage (Tigris on Fly.io)",
+      "visibility": "public"
+    }
+  ],
+  "externalTriggers": [
+    {
+      "name": "SendInviteEmail",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "User invites a new workspace member",
+      "expectedOutcome": "Invitation email with accept link sent to invitee."
+    },
+    {
+      "name": "SendPasswordResetEmail",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "User submits forgot-password form",
+      "expectedOutcome": "Password reset email with 30-minute HMAC-signed token link."
+    },
+    {
+      "name": "ActivityFeedSSE",
+      "type": "realtime-event",
+      "providerHint": "Go SSE (Server-Sent Events) via Gin streaming",
+      "triggerSource": "Task create/update/delete/comment actions",
+      "expectedOutcome": "Connected clients receive activity events in real time."
+    }
+  ],
+  "assumptions": [
+    "Authentication uses JWT access tokens (15 min) + rotating refresh tokens in HttpOnly cookies (7 days).",
+    "Workspace invite links are HMAC-SHA256 signed with a 48-hour expiry.",
+    "Password reset tokens are HMAC-SHA256 signed with a 30-minute expiry and single-use.",
+    "File uploads go directly to Tigris (S3-compatible on Fly.io) via presigned PUT URLs — backend never buffers file bytes.",
+    "Signed URL expiry for task attachments is 1 hour; download link is generated on demand.",
+    "SSE activity feed uses Go goroutines + a Redis pub/sub fan-out — supports multi-region Fly.io deployment.",
+    "CORS is configured with an explicit allowlist from CORS_ALLOWED_ORIGINS env var (comma-separated origins).",
+    "Rate limiting: auth endpoints 10 req/60s, invite 5 req/60s, global 300 req/60s per IP via Redis sliding window.",
+    "Email delivery uses Resend with p-retry (3 attempts, exponential backoff + jitter). Timeout is 10s per attempt.",
+    "Email addresses are classified as PII: Confidential — stored encrypted at rest, never logged in plaintext.",
+    "Structured JSON logging (zerolog) with request IDs on every request. /health/live and /health/ready endpoints.",
+    "Fly.io multi-region: primary region write, replicas read — database connection string uses Fly.io private network DNS."
+  ]
+}

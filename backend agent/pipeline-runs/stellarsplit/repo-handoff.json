@@ -1,0 +1,366 @@
+{
+  "$schema": "https://example.com/repo-handoff.schema.json",
+  "meta": {
+    "generatedBy": "Repo Builder Agent (Backend Integrator Pipeline)",
+    "generatedAt": "2026-04-09T00:00:00Z",
+    "modeUsed": "/assemble",
+    "schemaVersion": "1.0.0",
+    "projectName": "StellarSplit",
+    "playbooksApplied": ["security.md", "resilience.md", "observability.md"],
+    "stackGuidesApplied": ["nestjs", "prisma", "bullmq", "redis", "s3"],
+    "deploymentGuideApplied": "deployments/railway.md",
+    "sourceHandoff": "pipeline-runs/stellarsplit/frontend-backend-handoff.json",
+    "notes": "NestJS monolith with BullMQ workers co-located. Railway single-service deploy. Postgres + Redis via Railway plugins."
+  },
+  "project": {
+    "name": "StellarSplit",
+    "description": "Decentralized group expense splitting dApp on Stellar blockchain. NestJS API + BullMQ workers + PostgreSQL + Redis.",
+    "repoType": "monorepo",
+    "deploymentTarget": "railway",
+    "runtime": "node",
+    "language": "TypeScript",
+    "framework": "NestJS 10",
+    "packageManager": "npm",
+    "monorepo": true
+  },
+  "frontend": {
+    "framework": "React 18 + Vite + TypeScript",
+    "apps": [
+      {
+        "name": "web",
+        "path": "frontend/"
+      }
+    ]
+  },
+  "backend": {
+    "framework": "NestJS 10",
+    "language": "typescript",
+    "database": "PostgreSQL 15",
+    "orm": "Prisma 5",
+    "auth": "SIWS (Sign In With Stellar) + JWT",
+    "authStrategy": "Passport JWT — wallet signature verification, no passwords",
+    "roles": ["member", "creator", "guardian"],
+    "entities": [
+      "User",
+      "Group",
+      "GroupMember",
+      "Expense",
+      "ExpenseSplit",
+      "Settlement",
+      "RecurringTemplate",
+      "Guardian",
+      "RecoveryRequest",
+      "Notification",
+      "AnalyticsEvent",
+      "RefreshToken"
+    ],
+    "services": [
+      {
+        "name": "api",
+        "type": "api",
+        "path": "backend/src",
+        "port": 3001,
+        "entryPoint": "backend/src/main.ts",
+        "startCommand": "node dist/main.js",
+        "description": "NestJS REST API — groups, expenses, settlements, auth, uploads, reputation",
+        "endpoints": [
+          "GET /health/live",
+          "GET /health/ready",
+          "GET /metrics",
+          "POST /auth/challenge",
+          "POST /auth/verify",
+          "POST /auth/refresh",
+          "POST /auth/logout",
+          "GET /groups",
+          "POST /groups",
+          "GET /groups/:id",
+          "PATCH /groups/:id",
+          "DELETE /groups/:id",
+          "POST /groups/:id/join",
+          "POST /groups/:id/leave",
+          "GET /groups/:id/expenses",
+          "GET /groups/:id/balances",
+          "GET /groups/:id/settlements",
+          "GET /groups/:id/recurring",
+          "GET /groups/:id/guardians",
+          "POST /expenses",
+          "PATCH /expenses/:id/cancel",
+          "POST /settlements",
+          "POST /recurring",
+          "PATCH /recurring/:id",
+          "DELETE /recurring/:id",
+          "POST /guardians",
+          "DELETE /guardians/:id",
+          "GET /reputation/me",
+          "GET /reputation/badges",
+          "POST /uploads/receipt",
+          "GET /notifications",
+          "PATCH /notifications/:id/read",
+          "POST /analytics/events",
+          "GET /og-image/:groupId"
+        ],
+        "healthCheck": {
+          "path": "/health/live",
+          "interval": 30,
+          "timeout": 5
+        }
+      },
+      {
+        "name": "worker",
+        "type": "worker",
+        "path": "backend/src/workers",
+        "description": "BullMQ workers: Stellar tx monitor, recurring expense scheduler, notification dispatch",
+        "startCommand": "node dist/worker.js"
+      }
+    ]
+  },
+  "integrations": [
+    {
+      "name": "PostgreSQL",
+      "type": "cache",
+      "provider": "Railway PostgreSQL plugin",
+      "envVarsRequired": ["DATABASE_URL"]
+    },
+    {
+      "name": "Redis",
+      "type": "queue",
+      "provider": "Railway Redis plugin",
+      "envVarsRequired": ["REDIS_URL"]
+    },
+    {
+      "name": "S3-compatible Storage",
+      "type": "storage",
+      "provider": "Cloudflare R2 or AWS S3",
+      "envVarsRequired": [
+        "S3_ENDPOINT",
+        "S3_ACCESS_KEY_ID",
+        "S3_SECRET_ACCESS_KEY",
+        "S3_BUCKET_NAME",
+        "S3_REGION",
+        "S3_PUBLIC_URL"
+      ]
+    },
+    {
+      "name": "Stellar Horizon API",
+      "type": "custom",
+      "provider": "Stellar Development Foundation",
+      "envVarsRequired": ["STELLAR_NETWORK", "STELLAR_HORIZON_URL"]
+    },
+    {
+      "name": "Soroban RPC",
+      "type": "custom",
+      "provider": "Stellar Soroban RPC",
+      "envVarsRequired": ["SOROBAN_RPC_URL", "SOROBAN_CONTRACT_ID"]
+    },
+    {
+      "name": "CoinGecko Price Feed",
+      "type": "custom",
+      "provider": "CoinGecko",
+      "envVarsRequired": ["COINGECKO_API_KEY"]
+    },
+    {
+      "name": "Discord Webhook",
+      "type": "push-notification",
+      "provider": "Discord",
+      "envVarsRequired": ["DISCORD_WEBHOOK_URL", "DISCORD_WEBHOOK_SECRET"]
+    },
+    {
+      "name": "Slack Webhook",
+      "type": "push-notification",
+      "provider": "Slack",
+      "envVarsRequired": ["SLACK_WEBHOOK_URL", "SLACK_WEBHOOK_SECRET"]
+    },
+    {
+      "name": "Web Push (VAPID)",
+      "type": "push-notification",
+      "provider": "Web Push API",
+      "envVarsRequired": ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_EMAIL"]
+    },
+    {
+      "name": "Sentry Error Tracking",
+      "type": "monitoring",
+      "provider": "Sentry",
+      "envVarsRequired": ["SENTRY_DSN"]
+    }
+  ],
+  "infrastructure": {
+    "queue": "BullMQ + Redis",
+    "cache": "Redis",
+    "storage": "S3-compatible (R2/S3)",
+    "containerization": "docker",
+    "cicd": "github-actions",
+    "redisProvider": "Railway Redis plugin",
+    "redisNotes": "Standard TCP Redis — works on Railway. Not Cloudflare Workers.",
+    "deploymentNotes": "Single Railway service. DATABASE_URL and REDIS_URL injected via Railway environment. Health check path: /health/live."
+  },
+  "security": {
+    "secretScanningEnabled": true,
+    "securityMdIncluded": true,
+    "ciSecurityScanStep": true,
+    "gitignoreComprehensive": true,
+    "corsWhitelistConfigured": true,
+    "piiFieldsEncrypted": false,
+    "fieldEncryptionAlgorithm": "none",
+    "authStrategy": "SIWS + Passport JWT. Ed25519 signature verification. HttpOnly refresh-token cookie.",
+    "tokenStorage": "Access token: localStorage (frontend). Refresh token: HttpOnly Secure SameSite=Strict cookie. Stored hashed in Redis.",
+    "passwordHashing": "none — no passwords in SIWS auth model",
+    "secretScanning": true,
+    "gitleaksConfig": "backend/.gitleaks.toml",
+    "dependencyAudit": "npm audit on every CI run",
+    "rateLimitingEnabled": true,
+    "rateLimitingStrategy": "NestJS ThrottlerModule — 10 req/min on auth endpoints; 60 req/min general; 30 req/min on upload endpoints",
+    "notes": "Helmet headers. CORS origin whitelist via FRONTEND_URL env var. No raw card data. No PII email/phone collected. Wallet addresses are public keys."
+  },
+  "compliance": {
+    "scope": "none",
+    "notes": "No HIPAA, PCI, or GDPR regulated data collected. Wallet addresses are public keys. No email, phone, SSN, or card data stored."
+  },
+  "observability": {
+    "structuredLogging": true,
+    "loggingLibrary": "pino (nestjs-pino)",
+    "correlationId": true,
+    "correlationIdHeader": "X-Request-ID",
+    "healthEndpointsPlanned": true,
+    "healthEndpoints": ["GET /health/live", "GET /health/ready"],
+    "healthLive": "/health/live",
+    "healthReady": "/health/ready",
+    "prometheusMetrics": true,
+    "prometheusEndpoint": "/metrics",
+    "sentryEnabled": true,
+    "sentryEnvironments": ["production", "staging"],
+    "distributedTracing": false,
+    "distributedTracingNote": "Single-service monolith on Railway. Distributed tracing not required. Pino correlation IDs cover request tracing within the service."
+  },
+  "packages": [
+    {
+      "name": "@stellarsplit/types",
+      "path": "packages/types",
+      "purpose": "types",
+      "consumedBy": ["frontend", "backend"]
+    },
+    {
+      "name": "@stellarsplit/sdk",
+      "path": "packages/sdk",
+      "purpose": "sdk",
+      "consumedBy": ["frontend"]
+    }
+  ],
+  "databases": [
+    {
+      "name": "postgres",
+      "type": "postgresql",
+      "provider": "Railway PostgreSQL plugin",
+      "orm": "Prisma 5",
+      "migrationTool": "prisma migrate",
+      "migrationCommand": "npx prisma migrate deploy",
+      "managedBy": "Railway"
+    }
+  ],
+  "workers": [
+    {
+      "name": "StellarTxMonitor",
+      "queue": "stellar-tx-monitor",
+      "trigger": "Settlement created event",
+      "idempotency": "txHash — deduplicated by unique index in Settlement table"
+    },
+    {
+      "name": "RecurringExpenseProcessor",
+      "queue": "recurring-expenses",
+      "trigger": "BullMQ repeatable job on nextDue schedule",
+      "idempotency": "RecurringTemplate ID + scheduled runAt timestamp"
+    },
+    {
+      "name": "NotificationDispatcher",
+      "queue": "notifications",
+      "trigger": "Domain events: expense created, settlement confirmed, member join/leave",
+      "idempotency": "Notification ID"
+    }
+  ],
+  "envVars": {
+    "NODE_ENV": "production | development | test",
+    "PORT": "3001",
+    "DATABASE_URL": "postgresql://user:pass@host:5432/stellarsplit",
+    "REDIS_URL": "redis://localhost:6379",
+    "JWT_SECRET": "min 64 chars random secret",
+    "JWT_ACCESS_TTL": "900 (seconds = 15min)",
+    "JWT_REFRESH_TTL": "604800 (seconds = 7d)",
+    "FRONTEND_URL": "https://stellarsplit.app",
+    "STELLAR_NETWORK": "mainnet | testnet",
+    "STELLAR_HORIZON_URL": "https://horizon.stellar.org",
+    "SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
+    "SOROBAN_CONTRACT_ID": "CONTRACT_ADDRESS_HERE",
+    "S3_ENDPOINT": "https://your-r2-account.r2.cloudflarestorage.com",
+    "S3_ACCESS_KEY_ID": "access-key",
+    "S3_SECRET_ACCESS_KEY": "secret-key",
+    "S3_BUCKET_NAME": "stellarsplit-receipts",
+    "S3_REGION": "auto",
+    "S3_PUBLIC_URL": "https://receipts.stellarsplit.app",
+    "COINGECKO_API_KEY": "optional — for higher rate limits",
+    "DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/...",
+    "DISCORD_WEBHOOK_SECRET": "hmac-secret",
+    "SLACK_WEBHOOK_URL": "https://hooks.slack.com/services/...",
+    "SLACK_WEBHOOK_SECRET": "hmac-secret",
+    "VAPID_PUBLIC_KEY": "base64url VAPID public key",
+    "VAPID_PRIVATE_KEY": "base64url VAPID private key",
+    "VAPID_EMAIL": "mailto:admin@stellarsplit.app",
+    "SENTRY_DSN": "https://xxx@sentry.io/xxx",
+    "LOG_LEVEL": "info",
+    "SERVICE_NAME": "stellarsplit-api",
+    "THROTTLE_TTL": "60",
+    "THROTTLE_LIMIT": "60"
+  },
+  "files": {
+    "dockerfile": "backend/Dockerfile",
+    "dockerCompose": "docker-compose.yml",
+    "ciWorkflow": ".github/workflows/ci.yml",
+    "railwayToml": "backend/railway.toml",
+    "envExample": "backend/.env.example",
+    "gitleaksConfig": "backend/.gitleaks.toml",
+    "securityMd": "SECURITY.md",
+    "architectureMd": "ARCHITECTURE.md",
+    "migrations": "backend/prisma/migrations"
+  },
+  "entities": [
+    "User",
+    "Group",
+    "GroupMember",
+    "Expense",
+    "ExpenseSplit",
+    "Settlement",
+    "RecurringTemplate",
+    "Guardian",
+    "RecoveryRequest",
+    "Notification",
+    "AnalyticsEvent",
+    "RefreshToken"
+  ],
+  "endpoints": {
+    "total": 35,
+    "modules": [
+      "auth",
+      "groups",
+      "expenses",
+      "settlements",
+      "recurring",
+      "guardians",
+      "reputation",
+      "uploads",
+      "notifications",
+      "analytics",
+      "health",
+      "stellar"
+    ]
+  },
+  "assumptions": [
+    "Railway monolith deploy: API and BullMQ workers run in the same Node process for simplicity. Worker extraction to a separate Railway service is straightforward if needed.",
+    "Redis is provisioned via Railway Redis plugin. Standard TCP Redis (not Upstash REST) — this is correct for Railway (not Cloudflare Workers).",
+    "PostgreSQL is provisioned via Railway PostgreSQL plugin. DATABASE_URL is injected automatically.",
+    "Structured JSON logging via nestjs-pino. LOG_LEVEL and SERVICE_NAME in .env.example.",
+    "CORS: FRONTEND_URL env var controls allowed origin. Credentials mode enabled for refresh-token cookie.",
+    "No email, phone, or card data collected. Wallet addresses are Stellar public keys (not PII). Compliance scope: none.",
+    "Resilience patterns applied: timeout+retry for Stellar Horizon and CoinGecko calls. Circuit breaker after 5 consecutive failures. Redis cache fallback for price feed.",
+    "Security.md included. Gitleaks config included. npm audit in CI. Trivy Docker scan in CI.",
+    "Monorepo uses npm workspaces. packages/types shared between frontend and backend.",
+    "GitHub Actions CI: install, lint, test, build, docker build, npm audit, trivy scan, deploy smoke test against /health/live."
+  ]
+}

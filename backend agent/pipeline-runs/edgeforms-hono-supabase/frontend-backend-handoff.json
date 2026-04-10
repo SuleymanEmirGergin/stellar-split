@@ -1,0 +1,408 @@
+{
+  "project": {
+    "name": "EdgeForms",
+    "description": "Edge-native form builder SaaS — create embeddable forms, collect submissions in real-time, and view analytics. Runs on Cloudflare Workers + Supabase.",
+    "frontendStack": "Next.js 14 (App Router) + shadcn/ui",
+    "backendStackPreference": "Hono (Cloudflare Workers) + Supabase (Auth + DB + Realtime + Storage)",
+    "notes": "Multi-tenant by workspace. All API routes run on the edge via Cloudflare Workers. Supabase handles auth, Postgres DB (with RLS), and file storage (R2-compatible). No traditional server — D1 not used, Supabase Postgres is the DB. KV used for rate limiting state.",
+    "complianceScope": "none",
+    "observabilityBaseline": {
+      "healthEndpoints": true,
+      "structuredLogging": true,
+      "distributedTracing": false,
+      "metricsEnabled": false
+    }
+  },
+  "pages": [
+    {
+      "name": "Landing",
+      "route": "/",
+      "purpose": "Marketing landing page — product overview, pricing, CTA to sign up",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["HeroSection", "PricingCards", "DemoEmbed"],
+      "emptyStates": [],
+      "errorStates": []
+    },
+    {
+      "name": "Login",
+      "route": "/login",
+      "purpose": "Email + password login via Supabase Auth",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["LoginForm"],
+      "errorStates": ["invalid credentials", "too many attempts", "email not verified"]
+    },
+    {
+      "name": "Register",
+      "route": "/register",
+      "purpose": "Create a new workspace account via email + password",
+      "requiresAuth": false,
+      "dataDependencies": [],
+      "components": ["RegisterForm"],
+      "errorStates": ["email already taken", "weak password"]
+    },
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "purpose": "Workspace overview — total forms, total submissions last 30 days, quick create button",
+      "requiresAuth": true,
+      "roles": ["owner", "editor", "viewer"],
+      "dataDependencies": ["forms", "submissionStats"],
+      "components": ["StatsBar", "FormsGrid", "RecentSubmissions"],
+      "emptyStates": ["no forms yet — create your first form"],
+      "errorStates": ["failed to load forms", "failed to load stats"]
+    },
+    {
+      "name": "FormBuilder",
+      "route": "/forms/new",
+      "purpose": "Visual drag-and-drop form builder — add fields, set labels, validation, and settings",
+      "requiresAuth": true,
+      "roles": ["owner", "editor"],
+      "dataDependencies": [],
+      "components": ["FieldPalette", "FormCanvas", "FieldSettingsPanel", "PublishBar"],
+      "emptyStates": ["drag a field from the palette to start"],
+      "errorStates": ["save failed", "publish failed"]
+    },
+    {
+      "name": "FormEdit",
+      "route": "/forms/:id/edit",
+      "purpose": "Edit an existing form — modify fields, settings, branding",
+      "requiresAuth": true,
+      "roles": ["owner", "editor"],
+      "dataDependencies": ["form", "formFields"],
+      "components": ["FieldPalette", "FormCanvas", "FieldSettingsPanel", "PublishBar"],
+      "emptyStates": [],
+      "errorStates": ["form not found", "access denied"]
+    },
+    {
+      "name": "FormResponses",
+      "route": "/forms/:id/responses",
+      "purpose": "View all submissions for a form — table + individual response drill-down",
+      "requiresAuth": true,
+      "roles": ["owner", "editor", "viewer"],
+      "dataDependencies": ["form", "responses"],
+      "components": ["ResponsesTable", "ResponseDetailDrawer", "ExportButton"],
+      "emptyStates": ["no responses yet"],
+      "errorStates": ["form not found", "access denied", "failed to load responses"]
+    },
+    {
+      "name": "Analytics",
+      "route": "/forms/:id/analytics",
+      "purpose": "Per-form analytics — submission rate, completion rate, field drop-off funnel, device breakdown",
+      "requiresAuth": true,
+      "roles": ["owner", "editor", "viewer"],
+      "dataDependencies": ["form", "analyticsData"],
+      "components": ["SubmissionChart", "DropOffFunnel", "DeviceBreakdown", "DateRangePicker"],
+      "emptyStates": ["not enough data yet"],
+      "errorStates": ["analytics unavailable"]
+    },
+    {
+      "name": "Settings",
+      "route": "/settings",
+      "purpose": "Workspace settings — profile, team members, API keys, notifications",
+      "requiresAuth": true,
+      "roles": ["owner"],
+      "dataDependencies": ["workspace", "members", "apiKeys"],
+      "components": ["ProfileForm", "TeamTable", "ApiKeysList", "DangerZone"],
+      "emptyStates": ["no team members yet", "no API keys yet"],
+      "errorStates": ["failed to load settings"]
+    },
+    {
+      "name": "Billing",
+      "route": "/billing",
+      "purpose": "Subscription plan overview, usage meter, upgrade/downgrade, invoice list",
+      "requiresAuth": true,
+      "roles": ["owner"],
+      "dataDependencies": ["subscription", "invoices", "usageMetrics"],
+      "components": ["PlanCard", "UsageMeter", "InvoiceTable", "UpgradeModal"],
+      "emptyStates": ["no invoices yet"],
+      "errorStates": ["billing info unavailable"]
+    }
+  ],
+  "forms": [
+    {
+      "name": "LoginForm",
+      "page": "Login",
+      "submitAction": "POST /auth/login",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect to /dashboard",
+      "errorBehavior": "Inline error under the form"
+    },
+    {
+      "name": "RegisterForm",
+      "page": "Register",
+      "submitAction": "POST /auth/register",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "workspaceName", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 60 } },
+        { "name": "email", "type": "email", "required": true, "validation": { "format": "email" } },
+        { "name": "password", "type": "password", "required": true, "validation": { "minLength": 8 } }
+      ],
+      "successBehavior": "Redirect to /dashboard with onboarding modal",
+      "errorBehavior": "Inline field errors"
+    },
+    {
+      "name": "CreateFormMeta",
+      "page": "FormBuilder",
+      "submitAction": "POST /forms",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "title", "type": "text", "required": true, "validation": { "minLength": 1, "maxLength": 120 } },
+        { "name": "description", "type": "textarea", "required": false, "validation": { "maxLength": 500 } },
+        { "name": "fields", "type": "json", "required": true }
+      ],
+      "successBehavior": "Form saved — redirect to /forms/:id/responses",
+      "errorBehavior": "Toast error, stay on builder"
+    },
+    {
+      "name": "InviteTeamMemberForm",
+      "page": "Settings",
+      "submitAction": "POST /workspace/invitations",
+      "methodHint": "POST",
+      "fields": [
+        { "name": "email", "type": "email", "required": true },
+        { "name": "role", "type": "select", "required": true, "options": ["editor", "viewer"] }
+      ],
+      "successBehavior": "Invitation email sent — member appears as pending",
+      "errorBehavior": "Inline error (email conflict, send failure)"
+    },
+    {
+      "name": "ProfileSettingsForm",
+      "page": "Settings",
+      "submitAction": "PATCH /workspace/me",
+      "methodHint": "PATCH",
+      "fields": [
+        { "name": "displayName", "type": "text", "required": true, "validation": { "minLength": 2, "maxLength": 80 } },
+        { "name": "avatarUrl", "type": "url", "required": false }
+      ],
+      "successBehavior": "Toast: Profile updated",
+      "errorBehavior": "Toast: Save failed"
+    }
+  ],
+  "tables": [
+    {
+      "name": "FormsTable",
+      "page": "Dashboard",
+      "columns": [
+        { "name": "title", "type": "text", "sortable": true, "filterable": false },
+        { "name": "status", "type": "badge", "sortable": false, "filterable": true },
+        { "name": "responseCount", "type": "number", "sortable": true, "filterable": false },
+        { "name": "createdAt", "type": "date", "sortable": true, "filterable": false }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": true,
+      "supportsSort": true,
+      "supportsFilters": true,
+      "rowActions": ["edit", "viewResponses", "duplicate", "delete"]
+    },
+    {
+      "name": "ResponsesTable",
+      "page": "FormResponses",
+      "columns": [
+        { "name": "submittedAt", "type": "datetime", "sortable": true, "filterable": false },
+        { "name": "respondentEmail", "type": "text", "sortable": false, "filterable": false },
+        { "name": "completionStatus", "type": "badge", "sortable": false, "filterable": true },
+        { "name": "country", "type": "text", "sortable": false, "filterable": true }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": false,
+      "supportsSort": true,
+      "supportsFilters": true,
+      "rowActions": ["view", "delete"]
+    },
+    {
+      "name": "TeamTable",
+      "page": "Settings",
+      "columns": [
+        { "name": "email", "type": "text", "sortable": false, "filterable": false },
+        { "name": "role", "type": "badge", "sortable": false, "filterable": true },
+        { "name": "status", "type": "badge", "sortable": false, "filterable": true },
+        { "name": "joinedAt", "type": "date", "sortable": true, "filterable": false }
+      ],
+      "supportsPagination": false,
+      "supportsSearch": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["changeRole", "remove"]
+    },
+    {
+      "name": "InvoiceTable",
+      "page": "Billing",
+      "columns": [
+        { "name": "date", "type": "date", "sortable": true, "filterable": false },
+        { "name": "amount", "type": "currency", "sortable": false, "filterable": false },
+        { "name": "status", "type": "badge", "sortable": false, "filterable": false },
+        { "name": "download", "type": "custom", "sortable": false, "filterable": false }
+      ],
+      "supportsPagination": true,
+      "supportsSearch": false,
+      "supportsSort": false,
+      "supportsFilters": false,
+      "rowActions": ["download"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "DeleteForm",
+      "page": "Dashboard",
+      "type": "delete",
+      "target": "Form",
+      "requiresConfirmation": true,
+      "sideEffects": ["deleteAllResponsesForForm", "revokePublicFormUrl"]
+    },
+    {
+      "name": "DuplicateForm",
+      "page": "Dashboard",
+      "type": "custom",
+      "target": "Form",
+      "requiresConfirmation": false,
+      "sideEffects": ["createFormCopyWithDraftStatus"]
+    },
+    {
+      "name": "PublishForm",
+      "page": "FormBuilder",
+      "type": "update",
+      "target": "Form",
+      "requiresConfirmation": false,
+      "sideEffects": ["generatePublicShareUrl", "enableEmbedCode"]
+    },
+    {
+      "name": "ExportResponses",
+      "page": "FormResponses",
+      "type": "export",
+      "target": "Response",
+      "requiresConfirmation": false,
+      "sideEffects": ["generateCsvFile", "storeInSupabaseStorage", "emailDownloadLink"]
+    },
+    {
+      "name": "DeleteResponse",
+      "page": "FormResponses",
+      "type": "delete",
+      "target": "Response",
+      "requiresConfirmation": true,
+      "sideEffects": ["decrementFormResponseCount"]
+    },
+    {
+      "name": "RemoveTeamMember",
+      "page": "Settings",
+      "type": "delete",
+      "target": "WorkspaceMembership",
+      "requiresConfirmation": true,
+      "sideEffects": ["revokeSupabaseSession", "sendRemovalNotificationEmail"]
+    },
+    {
+      "name": "CancelSubscription",
+      "page": "Billing",
+      "type": "update",
+      "target": "Subscription",
+      "requiresConfirmation": true,
+      "sideEffects": ["scheduleDowngradeAtPeriodEnd", "sendCancellationEmail"]
+    }
+  ],
+  "authFlows": [
+    {
+      "type": "login",
+      "protectedPages": ["Dashboard", "FormBuilder", "FormEdit", "FormResponses", "Analytics", "Settings", "Billing"],
+      "roles": ["owner", "editor", "viewer"],
+      "notes": "Supabase Auth — JWT stored in httpOnly cookie via Next.js middleware"
+    },
+    {
+      "type": "register",
+      "notes": "Creates Supabase user + inserts workspace + owner membership in a Postgres transaction via server action"
+    },
+    {
+      "type": "logout",
+      "notes": "Supabase signOut — clears session cookie"
+    },
+    {
+      "type": "refresh",
+      "notes": "Supabase handles token refresh automatically via the @supabase/ssr cookie helper"
+    },
+    {
+      "type": "email-verification",
+      "notes": "Supabase sends verification email automatically on register — user must verify before accessing dashboard"
+    },
+    {
+      "type": "role-based-access",
+      "roles": ["owner", "editor", "viewer"],
+      "notes": "owner: full access including billing and team. editor: create/edit/delete forms and view responses. viewer: read-only responses and analytics only. RBAC enforced at both Hono middleware level and Supabase RLS policies."
+    }
+  ],
+  "uploads": [
+    {
+      "name": "FormLogoUpload",
+      "page": "FormBuilder",
+      "fileTypes": ["image/jpeg", "image/png", "image/webp", "image/svg+xml"],
+      "maxSizeMB": 2,
+      "multiple": false,
+      "storageHint": "Supabase Storage (public bucket)",
+      "visibility": "public"
+    },
+    {
+      "name": "ResponseFileUpload",
+      "page": "FormResponses",
+      "fileTypes": ["image/jpeg", "image/png", "application/pdf"],
+      "maxSizeMB": 10,
+      "multiple": false,
+      "storageHint": "Supabase Storage (private bucket, signed-url access)",
+      "visibility": "signed-url"
+    }
+  ],
+  "externalTriggers": [
+    {
+      "name": "StripeSubscriptionWebhook",
+      "type": "payment-webhook",
+      "providerHint": "Stripe",
+      "triggerSource": "Stripe → POST /webhooks/stripe",
+      "expectedOutcome": "Update workspace subscription tier, enforce form/response limits, send billing emails"
+    },
+    {
+      "name": "SendInvitationEmail",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "InviteTeamMemberForm submit",
+      "expectedOutcome": "Deliver invite link with accept token to new team member"
+    },
+    {
+      "name": "SendExportReadyEmail",
+      "type": "email-send",
+      "providerHint": "Resend",
+      "triggerSource": "ExportResponses action (async — triggers email when file is ready in Supabase Storage)",
+      "expectedOutcome": "Send download link to requesting user"
+    },
+    {
+      "name": "RecordAnalyticsEvent",
+      "type": "analytics-event",
+      "providerHint": "PostHog",
+      "triggerSource": "Form published, response received, export downloaded",
+      "expectedOutcome": "Usage event stored for product analytics"
+    },
+    {
+      "name": "FormSubmissionWebhook",
+      "type": "custom",
+      "providerHint": "User-configured (per form)",
+      "triggerSource": "Public form submission → POST to user-configured webhook URL",
+      "expectedOutcome": "Notify external system of new form response (Zapier, Make, custom endpoint)"
+    }
+  ],
+  "assumptions": [
+    "Multi-tenant by workspace — all data is scoped to workspace_id at both API and RLS policy level",
+    "Supabase RLS policies enforce row-level access — every table has RLS enabled with explicit USING clauses",
+    "Supabase service_role key is used server-side only (Hono Worker + server actions) — anon key is used client-side only",
+    "All auth is delegated to Supabase Auth — Hono middleware validates JWT from Authorization header or cookie",
+    "CORS is restricted to the Next.js app domain via ALLOWED_ORIGIN environment variable — wildcard origin is not permitted",
+    "PII in form responses (email, name) is classified as Confidential — stored encrypted at rest via Supabase transparent encryption",
+    "Stripe is the sole payment provider — Stripe signature verification (HMAC-SHA256) is required on all webhook events",
+    "Webhook signature secret stored in Cloudflare Workers secret — never committed to source",
+    "Cloudflare KV is used for rate limiting state (edge-native, no Redis needed) — sliding window per IP",
+    "File exports are generated asynchronously via Supabase Edge Functions — not synchronous in the API request",
+    "Public form submission endpoint (/forms/:slug/submit) is unauthenticated — rate limited at 60 submissions/hour per IP via KV",
+    "GDPR: Users can request data export and account deletion — export triggers a background Supabase Edge Function job",
+    "Structured logging via Cloudflare Workers built-in logging (console.log JSON) — correlated by CF-Ray request ID"
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "1.0.0",
+  "reportType": "frontend-backend",
+  "status": "pass",
+  "timestamp": "2026-04-05T09:10:00Z",
+  "projectName": "SnapLink",
+  "sourceFile": "frontend-backend-handoff.json",
+  "summary": {
+    "total": 16,
+    "passed": 16,
+    "warned": 0,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "id": "schema-required-fields",
+      "category": "schema",
+      "status": "pass",
+      "message": "All required top-level fields present: project, pages, forms, tables, actions, authFlows, uploads, externalTriggers, assumptions"
+    },
+    {
+      "id": "schema-project-stack",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.backendStackPreference present: 'Hono + Cloudflare Workers + D1 + KV + Queues'"
+    },
+    {
+      "id": "schema-compliance-scope",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.complianceScope declared: 'none'"
+    },
+    {
+      "id": "schema-observability-baseline",
+      "category": "schema",
+      "status": "pass",
+      "message": "project.observabilityBaseline declared: healthEndpoints=true, structuredLogging=true, distributedTracing=false (single-worker deployment — not required)"
+    },
+    {
+      "id": "semantic-form-page-refs",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All forms reference valid pages: GuestShortenForm→Landing, RegisterForm→Landing, LoginForm→Landing, CreateLinkForm→Links, ProfileForm→Settings"
+    },
+    {
+      "id": "semantic-table-page-refs",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All tables reference valid pages: LinksTable→Links"
+    },
+    {
+      "id": "semantic-action-target-refs",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All actions reference inferrable entities: ShortLink (DeleteLink, ToggleLinkActive, CopyShortUrl)"
+    },
+    {
+      "id": "semantic-auth-protected-pages",
+      "category": "semantic",
+      "status": "pass",
+      "message": "All 4 protected pages declared in authFlows.login.protectedPages: Dashboard, Links, Analytics, Settings"
+    },
+    {
+      "id": "semantic-upload-consistency",
+      "category": "semantic",
+      "status": "pass",
+      "message": "uploads[] is empty — no file uploads in this project. No upload-related forms detected. Consistent."
+    },
+    {
+      "id": "semantic-external-trigger-types",
+      "category": "semantic",
+      "status": "pass",
+      "message": "2 externalTriggers: PublicRedirect (custom/internal hot path), ClickQueueConsumer (CF Queue batch consumer). Both have explicit expectedOutcome."
+    },
+    {
+      "id": "security-auth-flows-present",
+      "category": "security",
+      "status": "pass",
+      "message": "Required auth flows present: login, register, logout, refresh. All protected pages are listed in login.protectedPages."
+    },
+    {
+      "id": "security-public-endpoint-rate-limit",
+      "category": "security",
+      "status": "pass",
+      "message": "Rate limiting declared in assumptions for guest shorten (10 req/min per IP) and auth endpoints (10 req/15min per IP) via Upstash REST API"
+    },
+    {
+      "id": "security-pii-handling",
+      "category": "security",
+      "status": "pass",
+      "message": "IP address handling declared in assumptions: only CF-IPCountry (country code) stored; raw IP not persisted — privacy-by-design"
+    },
+    {
+      "id": "security-guest-link-expiry",
+      "category": "security",
+      "status": "pass",
+      "message": "Guest link lifecycle declared: expire after 30 days — prevents indefinite anonymous link accumulation"
+    },
+    {
+      "id": "completeness-assumptions-present",
+      "category": "completeness",
+      "status": "pass",
+      "message": "10 assumptions declared covering: edge hot path latency targets, KV TTL, D1 persistence, CF Queue async pattern, analytics pre-computation, rate limiting strategy, IP anonymization, no compliance scope, custom slug collision, guest link expiry"
+    },
+    {
+      "id": "completeness-backend-inferable",
+      "category": "completeness",
+      "status": "pass",
+      "message": "All entities inferable from UI: User, ShortLink, ClickEvent, AnalyticsSummary. All endpoints derivable from pages/forms/actions/externalTriggers. Edge-specific bindings (D1, KV, Queue) declared in stack preference."
+    }
+  ],
+  "assumptions": [],
+  "fixHints": []
+}

@@ -3,7 +3,8 @@
  * Handles templates for subscriptions like Netflix, Rent, etc.
  */
 
-export type Interval = 'weekly' | 'monthly';
+export type Interval = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type RecurringStatus = 'active' | 'paused';
 
 export interface RecurringTemplate {
   id: string;
@@ -12,7 +13,9 @@ export interface RecurringTemplate {
   interval: Interval;
   members: string[];
   category: string;
-  lastProcessed?: number; // Timestamp
+  status?: RecurringStatus;
+  nextDue?: number;       // Unix timestamp ms — used for backend API
+  lastProcessed?: number; // Unix timestamp ms
   createdAt: number;
 }
 
@@ -61,23 +64,21 @@ export async function loadSubscriptionsFromApi(groupId: number): Promise<Recurri
   return null;
 }
 
+const INTERVAL_MS: Record<Interval, number> = {
+  daily:   1 * 24 * 60 * 60 * 1000,
+  weekly:  7 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000,
+  yearly:  365 * 24 * 60 * 60 * 1000,
+};
+
 export function isSubscriptionDue(sub: RecurringTemplate): boolean {
-  const now = Date.now();
+  if (sub.nextDue) return Date.now() >= sub.nextDue;
   const last = sub.lastProcessed || sub.createdAt;
-  
-  const oneWeek = 7 * 24 * 60 * 60 * 1000;
-  const oneMonth = 30 * 24 * 60 * 60 * 1000; // Simplified
-  
-  const intervalMs = sub.interval === 'weekly' ? oneWeek : oneMonth;
-  
-  return now - last >= intervalMs;
+  return Date.now() - last >= INTERVAL_MS[sub.interval];
 }
 
 export function getNextPaymentDate(sub: RecurringTemplate): number {
+  if (sub.nextDue) return sub.nextDue;
   const last = sub.lastProcessed || sub.createdAt;
-  const oneWeek = 7 * 24 * 60 * 60 * 1000;
-  const oneMonth = 30 * 24 * 60 * 60 * 1000;
-  const intervalMs = sub.interval === 'weekly' ? oneWeek : oneMonth;
-  
-  return last + intervalMs;
+  return last + INTERVAL_MS[sub.interval];
 }

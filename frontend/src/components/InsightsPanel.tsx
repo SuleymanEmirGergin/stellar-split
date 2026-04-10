@@ -23,6 +23,7 @@ interface Props {
   expenses: Expense[];
   members: string[];
   group: Group;
+  currentUser: string;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -52,7 +53,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Diğer',
 };
 
-export default function InsightsPanel({ expenses, members, group }: Props) {
+export default function InsightsPanel({ expenses, members, group, currentUser }: Props) {
   const stats = useMemo(() => {
     const totalVolume = expenses.reduce((s, e) => s + e.amount, 0);
     
@@ -175,7 +176,10 @@ export default function InsightsPanel({ expenses, members, group }: Props) {
             return (
               <div key={m} className="flex flex-col gap-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="font-medium">{truncateAddress(m)}</span>
+                  <span className="font-medium flex items-center gap-2">
+                    {truncateAddress(m)}
+                    {m === currentUser && <span className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-400 rounded text-[8px] font-black uppercase">Siz</span>}
+                  </span>
                   <span className="font-mono">{paid} birim ({pct.toFixed(0)}%)</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">

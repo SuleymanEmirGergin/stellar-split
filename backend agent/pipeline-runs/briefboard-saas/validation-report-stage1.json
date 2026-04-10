@@ -1,0 +1,109 @@
+{
+  "validatedFile": "repo-handoff.json",
+  "validatedAt": "2026-03-30T19:38:30Z",
+  "schema": "repo-builder-agent/repo-handoff.schema.json",
+  "status": "pass",
+  "summary": {
+    "totalChecks": 11,
+    "passed": 11,
+    "warnings": 0,
+    "failures": 0
+  },
+  "checks": [
+    {
+      "id": "schema-required-fields",
+      "category": "schema",
+      "label": "Required top-level fields present",
+      "status": "pass",
+      "message": "All 8 required fields present: meta, project, frontend, backend, integrations, infrastructure, security, packages.",
+      "severity": "info"
+    },
+    {
+      "id": "schema-meta-timestamp",
+      "category": "schema",
+      "label": "meta.generatedAt is valid ISO 8601",
+      "status": "pass",
+      "message": "meta.generatedAt = '2026-03-30T19:38:00Z'. Valid.",
+      "severity": "info"
+    },
+    {
+      "id": "schema-meta-mode",
+      "category": "schema",
+      "label": "meta.modeUsed is valid enum",
+      "status": "pass",
+      "message": "meta.modeUsed = '/blueprint'. Valid enum value.",
+      "severity": "info"
+    },
+    {
+      "id": "schema-deployment-target",
+      "category": "schema",
+      "label": "project.deploymentTarget is valid enum",
+      "status": "pass",
+      "message": "project.deploymentTarget = 'railway'. Valid enum value.",
+      "severity": "info"
+    },
+    {
+      "id": "semantic-worker-queue",
+      "category": "semantic",
+      "label": "Worker service requires queue definition",
+      "status": "pass",
+      "message": "backend.services[] contains 'worker' (apps/worker, type: worker). infrastructure.queue = 'BullMQ'. Consistent.",
+      "severity": "info"
+    },
+    {
+      "id": "semantic-monorepo-packages",
+      "category": "semantic",
+      "label": "Monorepo has shared packages",
+      "status": "pass",
+      "message": "project.repoType = 'monorepo'. packages[] contains 2 items (@briefboard/types, @briefboard/config). Consistent.",
+      "severity": "info"
+    },
+    {
+      "id": "semantic-payment-secret-scanning",
+      "category": "semantic",
+      "label": "Payment integration requires secret scanning",
+      "status": "pass",
+      "message": "integrations[] contains type 'payment' (Stripe). security.secretScanningEnabled = true. Consistent.",
+      "severity": "info"
+    },
+    {
+      "id": "security-secret-scanning",
+      "category": "security",
+      "label": "Secret scanning enabled",
+      "status": "pass",
+      "message": "security.secretScanningEnabled = true. .gitleaks.toml will be included.",
+      "severity": "info"
+    },
+    {
+      "id": "security-security-md",
+      "category": "security",
+      "label": "SECURITY.md included",
+      "status": "pass",
+      "message": "security.securityMdIncluded = true.",
+      "severity": "info"
+    },
+    {
+      "id": "security-gitignore",
+      "category": "security",
+      "label": "Comprehensive .gitignore",
+      "status": "pass",
+      "message": "security.gitignoreComprehensive = true.",
+      "severity": "info"
+    },
+    {
+      "id": "completeness-assumptions",
+      "category": "completeness",
+      "label": "Assumptions declared",
+      "status": "pass",
+      "message": "assumptions[] contains 8 items covering deployment platform, tooling, shared package purposes, and infra decisions.",
+      "severity": "info"
+    }
+  ],
+  "blockingFailures": [],
+  "warnings": [],
+  "meta": {
+    "validatorVersion": "1.0.0",
+    "pipelineStage": "backend-to-repo",
+    "commandUsed": "/validate repo"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "validatedFile": "frontend-backend-handoff.json",
+  "validatedAt": "2026-03-30T19:35:30Z",
+  "schema": "backend-integrator/frontend-backend-handoff.schema.json",
+  "status": "pass",
+  "summary": {
+    "totalChecks": 14,
+    "passed": 14,
+    "warnings": 0,
+    "failures": 0
+  },
+  "checks": [
+    {
+      "id": "schema-required-fields",
+      "category": "schema",
+      "label": "Required top-level fields present",
+      "status": "pass",
+      "message": "All 9 required fields present: project, pages, forms, tables, actions, authFlows, uploads, externalTriggers, assumptions.",
+      "severity": "info"
+    },
+    {
+      "id": "schema-enum-values",
+      "category": "schema",
+      "label": "Enum values valid",
+      "status": "pass",
+      "message": "All action.type, authFlow.type, upload.visibility, field.type, column.type values are within allowed enum sets.",
+      "severity": "info"
+    },
+    {
+      "id": "schema-min-lengths",
+      "category": "schema",
+      "label": "Minimum length constraints",
+      "status": "pass",
+      "message": "All required string fields meet minLength requirements. project.name='BriefBoard' (9 chars). All page.name, page.route, page.purpose fields set.",
+      "severity": "info"
+    },
+    {
+      "id": "form-page-reference",
+      "category": "semantic",
+      "label": "Form page references",
+      "status": "pass",
+      "message": "All 8 forms reference valid page names. LoginForm→Login ✓, RegisterForm→Register ✓, AcceptInviteForm→AcceptInvite ✓, CreateProjectForm→CreateProject ✓, PostUpdateForm→ProjectDetail ✓, InviteMemberForm→TeamMembers ✓, InviteClientForm→Clients ✓, NotificationSettingsForm→NotificationSettings ✓.",
+      "severity": "info"
+    },
+    {
+      "id": "table-page-reference",
+      "category": "semantic",
+      "label": "Table page references",
+      "status": "pass",
+      "message": "All 4 tables reference valid page names. ProjectTable→ProjectList ✓, MembersTable→TeamMembers ✓, ClientsTable→Clients ✓, InvoiceTable→Billing ✓.",
+      "severity": "info"
+    },
+    {
+      "id": "action-page-reference",
+      "category": "semantic",
+      "label": "Action page references",
+      "status": "pass",
+      "message": "All 5 actions reference valid page names. ArchiveProject→ProjectList ✓, RemoveTeamMember→TeamMembers ✓, RevokeClientAccess→Clients ✓, ResendClientInvite→Clients ✓, CancelSubscription→Billing ✓.",
+      "severity": "info"
+    },
+    {
+      "id": "upload-page-reference",
+      "category": "semantic",
+      "label": "Upload page references",
+      "status": "pass",
+      "message": "All 2 uploads reference valid page names. ProjectUpdateAttachments→ProjectDetail ✓, AgencyLogo→Dashboard ✓.",
+      "severity": "info"
+    },
+    {
+      "id": "auth-protected-pages-login",
+      "category": "semantic",
+      "label": "Protected pages have login flow",
+      "status": "pass",
+      "message": "9 pages have requiresAuth: true. authFlows includes 'login'. Consistent.",
+      "severity": "info"
+    },
+    {
+      "id": "auth-rbac-consistency",
+      "category": "semantic",
+      "label": "RBAC pages have role-based-access flow",
+      "status": "pass",
+      "message": "Pages with roles[] defined (Dashboard, ProjectDetail, TeamMembers, Billing, ClientPortal, etc). authFlows includes 'role-based-access' with roles ['owner', 'member', 'client']. Consistent.",
+      "severity": "info"
+    },
+    {
+      "id": "auth-client-portal-roles",
+      "category": "semantic",
+      "label": "ClientPortal restricted to client role",
+      "status": "pass",
+      "message": "ClientPortal page defines roles: ['client']. role-based-access authFlow includes 'client' role. Consistent.",
+      "severity": "info"
+    },
+    {
+      "id": "security-payment-webhook-signature",
+      "category": "security",
+      "label": "Stripe webhook signature verification declared",
+      "status": "pass",
+      "message": "externalTriggers includes 'payment-webhook' (StripeSubscriptionWebhook). assumptions[] contains 'Webhook signature verification is required for all Stripe events'. Security requirement documented.",
+      "severity": "info"
+    },
+    {
+      "id": "security-auth-flow-completeness",
+      "category": "security",
+      "label": "Auth flow completeness",
+      "status": "pass",
+      "message": "authFlows includes: login, register, logout, refresh, forgot-password, reset-password, email-verification, role-based-access. Comprehensive coverage.",
+      "severity": "info"
+    },
+    {
+      "id": "security-upload-file-types",
+      "category": "security",
+      "label": "Upload mime type restrictions",
+      "status": "pass",
+      "message": "Both uploads define explicit fileTypes arrays. ProjectUpdateAttachments: 6 allowed types. AgencyLogo: 4 allowed types. No unrestricted uploads.",
+      "severity": "info"
+    },
+    {
+      "id": "completeness-assumptions",
+      "category": "completeness",
+      "label": "Assumptions declared",
+      "status": "pass",
+      "message": "assumptions[] contains 12 items covering multi-tenancy, storage, email async, Stripe, tokens, soft delete, and analytics isolation.",
+      "severity": "info"
+    }
+  ],
+  "blockingFailures": [],
+  "warnings": [],
+  "meta": {
+    "validatorVersion": "1.0.0",
+    "pipelineStage": "frontend-to-backend",
+    "commandUsed": "/validate frontend-backend"
+  }
+}

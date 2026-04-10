@@ -1,17 +1,20 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { StrKey } from '@stellar/stellar-sdk';
-import { 
-  Plus, 
-  Camera, 
-  FolderOpen, 
-  Users, 
-  Zap, 
-  DollarSign, 
-  Search, 
-  Rocket, 
+import {
+  Plus,
+  Camera,
+  FolderOpen,
+  Users,
+  Zap,
+  DollarSign,
+  Search,
+  Rocket,
   AlertTriangle,
-  LayoutGrid
+  LayoutGrid,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createGroup, isGroupSettled, estimateCreateGroupFee, type EstimatedFee } from '../lib/contract';
@@ -29,10 +32,14 @@ import { track } from '../lib/analytics';
 import OnboardingTour from './OnboardingTour';
 import { useXlmUsd } from '../lib/xlmPrice';
 import { WalletCharts } from './ui/WalletCharts';
+import { useBackendGroups } from '../hooks/useBackendGroups';
+import { getAccessToken, groupsApi } from '../lib/api';
+import { useNotificationStore } from '../store/useNotificationStore';
+import { SkeletonShimmer } from './ui/SkeletonShimmer';
 
 interface Props {
   walletAddress: string;
-  onSelectGroup: (id: number) => void;
+  onSelectGroup: (id: number | string) => void;
   isDemo?: boolean;
 }
 
@@ -93,6 +100,45 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
   const { t } = useI18n();
   const xlmUsd = useXlmUsd();
   const [contacts] = useState<Record<string, string>>(() => addressBook.getAll());
+
+  // Backend groups — fetched when authenticated and not in demo mode
+  const hasJwt = !!getAccessToken();
+  const { data: backendGroupsData, isLoading: backendLoading } = useBackendGroups(
+    search || undefined,
+  );
+  const backendGroups = !isDemo && hasJwt ? (backendGroupsData?.data?.items ?? []) : [];
+
+  // Per-group balance cache: groupId → net balance for walletAddress
+  const balanceCacheRef = useRef<Map<string, number>>(new Map());
+  const [balanceMap, setBalanceMap] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    if (!hasJwt || isDemo || backendGroups.length === 0 || backendGroups.length > 10) return;
+    let cancelled = false;
+    Promise.allSettled(
+      backendGroups.map(async (g) => {
+        const cached = balanceCacheRef.current.get(g.id);
+        if (cached !== undefined) return { id: g.id, balance: cached };
+        const res = await groupsApi.balances(g.id);
+        const me = res.data.find((b) => b.userId === walletAddress);
+        const bal = me ? me.balance : 0;
+        balanceCacheRef.current.set(g.id, bal);
+        return { id: g.id, balance: bal };
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      const map = new Map<string, number>();
+      results.forEach((r) => {
+        if (r.status === 'fulfilled') map.set(r.value.id, r.value.balance);
+      });
+      setBalanceMap(map);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasJwt, isDemo, backendGroups.length, walletAddress]);
+
+  // Notification counts per group
+  const notificationItems = useNotificationStore((s) => s.items);
 
   const saveGroups = useCallback((gs: LocalGroup[]) => {
     setGroups(gs);
@@ -200,11 +246,34 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
   }, [walletAddress, newName, newMembers, groups, saveGroups, currency, t]);
 
   const totalMembers = groups.reduce((s, g) => s + g.memberCount, 0);
-  const filteredGroups = groups
+  const filteredLocalGroups = groups
     .filter((g) => g.name.toLowerCase().includes(search.toLowerCase()))
     .filter((g) =>
       archiveFilter === 'active' ? !settledIds.has(g.id) : settledIds.has(g.id)
     );
+
+  // Use backend groups when authenticated; fall back to localStorage
+  type DisplayGroup = { id: string | number; name: string; memberCount: number; currency?: string; isBackend: boolean };
+  const displayGroups: DisplayGroup[] = backendGroups.length > 0
+    ? backendGroups.map((bg) => ({
+        id: bg.id,
+        name: bg.name,
+        memberCount: bg._count.members,
+        currency: bg.currency,
+        isBackend: true,
+      }))
+    : filteredLocalGroups.map((lg) => ({
+        id: lg.id,
+        name: lg.name,
+        memberCount: lg.memberCount,
+        currency: lg.currency,
+        isBackend: false,
+      }));
+
+  const displayGroupCount = backendGroups.length > 0 ? backendGroups.length : groups.length;
+  const displayMemberCount = backendGroups.length > 0
+    ? backendGroups.reduce((s, g) => s + g._count.members, 0)
+    : totalMembers;
 
   return (
     <motion.div 
@@ -252,8 +321,8 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
         className="grid grid-cols-2 md:grid-cols-4 gap-4"
       >
         {[
-          { value: groups.length, label: t('dash.total_groups'), icon: FolderOpen, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-          { value: totalMembers, label: t('dash.total_members'), icon: Users, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+          { value: displayGroupCount, label: t('dash.total_groups'), icon: FolderOpen, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+          { value: displayMemberCount, label: t('dash.total_members'), icon: Users, color: 'text-purple-400', bg: 'bg-purple-500/10' },
           { value: '~5s', label: t('dash.avg_finality'), icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10' },
           { value: '$0.00005', label: t('dash.fee'), icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
         ].map((s, i) => (
@@ -312,16 +381,34 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
           </div>
           
           <motion.div variants={containerVars} className="space-y-4">
-            {filteredGroups.length > 0 ? filteredGroups.map(g => (
-              <motion.div key={g.id} variants={itemVars}>
+            {backendLoading && backendGroups.length === 0 && !isDemo && hasJwt && (
+              <>
+                <SkeletonShimmer className="h-24" rounded="2xl" />
+                <SkeletonShimmer className="h-24" rounded="2xl" />
+                <SkeletonShimmer className="h-24" rounded="2xl" />
+              </>
+            )}
+            {displayGroups.length > 0 ? displayGroups.map(g => {
+              const gIdStr = String(g.id);
+              const balance = balanceMap.get(gIdStr);
+              const unreadForGroup = notificationItems.filter(
+                (n) => n.readAt === null && n.payload?.groupId === g.id,
+              ).length;
+              return (
+              <motion.div key={gIdStr} variants={itemVars}>
                 <Link
                   to={`/group/${g.id}`}
                   className="block card-glass-hover bg-card/40 backdrop-blur-sm border border-white/5 p-6 rounded-2xl cursor-pointer hover:border-indigo-500/30 hover:bg-card/60 transition-all group no-underline shadow-sm hover:shadow-indigo-500/10"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/5 text-indigo-400 font-bold">
+                      <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/5 text-indigo-400 font-bold">
                         {g.name.charAt(0)}
+                        {unreadForGroup > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 flex items-center justify-center rounded-full bg-rose-500 text-[8px] font-black text-white" style={{ width: 18, height: 18 }}>
+                            {unreadForGroup > 9 ? '9+' : unreadForGroup}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <div className="text-lg font-black group-hover:text-indigo-400 transition-colors tracking-tight">{g.name}</div>
@@ -329,12 +416,25 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                           <Users size={12} />
                           {g.memberCount} {t('group.members_count')}
                           <span className="w-1 h-1 bg-white/20 rounded-full" />
-                          #{g.id}
+                          {g.isBackend
+                            ? <span className="text-indigo-400/60">synced</span>
+                            : `#${g.id}`}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <AvatarGroup addresses={g.members || []} max={3} />
+                    <div className="flex items-center gap-2">
+                      {balance !== undefined && (
+                        <div className={`flex items-center gap-1 text-xs font-bold ${
+                          balance > 0 ? 'text-emerald-400' : balance < 0 ? 'text-rose-400' : 'text-muted-foreground'
+                        }`}>
+                          {balance > 0 ? <TrendingUp size={12} /> : balance < 0 ? <TrendingDown size={12} /> : <CheckCircle2 size={12} />}
+                          {balance > 0
+                            ? `Owed ${Math.abs(balance).toFixed(2)} ${g.currency || 'XLM'}`
+                            : balance < 0
+                            ? `Owe ${Math.abs(balance).toFixed(2)} ${g.currency || 'XLM'}`
+                            : 'Settled'}
+                        </div>
+                      )}
                       <div className="text-xs font-bold px-3 py-1 bg-white/5 rounded-full border border-white/5 text-muted-foreground">
                         {g.currency || 'XLM'}
                       </div>
@@ -342,7 +442,8 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                   </div>
                 </Link>
               </motion.div>
-            )) : (
+              );
+            }) : (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }} 
                 animate={{ opacity: 1, scale: 1 }} 
