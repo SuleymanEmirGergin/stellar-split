@@ -1,0 +1,24 @@
+# Dependencies
+**/node_modules
+
+# Build outputs
+backend/dist
+frontend/dist
+
+# Dev / test files
+**/*.spec.ts
+**/*.test.ts
+**/coverage
+**/.nyc_output
+
+# Git
+.git
+.gitignore
+
+# Docs / misc
+docs
+*.md
+frontend
+contracts
+packages
+api
