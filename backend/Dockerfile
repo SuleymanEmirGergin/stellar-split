@@ -11,8 +11,8 @@ RUN npm ci --ignore-scripts --legacy-peer-deps
 # Copy backend source into /app
 COPY backend/ .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client (dummy URL — generate doesn't connect to DB)
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Build NestJS app
 RUN npm run build
