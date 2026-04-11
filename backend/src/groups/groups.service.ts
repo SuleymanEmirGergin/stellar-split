@@ -10,6 +10,7 @@ import { EventsService } from '../events/events.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import { simplifyDebts } from './debt-simplification';
 
 @Injectable()
 export class GroupsService {
@@ -162,6 +163,20 @@ export class GroupsService {
     }
 
     return Array.from(balanceMap.entries()).map(([uid, balance]) => ({ userId: uid, balance }));
+  }
+
+  async getSettlementPlan(groupId: string, userId: string) {
+    const rawBalances = await this.getBalances(groupId, userId);
+    const transfers = simplifyDebts(rawBalances);
+    return {
+      transfers,
+      totalTransfers: transfers.length,
+      /**
+       * Maximum transfers without simplification = n*(n-1)/2.
+       * Simplification savings: how many transfers were avoided.
+       */
+      savedTransfers: Math.max(0, rawBalances.filter(b => Math.abs(b.balance) > 1e-7).length - transfers.length),
+    };
   }
 
   async getInviteLink(groupId: string, userId: string) {

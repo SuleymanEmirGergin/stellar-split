@@ -33,6 +33,7 @@ import {
   useBackendBalances,
   useBackendRecurring,
   useBackendAudit,
+  useSettlementPlan,
   useCreateRecurringMutation,
   useDeleteRecurringMutation,
   backendGroupKeys,
@@ -125,6 +126,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const createRecurringMutation = useCreateRecurringMutation(groupIdStr);
   const deleteRecurringMutation = useDeleteRecurringMutation(groupIdStr);
   const { data: auditData, isLoading: auditLoading } = useBackendAudit(groupIdStr, hasJwt && tab === 'audit');
+  const { data: settlementPlanData } = useSettlementPlan(hasJwt ? groupIdStr : null, tab === 'balances');
 
   // Prefer backend data when available; fall back to Soroban contract data
   const activeExpenses = (backendExpenses ?? expenses) as typeof expenses;
@@ -741,6 +743,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             addingMember={addingMember}
             handleAddMember={handleAddMember}
             contacts={contacts}
+            settlementPlan={settlementPlanData ?? undefined}
             t={t}
           />
         )}

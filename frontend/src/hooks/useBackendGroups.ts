@@ -28,6 +28,7 @@ export const backendGroupKeys = {
   detail: (id: string) => [...backendGroupKeys.all, id] as const,
   expenses: (id: string) => [...backendGroupKeys.detail(id), 'expenses'] as const,
   balances: (id: string) => [...backendGroupKeys.detail(id), 'balances'] as const,
+  settlementPlan: (id: string) => [...backendGroupKeys.detail(id), 'settlement-plan'] as const,
   settlements: (id: string) => [...backendGroupKeys.detail(id), 'settlements'] as const,
   recurring: (id: string) => [...backendGroupKeys.detail(id), 'recurring'] as const,
   audit: (id: string) => [...backendGroupKeys.detail(id), 'audit'] as const,
@@ -68,6 +69,15 @@ export function useBackendBalances(groupId: string | null) {
     queryKey: backendGroupKeys.balances(groupId ?? ''),
     queryFn: () => groupsApi.balances(groupId!),
     enabled: !!groupId,
+    staleTime: 30_000,
+  });
+}
+
+export function useSettlementPlan(groupId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: backendGroupKeys.settlementPlan(groupId ?? ''),
+    queryFn: () => groupsApi.settlementPlan(groupId!),
+    enabled: !!groupId && enabled,
     staleTime: 30_000,
   });
 }

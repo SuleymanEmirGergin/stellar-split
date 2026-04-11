@@ -162,6 +162,8 @@ export const groupsApi = {
     api.delete<void>(`/groups/${groupId}/leave`),
   balances: (groupId: string) =>
     api.get<{ data: Array<{ userId: string; balance: number }> }>(`/groups/${groupId}/balances`),
+  settlementPlan: (groupId: string) =>
+    api.get<{ transfers: Array<{ fromUserId: string; toUserId: string; amount: number }>; totalTransfers: number; savedTransfers: number }>(`/groups/${groupId}/settlement-plan`),
   inviteLink: (groupId: string) =>
     api.get<{ data: { inviteCode: string; groupId: string } }>(`/groups/${groupId}/invite`),
 };

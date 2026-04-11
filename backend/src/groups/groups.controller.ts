@@ -91,6 +91,12 @@ export class GroupsController {
     return this.groupsService.getBalances(id, user.sub);
   }
 
+  @Get(':id/settlement-plan')
+  @ApiOperation({ summary: 'Get optimized settlement plan (minimum transfers to clear all debts)' })
+  getSettlementPlan(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.groupsService.getSettlementPlan(id, user.sub);
+  }
+
   @Get(':id/invite')
   @ApiOperation({ summary: 'Get group invite link' })
   getInvite(@Param('id') id: string, @CurrentUser() user: JwtPayload) {

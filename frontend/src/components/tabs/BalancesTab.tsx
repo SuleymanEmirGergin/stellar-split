@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Receipt, Cpu, UserMinus, UserPlus } from 'lucide-react';
+import { BarChart3, Receipt, Cpu, UserMinus, UserPlus, ArrowRight, Zap } from 'lucide-react';
 import { type Group, type Settlement, type Expense } from '../../lib/contract';
 import { truncateAddress } from '../../lib/stellar';
 import { calculateKarma } from '../../lib/karma';
@@ -7,6 +7,12 @@ import { calculateBadges, type Badge } from '../../lib/badges';
 import Avatar from '../Avatar';
 import { DebtGraph } from '../DebtGraph';
 import type { TranslationKey } from '../../lib/i18n';
+
+export interface SettlementPlan {
+  transfers: Array<{ fromUserId: string; toUserId: string; amount: number }>;
+  totalTransfers: number;
+  savedTransfers: number;
+}
 
 interface BalancesTabProps {
   group: Group;
@@ -24,6 +30,7 @@ interface BalancesTabProps {
   addingMember: boolean;
   handleAddMember: () => void;
   contacts: Record<string, string>;
+  settlementPlan?: SettlementPlan;
   t: (key: TranslationKey) => string;
 }
 
@@ -48,6 +55,7 @@ export default function BalancesTab({
   addingMember,
   handleAddMember,
   contacts,
+  settlementPlan,
   t
 }: BalancesTabProps) {
   return (
@@ -172,15 +180,35 @@ export default function BalancesTab({
 
       <motion.div variants={itemVars} className="bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10 p-8 rounded-[40px] relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px] group-hover:scale-125 transition-transform duration-1000" />
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
             <Cpu className="w-5 h-5 text-indigo-400" />
           </div>
           <h4 className="font-black tracking-tight">{t('group.explain_title')}</h4>
+          {settlementPlan && settlementPlan.savedTransfers > 0 && (
+            <span className="ml-auto flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              <Zap size={10} /> Saved {settlementPlan.savedTransfers} transfers
+            </span>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-[400px]">
-          The settlement algorithm has compressed potential debt flows to <span className="text-indigo-400 font-bold">{settlements.length} {settlements.length === 1 ? 'transaction' : 'transactions'}</span> through graph optimization.
-        </p>
+        {settlementPlan && settlementPlan.transfers.length > 0 ? (
+          <div className="space-y-2">
+            {settlementPlan.transfers.map((tx, i) => (
+              <div key={i} className="flex items-center gap-3 text-xs font-mono bg-white/5 border border-white/5 rounded-xl px-4 py-2.5">
+                <span className="text-rose-400 font-black truncate max-w-[120px]" title={tx.fromUserId}>{truncateAddress(tx.fromUserId)}</span>
+                <ArrowRight size={12} className="text-muted-foreground flex-shrink-0" />
+                <span className="text-emerald-400 font-black truncate max-w-[120px]" title={tx.toUserId}>{truncateAddress(tx.toUserId)}</span>
+                <span className="ml-auto text-indigo-300 font-black tabular-nums">{tx.amount} <span className="opacity-40 text-[9px]">{currencyLabel}</span></span>
+              </div>
+            ))}
+          </div>
+        ) : settlementPlan && settlementPlan.transfers.length === 0 ? (
+          <p className="text-xs text-emerald-400 font-bold">All balances are settled — no transfers needed.</p>
+        ) : (
+          <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-[400px]">
+            The settlement algorithm has compressed potential debt flows to <span className="text-indigo-400 font-bold">{settlements.length} {settlements.length === 1 ? 'transaction' : 'transactions'}</span> through graph optimization.
+          </p>
+        )}
       </motion.div>
     </div>
   );
