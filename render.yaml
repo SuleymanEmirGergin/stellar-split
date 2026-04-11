@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: stellarsplit-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    branch: master
+    healthCheckPath: /health/live
+    # Runs before the new instance starts serving traffic
+    preDeployCommand: npx prisma db push --accept-data-loss
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false           # paste Supabase connection string in Render dashboard
+      - key: REDIS_URL
+        sync: false           # paste Upstash Redis URL in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true   # Render auto-generates a secure random value
+      - key: JWT_ACCESS_TTL
+        value: "900"
+      - key: JWT_REFRESH_TTL
+        value: "604800"
+      - key: FRONTEND_URL
+        sync: false           # e.g. https://stellarsplit.netlify.app
+      - key: STELLAR_NETWORK
+        value: testnet
+      - key: STELLAR_HORIZON_URL
+        value: https://horizon-testnet.stellar.org
+      - key: SOROBAN_RPC_URL
+        value: https://soroban-testnet.stellar.org
+      - key: SSE_HEARTBEAT_INTERVAL_MS
+        value: "25000"
+      - key: LOG_LEVEL
+        value: info
