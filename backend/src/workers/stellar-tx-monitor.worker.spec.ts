@@ -23,6 +23,10 @@ function makeMockPrisma() {
   };
 }
 
+function makeMockEvents() {
+  return { publish: jest.fn().mockResolvedValue(undefined) };
+}
+
 function makeMockStellar() {
   return {
     getTransaction: jest.fn(),
@@ -50,11 +54,13 @@ describe('StellarTxMonitorWorker', () => {
   let prisma: ReturnType<typeof makeMockPrisma>;
   let stellar: ReturnType<typeof makeMockStellar>;
   let reputation: ReturnType<typeof makeMockReputation>;
+  let events: ReturnType<typeof makeMockEvents>;
 
   beforeEach(async () => {
     prisma = makeMockPrisma();
     stellar = makeMockStellar();
     reputation = makeMockReputation();
+    events = makeMockEvents();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,7 +68,7 @@ describe('StellarTxMonitorWorker', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: StellarService, useValue: stellar },
         { provide: ReputationService, useValue: reputation },
-        { provide: EventsService, useValue: { publish: jest.fn() } },
+        { provide: EventsService, useValue: events },
       ],
     }).compile();
 
@@ -115,6 +121,18 @@ describe('StellarTxMonitorWorker', () => {
 
       expect(reputation.updateScore).toHaveBeenCalledWith(SETTLER_ID, 10);
     });
+
+    it('publishes settlement:confirmed SSE event with correct payload', async () => {
+      await worker.process(makeJob());
+
+      expect(events.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'settlement:confirmed',
+          groupId: GROUP_ID,
+          payload: expect.objectContaining({ settlementId: SETTLEMENT_ID, txHash: TX_HASH }),
+        }),
+      );
+    });
   });
 
   // ─── tx not found ─────────────────────────────────────────────────────────────
@@ -163,6 +181,17 @@ describe('StellarTxMonitorWorker', () => {
       await worker.process(makeJob());
 
       expect(prisma.group.update).not.toHaveBeenCalled();
+    });
+
+    it('publishes settlement:failed SSE event', async () => {
+      await worker.process(makeJob());
+
+      expect(events.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'settlement:failed',
+          payload: expect.objectContaining({ settlementId: SETTLEMENT_ID, txHash: TX_HASH }),
+        }),
+      );
     });
   });
 });

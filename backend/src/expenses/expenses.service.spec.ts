@@ -10,6 +10,8 @@ import { EventsService } from '../events/events.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateExpenseDto, SplitType, ExpenseCurrency } from './dto/create-expense.dto';
 
+const VALID_WALLET_C = 'GD6WNNTHMZFBOFUHESAGFKGBPXA4XNZM5AMHTNRK7UXKUOLBWKBIZ5EC';
+
 const VALID_WALLET_A = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN';
 const VALID_WALLET_B = 'GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGOZ3GGMFAHJ3IRCKLR2TONBQ';
 
@@ -276,6 +278,98 @@ describe('ExpensesService', () => {
       prisma.expense.findUnique.mockResolvedValue(null);
 
       await expect(service.cancel(expenseId, payerId)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── findByGroup ─────────────────────────────────────────────────────────────
+
+  describe('findByGroup()', () => {
+    const userId = USER_A_ID;
+
+    it('throws 403 when user is not a group member', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.findByGroup(GROUP_ID, userId)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('returns items and hasMore=false when within page size', async () => {
+      const mockExpenses = [
+        { id: 'e1', description: 'Coffee', amount: 10, paidBy: { id: userId }, splits: [] },
+        { id: 'e2', description: 'Pizza', amount: 30, paidBy: { id: userId }, splits: [] },
+      ];
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.expense.findMany.mockResolvedValue(mockExpenses);
+
+      const result = await service.findByGroup(GROUP_ID, userId);
+
+      expect(result.items).toHaveLength(2);
+      expect(result.hasMore).toBe(false);
+      expect(result.nextCursor).toBeUndefined();
+    });
+
+    it('sets hasMore and nextCursor when result exceeds limit', async () => {
+      // 21 expenses when limit=20 → hasMore=true
+      const mockExpenses = Array.from({ length: 21 }, (_, i) => ({
+        id: `e${i}`,
+        description: `Expense ${i}`,
+        amount: 10,
+        paidBy: { id: userId },
+        splits: [],
+      }));
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.expense.findMany.mockResolvedValue(mockExpenses);
+
+      const result = await service.findByGroup(GROUP_ID, userId, undefined, 20);
+
+      expect(result.items).toHaveLength(20);
+      expect(result.hasMore).toBe(true);
+      expect(result.nextCursor).toBe('e19');
+    });
+
+    it('returns empty items when group has no expenses', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.expense.findMany.mockResolvedValue([]);
+
+      const result = await service.findByGroup(GROUP_ID, userId);
+
+      expect(result.items).toEqual([]);
+      expect(result.hasMore).toBe(false);
+    });
+  });
+
+  // ─── create — EQUAL split with 3 members (rounding) ─────────────────────────
+
+  describe('create() EQUAL split — 3 members', () => {
+    const USER_C_ID = 'user-c-uuid';
+    const threeMembers = [
+      { userId: USER_A_ID, user: { id: USER_A_ID, walletAddress: VALID_WALLET_A } },
+      { userId: USER_B_ID, user: { id: USER_B_ID, walletAddress: VALID_WALLET_B } },
+      { userId: USER_C_ID, user: { id: USER_C_ID, walletAddress: VALID_WALLET_C } },
+    ];
+
+    it('splits 100 evenly among 3 — last member absorbs remainder', async () => {
+      const dto: CreateExpenseDto = {
+        groupId: GROUP_ID,
+        description: 'Dinner for 3',
+        amount: 100,
+        currency: ExpenseCurrency.XLM,
+        paidBy: VALID_WALLET_A,
+        splitType: SplitType.EQUAL,
+      };
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.user.findUnique.mockResolvedValue({ id: USER_A_ID, walletAddress: VALID_WALLET_A });
+      prisma.groupMember.findMany.mockResolvedValue(threeMembers);
+      prisma.expense.create.mockResolvedValue({ id: 'exp-3m', splits: [] });
+
+      await service.create(USER_A_ID, dto);
+
+      const createCall = prisma.expense.create.mock.calls[0][0];
+      const splits: Array<{ amount: number }> = createCall.data.splits.create;
+      const total = splits.reduce((sum, s) => sum + s.amount, 0);
+
+      expect(splits).toHaveLength(3);
+      // All splits together must sum to the full amount
+      expect(total).toBe(100);
     });
   });
 });

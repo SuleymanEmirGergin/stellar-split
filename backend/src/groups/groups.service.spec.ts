@@ -9,6 +9,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { EventsService } from '../events/events.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateGroupDto, GroupCurrency } from './dto/create-group.dto';
+import { UpdateGroupDto } from './dto/update-group.dto';
 
 const VALID_WALLET_A = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN';
 const VALID_WALLET_B = 'GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGOZ3GGMFAHJ3IRCKLR2TONBQ';
@@ -368,6 +369,154 @@ describe('GroupsService', () => {
       prisma.groupMember.findUnique.mockResolvedValue(null);
 
       await expect(service.getBalances(groupId, userId)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('stacks balances correctly across multiple expenses', async () => {
+      const payer1 = 'payer-1';
+      const payer2 = 'payer-2';
+      const debtor = 'debtor-1';
+
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      prisma.expense.findMany.mockResolvedValue([
+        {
+          id: 'exp-a',
+          amount: 60,
+          paidById: payer1,
+          status: 'ACTIVE',
+          paidBy: { id: payer1, walletAddress: VALID_WALLET_A },
+          splits: [
+            { userId: payer1, amount: 30 },
+            { userId: debtor, amount: 30 },
+          ],
+        },
+        {
+          id: 'exp-b',
+          amount: 40,
+          paidById: payer2,
+          status: 'ACTIVE',
+          paidBy: { id: payer2, walletAddress: VALID_WALLET_B },
+          splits: [
+            { userId: payer2, amount: 20 },
+            { userId: debtor, amount: 20 },
+          ],
+        },
+      ]);
+
+      const result = await service.getBalances(groupId, userId);
+
+      expect(result.find((b) => b.userId === payer1)?.balance).toBe(30);  // +60 paid -30 split
+      expect(result.find((b) => b.userId === payer2)?.balance).toBe(20);  // +40 paid -20 split
+      expect(result.find((b) => b.userId === debtor)?.balance).toBe(-50); // -30 - 20
+    });
+
+    it('ignores cancelled expenses in balance calculation', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      // Service filters with status: 'ACTIVE'; mock returns only active expenses
+      prisma.expense.findMany.mockResolvedValue([]);
+
+      const result = await service.getBalances(groupId, userId);
+
+      // Verify the query only requests ACTIVE expenses
+      expect(prisma.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'ACTIVE' }),
+        }),
+      );
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ─── update ──────────────────────────────────────────────────────────────────
+
+  describe('update()', () => {
+    const groupId = 'group-1';
+    const creatorId = 'creator-1';
+    const memberId = 'member-1';
+    const dto: UpdateGroupDto = { name: 'Renamed Group' };
+
+    it('creator can update group name', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'CREATOR' });
+      prisma.group.update.mockResolvedValue({ id: groupId, name: dto.name });
+
+      const result = await service.update(groupId, creatorId, dto);
+
+      expect(prisma.group.update).toHaveBeenCalledWith({
+        where: { id: groupId },
+        data: dto,
+      });
+      expect(result.name).toBe(dto.name);
+    });
+
+    it('throws 403 when non-creator tries to update', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm2', role: 'MEMBER' });
+
+      await expect(service.update(groupId, memberId, dto)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws 403 when user is not a member at all', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.update(groupId, 'outsider', dto)).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  // ─── remove ──────────────────────────────────────────────────────────────────
+
+  describe('remove()', () => {
+    const groupId = 'group-1';
+    const creatorId = 'creator-1';
+
+    it('creator can delete the group', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'CREATOR' });
+      prisma.group.delete.mockResolvedValue({});
+
+      await service.remove(groupId, creatorId);
+
+      expect(prisma.group.delete).toHaveBeenCalledWith({ where: { id: groupId } });
+    });
+
+    it('throws 403 when non-creator tries to delete', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm2', role: 'MEMBER' });
+
+      await expect(service.remove(groupId, 'member-1')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  // ─── getInviteLink ───────────────────────────────────────────────────────────
+
+  describe('getInviteLink()', () => {
+    const groupId = 'group-1';
+    const userId = 'user-1';
+
+    it('returns inviteCode and groupId for a member', async () => {
+      const mockGroup = {
+        id: groupId,
+        inviteCode: 'secret-code-123',
+        name: 'Test Group',
+        members: [{ userId, user: { id: userId, walletAddress: VALID_WALLET_A, reputationScore: 0 } }],
+        creator: { id: userId, walletAddress: VALID_WALLET_A },
+        _count: { expenses: 0, settlements: 0 },
+      };
+      prisma.group.findUnique.mockResolvedValue(mockGroup);
+
+      const result = await service.getInviteLink(groupId, userId);
+
+      expect(result.inviteCode).toBe('secret-code-123');
+      expect(result.groupId).toBe(groupId);
+    });
+
+    it('throws 403 when non-member requests invite link', async () => {
+      const mockGroup = {
+        id: groupId,
+        inviteCode: 'secret-code-123',
+        name: 'Test Group',
+        members: [{ userId: 'other-user', user: {} }],
+        creator: {},
+        _count: {},
+      };
+      prisma.group.findUnique.mockResolvedValue(mockGroup);
+
+      await expect(service.getInviteLink(groupId, 'non-member')).rejects.toThrow(ForbiddenException);
     });
   });
 });

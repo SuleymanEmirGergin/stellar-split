@@ -17,6 +17,7 @@ function makeMockPrisma() {
     },
     settlement: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
     },
   };
@@ -144,6 +145,72 @@ describe('SettlementsService', () => {
 
       expect(result.status).toBe('FAILED');
       expect(prisma.settlement.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── findByGroup ─────────────────────────────────────────────────────────────
+
+  describe('findByGroup()', () => {
+    it('throws 403 when user is not a group member', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.findByGroup(GROUP_ID, USER_ID)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('returns items and hasMore=false when within page size', async () => {
+      const mockSettlements = [
+        { id: 's1', txHash: 'a'.repeat(64), amount: 50, status: 'CONFIRMED', settledBy: { id: USER_ID } },
+        { id: 's2', txHash: 'b'.repeat(64), amount: 25, status: 'PENDING', settledBy: { id: USER_ID } },
+      ];
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.settlement.findMany.mockResolvedValue(mockSettlements);
+
+      const result = await service.findByGroup(GROUP_ID, USER_ID);
+
+      expect(result.items).toHaveLength(2);
+      expect(result.hasMore).toBe(false);
+      expect(result.nextCursor).toBeUndefined();
+    });
+
+    it('sets hasMore and nextCursor when result exceeds limit', async () => {
+      const mockSettlements = Array.from({ length: 21 }, (_, i) => ({
+        id: `s${i}`,
+        txHash: String(i).padStart(64, '0'),
+        amount: 10,
+        status: 'CONFIRMED',
+        settledBy: { id: USER_ID },
+      }));
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.settlement.findMany.mockResolvedValue(mockSettlements);
+
+      const result = await service.findByGroup(GROUP_ID, USER_ID, undefined, 20);
+
+      expect(result.items).toHaveLength(20);
+      expect(result.hasMore).toBe(true);
+      expect(result.nextCursor).toBe('s19');
+    });
+
+    it('returns empty items when group has no settlements', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.settlement.findMany.mockResolvedValue([]);
+
+      const result = await service.findByGroup(GROUP_ID, USER_ID);
+
+      expect(result.items).toEqual([]);
+      expect(result.hasMore).toBe(false);
+    });
+
+    it('queries only settlements for the given group', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.settlement.findMany.mockResolvedValue([]);
+
+      await service.findByGroup(GROUP_ID, USER_ID);
+
+      expect(prisma.settlement.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { groupId: GROUP_ID },
+        }),
+      );
     });
   });
 });
