@@ -485,16 +485,17 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               className="absolute inset-0 bg-black/80 backdrop-blur-md" 
               onClick={() => setShowCreate(false)} 
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-card w-full max-w-md border border-white/10 rounded-3xl p-8 relative shadow-2xl overflow-hidden" 
+              aria-labelledby="create-group-modal-title"
+              className="bg-card w-full max-w-md border border-white/10 rounded-3xl p-8 relative shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
               <div className="absolute -right-12 -top-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
-              
-              <h3 className="text-2xl font-black mb-6 tracking-tight flex items-center gap-3">
+
+              <h3 id="create-group-modal-title" className="text-2xl font-black mb-6 tracking-tight flex items-center gap-3">
                 <Plus className="text-indigo-500" />
                 {t('nav.create')}
               </h3>
@@ -502,22 +503,24 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               <div className="space-y-4 relative">
                 <div>
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block ml-1">{t('create.group_name_label')}</label>
-                  <input 
-                    className="w-full bg-secondary/50 border border-white/5 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 transition-all font-medium" 
-                    placeholder={t('create.name_placeholder')} 
-                    value={newName} 
-                    onChange={e => setNewName(e.target.value)} 
+                  <input
+                    data-testid="create-group-name-input"
+                    className="w-full bg-secondary/50 border border-white/5 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 transition-all font-medium"
+                    placeholder={t('create.name_placeholder')}
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
                   />
                 </div>
                 
                 <div>
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block ml-1">{t('create.participants_label')}</label>
-                  <textarea 
-                    className="w-full bg-secondary/50 border border-white/5 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 transition-all font-medium" 
-                    placeholder={t('create.members_placeholder')} 
-                    value={newMembers} 
-                    onChange={e => setNewMembers(e.target.value)} 
-                    rows={4} 
+                  <textarea
+                    data-testid="create-group-members-input"
+                    className="w-full bg-secondary/50 border border-white/5 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 transition-all font-medium"
+                    placeholder={t('create.members_placeholder')}
+                    value={newMembers}
+                    onChange={e => setNewMembers(e.target.value)}
+                    rows={4}
                   />
                   <button
                     type="button"
