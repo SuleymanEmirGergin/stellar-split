@@ -112,6 +112,8 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const { data: settlements = [] } = useGroupSettlements(groupId);
   const loading = groupLoading;
 
+  const [tab, setTab] = useState<Tab>('expenses');
+
   // ── Backend hooks (REST API) ──────────────────────────────────────────────
   const groupIdStr = String(groupId);
   const hasJwt = !isDemo && !!getAccessToken();
@@ -138,8 +140,6 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
       addToast(t('group.updated'), 'success');
     }
   });
-
-  const [tab, setTab] = useState<Tab>('expenses');
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [contacts] = useState<Record<string, string>>(() => addressBook.getAll());
 

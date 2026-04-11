@@ -127,7 +127,14 @@ function useSPLTBalance(address: string | null, isDemo: boolean) {
 
 // ── Main ────────────────────────────────────────────────
 function AppContent() {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(() => {
+    // E2E: Playwright sets window.__PLAYWRIGHT_E2E_WALLET__ via addInitScript before page scripts
+    // run, so we can initialize synchronously and skip the async Freighter round-trip entirely.
+    if (typeof window !== 'undefined' && (window as unknown as { __PLAYWRIGHT_E2E_WALLET__?: string }).__PLAYWRIGHT_E2E_WALLET__) {
+      return (window as unknown as { __PLAYWRIGHT_E2E_WALLET__: string }).__PLAYWRIGHT_E2E_WALLET__;
+    }
+    return null;
+  });
   const [freighterAvailable, setFreighterAvailable] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [demoMode, setDemoMode] = useState(() => localStorage.getItem('stellarsplit_demo_mode') === 'true');
@@ -207,17 +214,30 @@ function AppContent() {
       if (addr) {
         setWalletAddress(addr);
         useAppStore.getState().setWalletAddress(addr);
-        // Silently re-authenticate with backend on page load
-        try {
-          const { user } = await signInWithStellar(addr);
-          useAppStore.getState().setBackendUser(user);
-        } catch {
-          // Backend unreachable or user cancelled — continue without JWT
+        // Silently re-authenticate with backend on page load.
+        // Skip in E2E tests (no backend available).
+        const isE2E = typeof window !== 'undefined' &&
+          !!(window as unknown as { __PLAYWRIGHT_E2E_WALLET__?: string }).__PLAYWRIGHT_E2E_WALLET__;
+        if (!isE2E) {
+          try {
+            const { user } = await signInWithStellar(addr);
+            useAppStore.getState().setBackendUser(user);
+          } catch {
+            // Backend unreachable or user cancelled — continue without JWT
+          }
         }
-        if (pathname === '/') navigate('/dashboard', { replace: true });
+        // Navigation is deferred to the effect below so walletAddress state
+        // is committed before the auth guard evaluates isDashboard.
       }
     });
-  }, [navigate, pathname]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Redirect landing → dashboard once wallet is confirmed (runs after walletAddress state is committed).
+  useEffect(() => {
+    if (walletAddress && pathname === '/') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [walletAddress, pathname, navigate]);
 
   useEffect(() => {
     if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId) || isReputation || isSettings) && !isJoin) {
@@ -534,7 +554,7 @@ function AppContent() {
           >
             {pathname === '/' && (
               !walletAddress ? (
-                <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
+                <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
               ) : (
                 <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
               )
@@ -553,7 +573,7 @@ function AppContent() {
               />
             )}
             {!walletAddress && (pathname === '/dashboard' || (isGroup && hasValidGroupId) || isReputation) && !isJoin && (
-              <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} />
+              <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
             )}
             {isJoin && hasValidJoinGroupId && (
               <JoinPage

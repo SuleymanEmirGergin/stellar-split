@@ -9,6 +9,7 @@ interface Props {
   freighterAvailable: boolean;
   connecting: boolean;
   isDemo?: boolean;
+  onTryDemo?: () => void;
 }
 
 const containerVars: Variants = {
@@ -28,7 +29,7 @@ const itemVars: Variants = {
   }
 };
 
-export default function Landing({ onConnect, onPasskey, freighterAvailable, connecting, isDemo }: Props) {
+export default function Landing({ onConnect, onPasskey, freighterAvailable, connecting, isDemo, onTryDemo }: Props) {
   const { t } = useI18n();
   const canConnect = freighterAvailable || !!isDemo;
 
@@ -78,6 +79,7 @@ export default function Landing({ onConnect, onPasskey, freighterAvailable, conn
           <motion.div variants={itemVars} className="flex justify-center mb-12">
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
               <button
+                data-testid="landing-connect-btn"
                 className="group relative flex-1 inline-flex items-center justify-center gap-3 px-10 py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:shadow-[0_0_50px_rgba(79,70,229,0.6)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
                 onClick={onConnect}
                 disabled={!canConnect || connecting}
@@ -93,11 +95,12 @@ export default function Landing({ onConnect, onPasskey, freighterAvailable, conn
               </button>
 
               <button
-                onClick={onPasskey}
+                data-testid="landing-try-demo"
+                onClick={onTryDemo ?? onPasskey}
                 className="flex-1 px-8 py-4 bg-secondary/50 hover:bg-secondary text-foreground rounded-2xl font-black text-sm transition-all border border-white/5 flex items-center justify-center gap-2 group"
               >
                 <Lock size={16} className="group-hover:text-indigo-400 transition-colors" />
-                TRY PASSKEYS
+                TRY DEMO
               </button>
             </div>
           </motion.div>

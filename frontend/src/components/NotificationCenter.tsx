@@ -76,8 +76,7 @@ export function NotificationCenter() {
     }
   }, [items, markAllRead, hasJwt]);
 
-  // Don't render if no wallet connected
-  if (!hasJwt && items.length === 0) return null;
+  // Always render the bell when the component is mounted (parent controls visibility via walletAddress check).
 
   return (
     <div className="relative">

@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { 
-  getGroup, 
-  getExpense, 
-  getBalances, 
-  computeSettlements, 
+import {
+  getGroup,
+  getExpense,
+  getBalances,
+  computeSettlements,
   isGroupSettled,
   getVault,
-  getBadges
+  getBadges,
+  isDemoMode,
 } from '../lib/contract';
 import { useAppStore } from '../store/useAppStore';
 
@@ -24,11 +25,13 @@ export const groupKeys = {
 
 export function useGroup(groupId: number) {
   const callerAddress = useAppStore((state) => state.walletAddress);
+  const demo = isDemoMode();
 
   return useQuery({
     queryKey: groupKeys.detail(groupId),
-    queryFn: () => getGroup(callerAddress, groupId),
-    enabled: !!callerAddress && !!groupId,
+    queryFn: () => getGroup(callerAddress ?? '', groupId),
+    // Demo mode: getGroup uses localStorage, no real address needed.
+    enabled: (!!callerAddress || demo) && !!groupId,
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 }

@@ -95,3 +95,8 @@ export function getExplorerTxUrl(hash: string): string {
 export function isTestnet(): boolean {
   return NETWORK_PASSPHRASE === StellarSdk.Networks.TESTNET;
 }
+
+/** Whether current network is mainnet. */
+export function isMainnet(): boolean {
+  return NETWORK_PASSPHRASE === StellarSdk.Networks.PUBLIC;
+}

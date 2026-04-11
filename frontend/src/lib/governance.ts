@@ -1,5 +1,46 @@
 export type VoteOption = 'yes' | 'no';
 
+export interface Dispute {
+  id: string;
+  initiator: string;
+  expenseId: string;
+  amount: number;
+  category: string;
+  description: string;
+  votes: Record<string, VoteOption>;
+  status: 'open' | 'resolved' | 'dismissed';
+  createdAt: number;
+}
+
+export function loadDisputes(groupId: number | string): Dispute[] {
+  const raw = localStorage.getItem(`stellarsplit_disputes_${groupId}`);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export function saveDisputes(groupId: number | string, disputes: Dispute[]) {
+  localStorage.setItem(`stellarsplit_disputes_${groupId}`, JSON.stringify(disputes));
+}
+
+export function initiateDispute(
+  initiator: string,
+  expenseId: string,
+  amount: number,
+  category: string,
+  description: string,
+): Dispute {
+  return {
+    id: `dispute_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    initiator,
+    expenseId,
+    amount,
+    category,
+    description,
+    votes: {},
+    status: 'open',
+    createdAt: Date.now(),
+  };
+}
+
 export interface Proposal {
   id: string;
   creator: string;
