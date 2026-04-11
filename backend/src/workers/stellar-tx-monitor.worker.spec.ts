@@ -4,6 +4,7 @@ import { StellarTxMonitorWorker } from './stellar-tx-monitor.worker';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { StellarService } from '../stellar/stellar.service';
 import { ReputationService } from '../reputation/reputation.service';
+import { EventsService } from '../events/events.service';
 
 const SETTLEMENT_ID = 'settlement-uuid-1';
 const TX_HASH = 'a'.repeat(64);
@@ -14,6 +15,7 @@ function makeMockPrisma() {
   return {
     settlement: {
       update: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue({ groupId: GROUP_ID }),
     },
     group: {
       update: jest.fn(),
@@ -60,6 +62,7 @@ describe('StellarTxMonitorWorker', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: StellarService, useValue: stellar },
         { provide: ReputationService, useValue: reputation },
+        { provide: EventsService, useValue: { publish: jest.fn() } },
       ],
     }).compile();
 

@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { EventsService } from '../events/events.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateExpenseDto, SplitType, ExpenseCurrency } from './dto/create-expense.dto';
 
 const VALID_WALLET_A = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN';
@@ -49,6 +51,8 @@ describe('ExpensesService', () => {
       providers: [
         ExpensesService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EventsService, useValue: { publish: jest.fn() } },
+        { provide: AuditService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 

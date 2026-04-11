@@ -23,7 +23,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Install only production deps
+# Install only production deps (keep prisma CLI for migrate)
 COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts
 
@@ -31,6 +31,7 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY prisma ./prisma
 
 # Non-root user for security

@@ -22,6 +22,7 @@ import { WorkersModule } from './workers/workers.module';
 import { EventsModule } from './events/events.module';
 import { AuditModule } from './audit/audit.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { MetricsModule } from './metrics/metrics.module';
     EventsModule,
     AuditModule,
     MetricsModule,
+    UsersModule,
   ],
   providers: [
     // Apply JWT auth globally — @Public() bypasses it

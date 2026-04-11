@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { EventsService } from '../events/events.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateGroupDto, GroupCurrency } from './dto/create-group.dto';
 
 const VALID_WALLET_A = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN';
@@ -46,6 +48,8 @@ describe('GroupsService', () => {
       providers: [
         GroupsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EventsService, useValue: { publish: jest.fn() } },
+        { provide: AuditService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 

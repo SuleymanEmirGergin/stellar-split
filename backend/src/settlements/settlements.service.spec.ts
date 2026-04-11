@@ -3,6 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { SettlementsService } from './settlements.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateSettlementDto } from './dto/create-settlement.dto';
 
 const USER_ID = 'user-uuid-1';
@@ -41,6 +42,7 @@ describe('SettlementsService', () => {
         SettlementsService,
         { provide: PrismaService, useValue: prisma },
         { provide: getQueueToken('stellar-tx-monitor'), useValue: stellarQueue },
+        { provide: AuditService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 
