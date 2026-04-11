@@ -13,7 +13,6 @@ import { GroupsService } from '../src/groups/groups.service';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { JwtStrategy } from '../src/auth/jwt.strategy';
 import { AuthService } from '../src/auth/auth.service';
-import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { createMockPrisma } from './helpers/mock-prisma';
 import {
