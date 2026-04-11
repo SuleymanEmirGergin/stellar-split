@@ -251,17 +251,22 @@ jobs:
       - name: NestJS build
         run: npm run build
 
-  # ── Render Deploy (backend) ──
-  deploy-render:
-    name: Deploy Backend → Render
+  # ── Railway Deploy (backend) ──
+  deploy-railway:
+    name: Deploy Backend → Railway
     runs-on: ubuntu-latest
     needs: [backend-test, backend-build]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
-      - name: Trigger Render deploy hook
-        run: |
-          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
-            -o /dev/null -w "HTTP %{http_code}\n"
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Trigger Railway redeploy
+        run: railway redeploy --service ${{ vars.RAILWAY_SERVICE_ID }} --yes
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   # ── Security audit ──
   security-audit:
