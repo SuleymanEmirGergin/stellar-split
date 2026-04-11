@@ -5,7 +5,7 @@ interface Props {
   walletAddress: string;
 }
 
-export function SocialSavings({ groupId: _groupId, walletAddress: _walletAddress }: Props) {
+export function SocialSavings(_props: Props) {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
       <PiggyBank size={40} className="opacity-20" />

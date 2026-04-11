@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::testutils::{Address as _, Events};
+use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{vec, Env, String};
 
 fn setup_contract() -> (Env, StellarSplitContractClient<'static>, Address) {

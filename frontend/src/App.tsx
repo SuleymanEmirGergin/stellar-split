@@ -230,7 +230,7 @@ function AppContent() {
         // is committed before the auth guard evaluates isDashboard.
       }
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Redirect landing → dashboard once wallet is confirmed (runs after walletAddress state is committed).
   useEffect(() => {

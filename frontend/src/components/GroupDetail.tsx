@@ -62,11 +62,10 @@ import { SocialSavings } from './SocialSavings';
 
 import { sendWebhookNotification, sendSettlementReadyNotification, sendLocalNotification, requestNotificationPermission } from '../lib/notifications';
 import { useNotificationStore } from '../store/useNotificationStore';
-import { 
-  type RecurringTemplate, 
-  loadSubscriptions, 
-  loadSubscriptionsFromApi,
-  saveSubscriptions, 
+import {
+  type RecurringTemplate,
+  loadSubscriptions,
+  saveSubscriptions,
 } from '../lib/recurring';
 import { getLiveApy } from '../lib/defi';
 import { loadAllGuardians, loadRecoveryRequest } from '../lib/recovery';

@@ -153,11 +153,6 @@ pub fn get_recovery_request(env: &Env, user: &Address) -> Option<RecoveryRequest
     env.storage().persistent().get(&key)
 }
 
-pub fn remove_recovery_request(env: &Env, user: &Address) {
-    let key = DataKey::Recovery(user.clone());
-    env.storage().persistent().remove(&key);
-}
-
 // ── Vault ──
 
 pub fn save_vault(env: &Env, group_id: u64, vault: &Vault) {

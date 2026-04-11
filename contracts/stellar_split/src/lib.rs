@@ -11,7 +11,7 @@ use storage::{
     get_expense, get_expenses_count, get_group, get_next_expense_id, get_next_group_id,
     is_group_settled, remove_expense, save_expense, save_group, set_expenses_count, set_group_settled,
     set_next_expense_id, set_next_group_id,
-    get_guardian_config, save_guardian_config, get_recovery_request, save_recovery_request, remove_recovery_request
+    get_guardian_config, save_guardian_config, get_recovery_request, save_recovery_request
 };
 use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault};
 
@@ -38,7 +38,7 @@ impl StellarSplitContract {
         // ── Validasyonlar ──
 
         // İsim boş olmamalı
-        if name.len() == 0 {
+        if name.is_empty() {
             panic!("group name cannot be empty");
         }
         // İsim çok uzun olmamalı
@@ -442,7 +442,7 @@ impl StellarSplitContract {
     pub fn set_guardians(env: Env, user: Address, guardians: Vec<Address>, threshold: u32) {
         user.require_auth();
 
-        if guardians.len() == 0 {
+        if guardians.is_empty() {
             panic!("at least one guardian required");
         }
         if threshold == 0 || threshold > guardians.len() {

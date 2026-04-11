@@ -22,7 +22,6 @@ import { truncateAddress } from '../lib/stellar';
 import OnRampGuide from './OnRampGuide';
 import Scanner from './Scanner';
 import { useI18n } from '../lib/i18n';
-import { AvatarGroup } from './Avatar';
 import NetworkStats from './NetworkStats';
 import ImpactPanel from './ImpactPanel';
 import GlobalImpact from './GlobalImpact';
