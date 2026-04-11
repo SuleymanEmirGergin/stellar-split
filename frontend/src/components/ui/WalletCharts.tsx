@@ -85,7 +85,7 @@ export function WalletCharts({
                   contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', color: chartTextFill }}
                   labelStyle={{ fontWeight: 700, color: chartTextFill }}
                   labelFormatter={(label) => formatDay(String(label))}
-                  formatter={(value: number) => [value.toFixed(2), 'XLM']}
+                  formatter={(value: number | undefined) => [(value ?? 0).toFixed(2), 'XLM']}
                 />
                 <Line
                   type="monotone"
@@ -121,7 +121,7 @@ export function WalletCharts({
                   contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', color: chartTextFill }}
                   labelStyle={{ fontWeight: 700, color: chartTextFill }}
                   labelFormatter={(label) => formatDay(String(label))}
-                  formatter={(value: number) => [value, t('charts.tx_count') || 'tx']}
+                  formatter={(value: number | undefined) => [value ?? 0, t('charts.tx_count') || 'tx']}
                 />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))">
                   {txByDay.map((_, i) => (

@@ -4,7 +4,6 @@
  * Uses design-system tokens and class recipes.
  */
 
-import React from "react";
 
 export function DemoDashboard() {
   return (

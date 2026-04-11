@@ -63,7 +63,7 @@ export function DashboardCharts({
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={36} />
                 <Tooltip
                   contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-                  formatter={(v: number) => [`${v.toFixed(2)} XLM`, 'Balance']}
+                  formatter={(v: number | undefined) => [`${(v ?? 0).toFixed(2)} XLM`, 'Balance']}
                 />
                 <Line type="monotone" dataKey="balance" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
               </LineChart>

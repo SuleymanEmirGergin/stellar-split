@@ -24,18 +24,16 @@ export async function signInWithStellar(walletAddress: string): Promise<SiwsResu
   const challengeRes = await authApi.challenge();
   const { nonce, message } = challengeRes.data;
 
-  // 2. Ask Freighter to sign the message
-  const { signedMessage, error } = await signMessage({
-    message,
-    address: walletAddress,
-    networkPassphrase: import.meta.env.VITE_STELLAR_NETWORK_PASSPHRASE as string | undefined,
-  });
+  // 2. Ask Freighter to sign the message (freighter-api v6+: signMessage(string))
+  const { signedMessage, error } = await signMessage(message);
 
   if (error) throw new Error(`Freighter signing failed: ${error}`);
   if (!signedMessage) throw new Error('Freighter returned no signature');
 
-  // signedMessage is a Uint8Array — convert to base64 for transport
-  const signatureBase64 = btoa(String.fromCharCode(...signedMessage));
+  // signedMessage is a string (v6+) or Uint8Array (v5); normalise to base64
+  const signatureBase64 = typeof signedMessage === 'string'
+    ? signedMessage
+    : btoa(String.fromCharCode(...Array.from(signedMessage as unknown as Uint8Array)));
 
   // 3. Verify signature with backend → get JWT
   const verifyRes = await authApi.verify(walletAddress, signatureBase64, nonce);

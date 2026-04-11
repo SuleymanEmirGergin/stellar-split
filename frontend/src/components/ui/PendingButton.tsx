@@ -28,9 +28,8 @@ export function PendingButton({
     >
       {pending && (
         <Glow
-          color="hsl(var(--primary) / 0.15)"
-          size="150%"
-          opacity={0.8}
+          color="primary"
+          intensity="medium"
           className="pointer-events-none"
         />
       )}

@@ -32,9 +32,8 @@ export function CardWithHover({
     >
       {glow && (
         <Glow
-          color="hsl(var(--primary) / 0.08)"
-          size="140%"
-          opacity={1}
+          color="primary"
+          intensity="subtle"
           className="pointer-events-none"
         />
       )}

@@ -43,3 +43,6 @@ export const MOTION = {
     easeOutExpo: 'cubic-bezier(0.16, 1, 0.3, 1)',
   },
 } as const;
+
+/** Alias for MOTION.duration.normal — convenient for modal animations. */
+export const MOTION_DURATION_MODAL = MOTION.duration.normal;

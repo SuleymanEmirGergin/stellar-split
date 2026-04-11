@@ -8,7 +8,6 @@
  *   3. Use <WalletDashboardDemo /> in a route or layout.
  */
 
-import React from "react";
 
 export function WalletDashboardDemo() {
   const balance = "12,450.00";

@@ -39,7 +39,7 @@ export default function DashboardCharts({
               <LineChart data={balanceHistory} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={36} />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(v: number) => [`${Number(v).toFixed(2)} XLM`, 'Balance']} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(v: number | undefined) => [`${Number(v ?? 0).toFixed(2)} XLM`, 'Balance']} />
                 <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -84,7 +84,7 @@ export default function DashboardCharts({
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => [`${Number(v).toFixed(4)} XLM`, 'Fee']} />
+                <Tooltip formatter={(v: number | undefined) => [`${Number(v ?? 0).toFixed(4)} XLM`, 'Fee']} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -107,7 +107,7 @@ export default function DashboardCharts({
                   <Cell key={i} fill={CHART_COLORS[(i + 1) % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => [`${Number(v)}%`, 'Share']} />
+              <Tooltip formatter={(v: number | undefined) => [`${Number(v ?? 0)}%`, 'Share']} />
             </PieChart>
           </ResponsiveContainer>
         </div>

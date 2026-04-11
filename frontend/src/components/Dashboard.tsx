@@ -340,7 +340,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
       </motion.div>
 
       {/* Data viz: balance line, tx histogram, fee/asset donuts */}
-      <WalletCharts t={t} />
+      <WalletCharts t={t as (key: string) => string} />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

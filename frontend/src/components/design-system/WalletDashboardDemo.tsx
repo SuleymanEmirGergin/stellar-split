@@ -3,7 +3,6 @@
  * Shows hero bg + glass balance card + tx list. VC-ready dashboard aesthetic.
  */
 
-import React from "react";
 
 export function WalletDashboardDemo() {
   return (
