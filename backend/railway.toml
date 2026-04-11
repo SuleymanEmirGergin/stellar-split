@@ -1,9 +1,9 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"
+watchPatterns = ["backend/**"]
 
 [deploy]
-startCommand = "node dist/main.js"
 releaseCommand = "npx prisma migrate deploy"
 healthcheckPath = "/health/live"
 healthcheckTimeout = 30

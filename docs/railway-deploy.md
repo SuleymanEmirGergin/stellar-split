@@ -46,8 +46,22 @@ Set these in Railway → API service → Variables:
 4. Add a **GitHub** service pointing to this repo
    - Set **Root Directory** to `backend`
    - Railway auto-detects `Dockerfile`
+   - **Disable** Railway's automatic GitHub deploy (CI handles it instead)
 5. Set all required env vars above
 6. Deploy — `railway.toml` runs `prisma migrate deploy` as release command before the app starts
+
+## CI/CD Auto-Deploy
+
+The `deploy-railway` GitHub Actions job deploys to Railway automatically after all backend tests and build checks pass on `master` push.
+
+### Required GitHub Secrets / Variables
+
+| Name | Type | Value |
+|------|------|-------|
+| `RAILWAY_TOKEN` | Secret | Railway API token — *Settings → Tokens* in Railway dashboard |
+| `RAILWAY_SERVICE_ID` | Variable | Service ID from Railway — *Service → Settings → Service ID* |
+
+Add these in **GitHub → repo Settings → Secrets and variables → Actions**.
 
 ## Health Check
 
