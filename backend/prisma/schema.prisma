@@ -1,15 +1,7 @@
-// StellarSplit Prisma Schema — Prisma 7
+// StellarSplit Prisma Schema — Prisma 6
 // PostgreSQL 15
 //
-// NOTE: The database connection URL is intentionally absent from this block.
-// Prisma 7 removed `url` from schema.prisma in favour of prisma.config.ts.
-// See: https://pris.ly/d/config-datasource
-//
-// If your IDE's Prisma LSP extension reports "Argument url is missing", update
-// the Prisma VS Code extension to a version that supports Prisma 7 schema syntax.
-// The Prisma 7 CLI (`npx prisma validate`) accepts this schema correctly.
-//
-// Connection URL is supplied via: prisma/prisma.config.ts → defineConfig({ datasourceUrl: process.env.DATABASE_URL })
+// Connection URL is read from the DATABASE_URL environment variable.
 
 generator client {
   provider = "prisma-client-js"
@@ -17,6 +9,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────
