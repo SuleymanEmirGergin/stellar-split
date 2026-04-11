@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install deps (use backend/package*.json from repo root context)
 COPY backend/package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --legacy-peer-deps
 
 # Copy backend source into /app
 COPY backend/ .
@@ -26,7 +26,7 @@ ENV NODE_ENV=production
 
 # Install only production deps
 COPY backend/package*.json ./
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --omit=dev --ignore-scripts --legacy-peer-deps
 
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
