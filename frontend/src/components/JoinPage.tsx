@@ -80,6 +80,7 @@ export default function JoinPage({
 
             {walletAddress ? (
               <button
+                data-testid="join-open-group-btn"
                 onClick={onOpenGroup}
                 className="w-full py-4 px-6 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3"
               >
@@ -88,6 +89,7 @@ export default function JoinPage({
               </button>
             ) : (
               <button
+                data-testid="join-connect-btn"
                 onClick={onConnect}
                 disabled={!freighterAvailable || connecting}
                 className="w-full py-4 px-6 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-3"

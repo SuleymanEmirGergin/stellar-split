@@ -362,6 +362,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                 </button>
                 <button
                   type="button"
+                  data-testid="filter-archive"
                   onClick={() => setArchiveFilter('archive')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${archiveFilter === 'archive' ? 'bg-indigo-500 text-white' : 'text-muted-foreground hover:text-white'}`}
                 >
@@ -398,6 +399,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               <motion.div key={gIdStr} variants={itemVars}>
                 <Link
                   to={`/group/${g.id}`}
+                  data-testid="group-card"
                   className="block card-glass-hover bg-card/40 backdrop-blur-sm border border-white/5 p-6 rounded-2xl cursor-pointer hover:border-indigo-500/30 hover:bg-card/60 transition-all group no-underline shadow-sm hover:shadow-indigo-500/10"
                 >
                   <div className="flex items-center justify-between">
