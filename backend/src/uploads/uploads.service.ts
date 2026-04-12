@@ -15,18 +15,25 @@ export class UploadsService {
   private readonly bucket: string;
   private readonly publicUrl: string;
 
+  private readonly s3Enabled: boolean;
+
   constructor(private readonly config: ConfigService) {
+    const accessKeyId = config.get<string>('S3_ACCESS_KEY_ID', '');
+    const secretAccessKey = config.get<string>('S3_SECRET_ACCESS_KEY', '');
+    this.bucket = config.get<string>('S3_BUCKET_NAME', '');
+    this.publicUrl = config.get<string>('S3_PUBLIC_URL', '');
+    this.s3Enabled = !!(accessKeyId && secretAccessKey && this.bucket);
+
     this.s3 = new S3Client({
       endpoint: config.get<string>('S3_ENDPOINT'),
       region: config.get<string>('S3_REGION', 'auto'),
-      credentials: {
-        accessKeyId: config.getOrThrow<string>('S3_ACCESS_KEY_ID'),
-        secretAccessKey: config.getOrThrow<string>('S3_SECRET_ACCESS_KEY'),
-      },
+      credentials: { accessKeyId, secretAccessKey },
       forcePathStyle: false,
     });
-    this.bucket = config.getOrThrow<string>('S3_BUCKET_NAME');
-    this.publicUrl = config.get<string>('S3_PUBLIC_URL', '');
+
+    if (!this.s3Enabled) {
+      this.logger.warn('S3 not configured — receipt uploads disabled');
+    }
   }
 
   async uploadReceipt(
@@ -34,6 +41,9 @@ export class UploadsService {
     groupId: string,
     expenseId: string,
   ): Promise<{ url: string; signedUrl: string }> {
+    if (!this.s3Enabled) {
+      throw new BadRequestException('Receipt uploads are not configured on this server');
+    }
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException(`File type ${file.mimetype} not allowed. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`);
     }
