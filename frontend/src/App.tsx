@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,18 +22,20 @@ import { maskAddress } from './lib/format';
 import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
 import { BalanceMetric } from './components/ui/BalanceMetric';
-import Landing from './components/Landing';
-import Dashboard from './components/Dashboard';
-import GroupDetail from './components/GroupDetail';
-import JoinPage from './components/JoinPage';
+// Route-level code splitting: these components are only loaded when their route is visited
+const Landing = lazy(() => import('./components/Landing'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const GroupDetail = lazy(() => import('./components/GroupDetail'));
+const JoinPage = lazy(() => import('./components/JoinPage'));
+const ReputationDashboard = lazy(() => import('./components/ReputationDashboard').then(m => ({ default: m.ReputationDashboard })));
+const SettingsPage = lazy(() => import('./components/SettingsPage').then(m => ({ default: m.SettingsPage })));
+
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import CopyButton from './components/CopyButton';
 import { ReceivePanel, EasterEgg, AutoPitch } from './components/ui';
 import { WalletBridge } from './components/WalletBridge';
-import { ReputationDashboard } from './components/ReputationDashboard';
 import { NotificationCenter } from './components/NotificationCenter';
-import { SettingsPage } from './components/SettingsPage';
 import Logo from './components/Logo';
 import { sounds } from './lib/sound';
 import { useI18n } from './lib/i18n';
@@ -137,7 +139,8 @@ function AppContent() {
   });
   const [freighterAvailable, setFreighterAvailable] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [demoMode, setDemoMode] = useState(() => localStorage.getItem('stellarsplit_demo_mode') === 'true');
+  const demoMode = useAppStore(s => s.demoMode);
+  const storeDemoMode = useAppStore(s => s.setDemoMode);
   const walletBalance = useWalletBalance(walletAddress, demoMode);
   const spltBalance = useSPLTBalance(walletAddress, demoMode);
   const { addToast } = useToast();
@@ -343,8 +346,7 @@ function AppContent() {
           break;
         case 'd': {
           const newMode = !demoMode;
-          setDemoMode(newMode);
-          localStorage.setItem('stellarsplit_demo_mode', String(newMode));
+          storeDemoMode(newMode);
           addToast(newMode ? '🛡️ Demo Modu Aktif (Offline)' : '🌐 Canlı Mod Aktif (Testnet)', 'info');
           break;
         }
@@ -359,10 +361,9 @@ function AppContent() {
 
   const toggleDemoMode = useCallback(() => {
     const newMode = !demoMode;
-    setDemoMode(newMode);
-    localStorage.setItem('stellarsplit_demo_mode', String(newMode));
+    storeDemoMode(newMode);
     addToast(newMode ? '🛡️ Demo Modu Aktif' : '🌐 Canlı Mod Aktif', 'info');
-  }, [demoMode, addToast]);
+  }, [demoMode, storeDemoMode, addToast]);
 
   const goHome = useCallback(() => {
     navigate(walletAddress ? '/dashboard' : '/');
@@ -552,9 +553,10 @@ function AppContent() {
             transition={{ duration: 0.2, ease: [0.33, 1, 0.68, 1] }}
             className="min-h-0"
           >
+          <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><Zap size={24} className="animate-spin text-indigo-400" /></div>}>
             {pathname === '/' && (
               !walletAddress ? (
-                <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
+                <Landing onConnect={handleConnect} onPasskey={toggleDemoMode} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
               ) : (
                 <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
               )
@@ -573,7 +575,7 @@ function AppContent() {
               />
             )}
             {!walletAddress && (pathname === '/dashboard' || (isGroup && hasValidGroupId) || isReputation) && !isJoin && (
-              <Landing onConnect={handleConnect} onPasskey={() => addToast('Passkeys coming soon', 'info')} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
+              <Landing onConnect={handleConnect} onPasskey={toggleDemoMode} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
             )}
             {isJoin && hasValidJoinGroupId && (
               <JoinPage
@@ -594,6 +596,7 @@ function AppContent() {
             isOffline={isOffline}
           />
         )}
+          </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
