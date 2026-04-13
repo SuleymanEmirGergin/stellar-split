@@ -26,10 +26,14 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    // Config — load .env
+    // Config — load .env and validate required variables at startup
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate: (config) => {
+        const { validateEnv } = require('./common/config/env.validation');
+        return validateEnv(config);
+      },
     }),
 
     // Pino structured logging

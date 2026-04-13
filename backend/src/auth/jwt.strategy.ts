@@ -12,7 +12,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private readonly authService: AuthService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // EventSource (SSE) cannot set custom headers, so we also accept ?token= for SSE streams.
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (req) => (req?.query as Record<string, string> | undefined)?.['token'] ?? null,
+      ]),
       ignoreExpiration: false,
       secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
     });
