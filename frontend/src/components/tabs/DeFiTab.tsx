@@ -11,6 +11,7 @@ interface DeFiTabProps {
   liveApy: number | null;
   currencyLabel: string;
   t: (key: TranslationKey) => string;
+  addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 const itemVars = {
@@ -22,7 +23,8 @@ export default function DeFiTab({
   groupId,
   liveApy,
   currencyLabel,
-  t
+  t,
+  addToast,
 }: DeFiTabProps) {
   const { data: vault, isLoading } = useVault(groupId);
   const stakeMutation = useStakeVaultMutation(groupId);
@@ -31,16 +33,16 @@ export default function DeFiTab({
 
   const [amount, setAmount] = useState('100');
   const [donateAmount, setDonateAmount] = useState('');
-  const [donateAddress, setDonateAddress] = useState('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'); // Default dummy address
+  const [donateAddress, setDonateAddress] = useState('');
   const [isTxAction, setIsTxAction] = useState(false);
   const [showDonate, setShowDonate] = useState(false);
 
   // Ensure vault is not null before accessing its properties
   if (isLoading) {
-    return <div className="text-center p-8 opacity-50">Kasa Yükleniyor...</div>;
+    return <div className="text-center p-8 opacity-50">{t('group.defi_loading')}</div>;
   }
   if (!vault) {
-    return <div className="text-center p-8 opacity-50">Kasa Bilgisi Bulunamadı</div>;
+    return <div className="text-center p-8 opacity-50">{t('group.defi_not_found')}</div>;
   }
 
   const handleStake = async () => {
@@ -50,8 +52,7 @@ export default function DeFiTab({
     try {
       await stakeMutation.mutateAsync(val);
     } catch (e) {
-      console.error(e);
-      alert('Stake işlemi başarısız: ' + (e instanceof Error ? e.message : 'Bilinmeyen hata'));
+      addToast(`${t('group.defi_stake_failed')}: ${e instanceof Error ? e.message : ''}`, 'error');
     } finally {
       setIsTxAction(false);
     }
@@ -64,8 +65,7 @@ export default function DeFiTab({
     try {
       await withdrawMutation.mutateAsync(val);
     } catch (e) {
-      console.error(e);
-      alert('Çekim işlemi başarısız: ' + (e instanceof Error ? e.message : 'Bilinmeyen hata'));
+      addToast(`${t('group.defi_withdraw_failed')}: ${e instanceof Error ? e.message : ''}`, 'error');
     } finally {
       setIsTxAction(false);
     }
@@ -80,8 +80,7 @@ export default function DeFiTab({
       setDonateAmount('');
       setShowDonate(false);
     } catch (e) {
-      console.error(e);
-      alert('Bağış işlemi başarısız: ' + (e instanceof Error ? e.message : 'Bilinmeyen hata'));
+      addToast(`${t('group.defi_donate_failed')}: ${e instanceof Error ? e.message : ''}`, 'error');
     } finally {
       setIsTxAction(false);
     }
@@ -98,7 +97,7 @@ export default function DeFiTab({
             <div className="flex items-center gap-2 mt-1">
               <span className={`w-2 h-2 rounded-full ${vault.active ? 'bg-emerald-500 animate-pulse' : 'bg-muted'}`} />
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                {vault.active ? 'Kasa Aktif' : 'Kasa Devre Dışı'}
+                {vault.active ? t('group.defi_vault_active') : t('group.defi_vault_inactive')}
               </span>
             </div>
           </div>
@@ -129,11 +128,12 @@ export default function DeFiTab({
         )}
 
         <div className="flex flex-col gap-3 relative z-10">
-          <input 
-            type="number" 
-            value={amount} 
+          <input
+            type="number"
+            value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder={`Miktar (${currencyLabel})`}
+            aria-label={`Stake/withdraw amount in ${currencyLabel}`}
             className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
           />
           <div className="flex gap-3">
@@ -142,14 +142,14 @@ export default function DeFiTab({
               disabled={isTxAction || stakeMutation.isPending}
               className={`flex-1 py-4 rounded-2xl font-black transition-all ${(isTxAction || stakeMutation.isPending) ? 'bg-secondary text-muted-foreground opacity-50' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30'}`}
             >
-              {stakeMutation.isPending ? 'Bekleyin...' : `Stake ${currencyLabel} 🚀`}
+              {stakeMutation.isPending ? t('group.defi_wait') : `Stake ${currencyLabel} 🚀`}
             </button>
             <button 
               onClick={handleWithdraw}
               disabled={isTxAction || withdrawMutation.isPending || vault.total_staked <= 0}
               className="px-6 py-4 bg-white/5 border border-white/5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all disabled:opacity-50"
             >
-              {withdrawMutation.isPending ? '⏳' : 'Geri Çek'}
+              {withdrawMutation.isPending ? '⏳' : t('group.defi_withdraw_label')}
             </button>
           </div>
         </div>
@@ -180,19 +180,21 @@ export default function DeFiTab({
               animate={{ height: 'auto', opacity: 1 }}
               className="mt-4 flex flex-col gap-3"
             >
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={donateAddress}
                 onChange={(e) => setDonateAddress(e.target.value)}
                 placeholder="Kurumun Stellar Adresi"
+                aria-label="Donation recipient Stellar address"
                 className="w-full bg-black/20 border border-emerald-500/20 rounded-xl px-4 py-3 text-[10px] font-mono focus:outline-none focus:border-emerald-500/50 transition-colors"
               />
               <div className="flex gap-2">
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={donateAmount}
                   onChange={(e) => setDonateAmount(e.target.value)}
                   placeholder={`Miktar (${currencyLabel})`}
+                  aria-label={`Donation amount in ${currencyLabel}`}
                   max={vault.yield_earned}
                   className="w-full bg-black/20 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
                 />
@@ -208,7 +210,7 @@ export default function DeFiTab({
                 disabled={isTxAction || donateMutation.isPending || !donateAmount}
                 className="w-full py-4 bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-600/20 disabled:opacity-50"
               >
-                {donateMutation.isPending ? 'Bekleyin...' : '🙏 Getiriyi Bağışla'}
+                {donateMutation.isPending ? t('group.defi_wait') : `🙏 ${t('group.defi_donate_label')}`}
               </button>
             </motion.div>
           )}
