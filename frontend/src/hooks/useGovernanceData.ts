@@ -215,7 +215,7 @@ export function useGovernanceData(
     handleInitiateDispute,
   }), [
     proposals, disputes, setDisputes,
-    showAddPropose, newPropTitle, newPropDesc,
+    showAddPropose, setShowAddPropose, newPropTitle, newPropDesc,
     handleAddProposal, handleVote, handleInitiateDispute,
   ]);
 }
