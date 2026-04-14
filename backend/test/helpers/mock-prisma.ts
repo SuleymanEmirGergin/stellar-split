@@ -43,6 +43,7 @@ export function createMockPrisma() {
       findFirst: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
 
     expense: {
@@ -70,6 +71,25 @@ export function createMockPrisma() {
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
+    },
+
+    proposal: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+
+    proposalVote: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+
+    dispute: {
+      findMany: jest.fn(),
+      create: jest.fn(),
     },
 
     userBadge: {
