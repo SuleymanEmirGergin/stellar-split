@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: stellarsplit-api
+    metrics_path: /metrics
+    # Set METRICS_SECRET in docker-compose environment or use an empty value for local dev
+    authorization:
+      credentials_file: /etc/prometheus/metrics_secret
+    static_configs:
+      - targets: ['api:3001']
+        labels:
+          service: stellarsplit-api
+          env: local

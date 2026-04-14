@@ -12,7 +12,8 @@ export interface GroupEvent {
     | 'settlement:failed'
     | 'member:joined'
     | 'member:left'
-    | 'recurring:triggered';
+    | 'recurring:triggered'
+    | 'token:minted';
   groupId: string;
   payload: Record<string, unknown>;
   ts: number;

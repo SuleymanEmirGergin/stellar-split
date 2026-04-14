@@ -1,0 +1,107 @@
+{
+  "title": "StellarSplit API",
+  "uid": "stellarsplit-api",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "HTTP Request Rate (req/s)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [{
+        "datasource": { "uid": "prometheus" },
+        "expr": "rate(stellarsplit_http_requests_total[1m])",
+        "legendFormat": "{{method}} {{route}} {{status_code}}"
+      }]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "HTTP Latency P50 / P95 / P99 (s)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, rate(stellarsplit_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "P50"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, rate(stellarsplit_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "P95"
+        },
+        {
+          "datasource": { "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, rate(stellarsplit_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "P99"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Active SSE Connections",
+      "gridPos": { "x": 0, "y": 8, "w": 4, "h": 4 },
+      "targets": [{
+        "datasource": { "uid": "prometheus" },
+        "expr": "stellarsplit_sse_active_connections"
+      }]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Expenses Created (total)",
+      "gridPos": { "x": 4, "y": 8, "w": 4, "h": 4 },
+      "targets": [{
+        "datasource": { "uid": "prometheus" },
+        "expr": "stellarsplit_expenses_created_total"
+      }]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Settlements Confirmed (total)",
+      "gridPos": { "x": 8, "y": 8, "w": 4, "h": 4 },
+      "targets": [{
+        "datasource": { "uid": "prometheus" },
+        "expr": "stellarsplit_settlements_confirmed_total"
+      }]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "BullMQ Jobs Processed (rate/min)",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [{
+        "datasource": { "uid": "prometheus" },
+        "expr": "rate(stellarsplit_worker_jobs_processed_total[1m]) * 60",
+        "legendFormat": "{{queue}} / {{status}}"
+      }]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Node.js Heap Usage (MB)",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "targets": [{
+        "datasource": { "uid": "prometheus" },
+        "expr": "stellarsplit_nodejs_heap_size_used_bytes / 1024 / 1024",
+        "legendFormat": "Heap Used (MB)"
+      }]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Event Loop Lag (ms)",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "targets": [{
+        "datasource": { "uid": "prometheus" },
+        "expr": "stellarsplit_nodejs_eventloop_lag_seconds * 1000",
+        "legendFormat": "Event Loop Lag"
+      }]
+    }
+  ]
+}
