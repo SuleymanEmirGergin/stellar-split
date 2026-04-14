@@ -40,6 +40,29 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // Warn when any individual chunk exceeds 500 kB (gzipped ~150 kB)
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        // Split vendor code into stable, cache-friendly chunks.
+        // App code changes frequently; vendor chunks stay the same between releases.
+        manualChunks: (id) => {
+          // Stellar SDK + Freighter — largest single chunk (~800 kB)
+          if (id.includes('@stellar/')) return 'vendor-stellar';
+          // Chart library
+          if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts';
+          // Animation library
+          if (id.includes('framer-motion')) return 'vendor-motion';
+          // React core — most stable, deserves its own long-lived cache entry
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') ||
+              id.includes('react-router-dom') || id.includes('react-is')) return 'vendor-react';
+          // Everything else in node_modules goes to vendor-misc
+          if (id.includes('node_modules')) return 'vendor-misc';
+        },
+      },
+    },
+  },
   optimizeDeps: {
     include: ['recharts'],
   },
