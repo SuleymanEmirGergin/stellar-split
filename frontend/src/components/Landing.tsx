@@ -119,8 +119,8 @@ export default function Landing({ onConnect, onPasskey, freighterAvailable, conn
       {/* Stats Section */}
       <motion.div variants={itemVars} className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-[800px] mx-auto mb-24">
         {[
-          { value: '2.8M', suffix: '+', label: t('landing.stats_tx'), icon: Zap, color: 'text-amber-400' },
-          { value: '12.3K', suffix: '+', label: t('landing.stats_groups'), icon: Users, color: 'text-indigo-400' },
+          { value: '<5s', suffix: '', label: t('landing.stats_tx'), icon: Zap, color: 'text-amber-400' },
+          { value: '$0.001', suffix: '', label: t('landing.stats_groups'), icon: Users, color: 'text-indigo-400' },
           { value: '98', suffix: '%', label: t('landing.stats_cheaper'), icon: Percent, color: 'text-emerald-400' },
         ].map((s, i) => (
           <div key={i} className="group p-6 bg-secondary/30 backdrop-blur-md border border-white/5 rounded-2xl hover:border-white/10 transition-all text-center">

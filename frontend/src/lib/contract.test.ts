@@ -6,6 +6,7 @@ import {
   computeSettlements,
   type Settlement,
 } from './contract';
+import { useAppStore } from '../store/useAppStore';
 
 const MOCK_CALLER = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
 
@@ -16,9 +17,11 @@ describe('contract (demo mode)', () => {
   beforeEach(() => {
     localStorage.setItem(demoKey, 'true');
     localStorage.setItem(groupsKey, '[]');
+    useAppStore.getState().setDemoMode(true);
   });
 
   afterEach(() => {
+    useAppStore.getState().setDemoMode(false);
     localStorage.removeItem(demoKey);
     localStorage.removeItem(groupsKey);
   });
@@ -76,11 +79,12 @@ describe('contract (validation)', () => {
   const demoKey = 'stellarsplit_demo_mode';
 
   afterEach(() => {
+    useAppStore.getState().setDemoMode(false);
     localStorage.removeItem(demoKey);
   });
 
   it('createGroup throws when fewer than 2 unique members (non-demo path)', async () => {
-    localStorage.removeItem(demoKey);
+    useAppStore.getState().setDemoMode(false);
     await expect(
       createGroup(MOCK_CALLER, 'Solo', [MOCK_CALLER], 'XLM')
     ).rejects.toThrow(/En az 2 üye|at least 2/i);
