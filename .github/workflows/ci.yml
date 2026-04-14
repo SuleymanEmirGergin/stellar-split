@@ -67,38 +67,64 @@ jobs:
           name: contract-wasm
           path: wasm
 
-      - name: Install Stellar CLI
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/stellar/stellar-cli/main/install.sh | sh
-          echo "$HOME/.stellar/bin" >> "$GITHUB_PATH"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Configure Stellar network
+      - name: Cache cargo (for stellar-cli install)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-stellar-cli-v22
+
+      - name: Install Stellar CLI
+        run: cargo install --locked stellar-cli --version "^22" 2>/dev/null || cargo install stellar-cli --version "^22"
+
+      - name: Configure Stellar network and key
+        env:
+          STELLAR_SECRET_KEY: ${{ secrets.STELLAR_SECRET_KEY }}
+          STELLAR_NETWORK: ${{ secrets.STELLAR_NETWORK }}
         run: |
-          stellar network add --global testnet \
-            --rpc-url https://soroban-testnet.stellar.org \
+          stellar network add --global "${STELLAR_NETWORK}" \
+            --rpc-url "https://soroban-testnet.stellar.org" \
             --network-passphrase "Test SDF Network ; September 2015"
-          stellar keys add --global deployer \
-            --secret-key "${{ secrets.STELLAR_SECRET_KEY }}"
+          stellar keys generate --global deployer \
+            --secret-key \
+            --network "${STELLAR_NETWORK}" <<< "${STELLAR_SECRET_KEY}" || \
+          stellar keys add deployer --secret-key "${STELLAR_SECRET_KEY}"
 
       - name: Deploy stellar_split contract
         id: deploy_split
+        env:
+          STELLAR_NETWORK: ${{ secrets.STELLAR_NETWORK }}
         run: |
           CONTRACT_ID=$(stellar contract deploy \
             --wasm wasm/stellar_split.wasm \
             --source deployer \
-            --network testnet 2>&1 | tail -1)
+            --network "${STELLAR_NETWORK}" \
+            --ignore-checks 2>&1 | grep -E '^[A-Z0-9]{56}$' | tail -1)
+          if [ -z "$CONTRACT_ID" ]; then
+            echo "ERROR: Failed to parse contract ID from deploy output" >&2
+            exit 1
+          fi
           echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
-          echo "stellar_split contract deployed: $CONTRACT_ID"
+          echo "stellar_split deployed: $CONTRACT_ID"
 
       - name: Deploy stellar_split_token contract
         id: deploy_token
+        env:
+          STELLAR_NETWORK: ${{ secrets.STELLAR_NETWORK }}
         run: |
           CONTRACT_ID=$(stellar contract deploy \
             --wasm wasm/stellar_split_token.wasm \
             --source deployer \
-            --network testnet 2>&1 | tail -1)
+            --network "${STELLAR_NETWORK}" \
+            --ignore-checks 2>&1 | grep -E '^[A-Z0-9]{56}$' | tail -1)
+          if [ -z "$CONTRACT_ID" ]; then
+            echo "ERROR: Failed to parse contract ID from deploy output" >&2
+            exit 1
+          fi
           echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
-          echo "stellar_split_token contract deployed: $CONTRACT_ID"
+          echo "stellar_split_token deployed: $CONTRACT_ID"
 
       - name: Summary
         run: |
@@ -330,7 +356,24 @@ jobs:
       - name: NestJS build
         run: npm run build
 
-  # ── Railway Deploy (backend) ──
+  # ── Railway Deploy — Staging (develop branch) ──
+  deploy-staging:
+    name: Deploy Backend → Railway Staging
+    runs-on: ubuntu-latest
+    needs: [backend-test, backend-build]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Trigger Railway staging redeploy
+        run: railway redeploy --service ${{ vars.RAILWAY_STAGING_SERVICE_ID }} --yes
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ── Railway Deploy — Production (master branch) ──
   deploy-railway:
     name: Deploy Backend → Railway
     runs-on: ubuntu-latest
