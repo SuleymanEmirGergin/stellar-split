@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { ApiAuth, ApiUnauthorized } from '../common/swagger/decorators';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { VerifyWalletDto } from './dto/verify-wallet.dto';
@@ -27,7 +28,8 @@ export class AuthController {
   @Get('challenge')
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Request a SIWS challenge nonce' })
-  @ApiResponse({ status: 200, description: 'Returns a nonce to sign' })
+  @ApiResponse({ status: 200, description: 'Returns a nonce to sign', schema: { example: { nonce: 'stellarsplit-auth-abc123', expiresAt: '2026-04-14T12:00:00.000Z' } } })
+  @ApiResponse({ status: 429, description: 'Rate limit exceeded — max 10 requests / 60 s per IP' })
   async challenge(@Req() req: Request) {
     const ip = req.ip ?? 'unknown';
     return this.authService.generateChallenge(ip);
@@ -38,7 +40,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Verify SIWS signature and issue JWT' })
-  @ApiResponse({ status: 200, description: 'Returns access token; sets refresh cookie' })
+  @ApiResponse({ status: 200, description: 'Returns accessToken + user; sets refresh_token HttpOnly cookie', schema: { example: { accessToken: 'eyJ...', user: { id: 'uuid', walletAddress: 'GXXX' } } } })
+  @ApiResponse({ status: 401, description: 'Invalid signature or expired nonce' })
+  @ApiResponse({ status: 429, description: 'Rate limit exceeded' })
   async verify(
     @Body() dto: VerifyWalletDto,
     @Res({ passthrough: true }) res: Response,
@@ -58,6 +62,8 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using HttpOnly cookie' })
+  @ApiResponse({ status: 200, description: 'Returns new accessToken; rotates refresh_token cookie' })
+  @ApiResponse({ status: 401, description: 'Refresh token missing, expired, or revoked' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -77,7 +83,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiAuth()
   @ApiOperation({ summary: 'Revoke refresh token and clear cookie' })
+  @ApiResponse({ status: 200, description: 'Logged out; refresh_token cookie cleared' })
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
