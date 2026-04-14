@@ -37,14 +37,6 @@ const itemVars = {
   visible: { opacity: 1, scale: 1, y: 0 }
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  food: 'Yeme İçme',
-  transport: 'Ulaşım',
-  accommodation: 'Konaklama',
-  entertainment: 'Eğlence',
-  market: 'Market',
-  other: 'Diğer'
-};
 
 export default function ExpensesTab({
   group,
@@ -63,7 +55,7 @@ export default function ExpensesTab({
   setAddExpenseError,
   t
 }: ExpensesTabProps) {
-  const getCategoryLabel = (cat: string) => CATEGORY_LABELS[cat] || cat;
+  const getCategoryLabel = (cat: string) => t(`group.category_${cat}` as Parameters<typeof t>[0]) || cat;
   const filteredExpenses = expenses
     .filter(e => (!filterCategory || (e.category || '') === filterCategory) && e.description.toLowerCase().includes(filterSearch.toLowerCase()))
     .reverse();

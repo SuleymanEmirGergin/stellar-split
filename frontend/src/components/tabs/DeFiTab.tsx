@@ -132,7 +132,7 @@ export default function DeFiTab({
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={`Miktar (${currencyLabel})`}
+            placeholder={`${t('group.defi_amount')} (${currencyLabel})`}
             aria-label={`Stake/withdraw amount in ${currencyLabel}`}
             className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
           />
@@ -163,14 +163,14 @@ export default function DeFiTab({
                 <Heart size={16} /> Yield Donation
               </h4>
               <p className="text-[10px] text-emerald-400/60 font-medium mt-1">
-                Sosyal etki yaratın! Getirinizi hayır kurumlarına bağışlayın.
+                {t('group.defi_donate_desc')}
               </p>
             </div>
             <button
               onClick={() => setShowDonate(!showDonate)}
               className="px-4 py-2 bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500/30 transition-colors"
             >
-              {showDonate ? 'Gizle' : 'Bağış Yap'}
+              {showDonate ? t('group.defi_hide') : t('group.defi_donate_show')}
             </button>
           </div>
           
@@ -184,7 +184,7 @@ export default function DeFiTab({
                 type="text"
                 value={donateAddress}
                 onChange={(e) => setDonateAddress(e.target.value)}
-                placeholder="Kurumun Stellar Adresi"
+                placeholder={t('group.defi_donate_address_placeholder')}
                 aria-label="Donation recipient Stellar address"
                 className="w-full bg-black/20 border border-emerald-500/20 rounded-xl px-4 py-3 text-[10px] font-mono focus:outline-none focus:border-emerald-500/50 transition-colors"
               />
@@ -193,7 +193,7 @@ export default function DeFiTab({
                   type="number"
                   value={donateAmount}
                   onChange={(e) => setDonateAmount(e.target.value)}
-                  placeholder={`Miktar (${currencyLabel})`}
+                  placeholder={`${t('group.defi_amount')} (${currencyLabel})`}
                   aria-label={`Donation amount in ${currencyLabel}`}
                   max={vault.yield_earned}
                   className="w-full bg-black/20 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
@@ -222,8 +222,8 @@ export default function DeFiTab({
           <Shield size={20} />
         </div>
         <div>
-          <h4 className="text-xs font-bold text-amber-200/90 mb-1">DeFi Güvenlik Notu</h4>
-          <p className="text-[10px] text-amber-200/60 leading-relaxed font-medium">Bu özellik Soroban Lending havuzlarını simüle eder. Gerçek yield, akıllı kontratlar aracılığıyla havuzlara likidite sağlandığında oluşur.</p>
+          <h4 className="text-xs font-bold text-amber-200/90 mb-1">{t('group.defi_security_note_title')}</h4>
+          <p className="text-[10px] text-amber-200/60 leading-relaxed font-medium">{t('group.defi_security_note_body')}</p>
         </div>
       </div>
     </div>

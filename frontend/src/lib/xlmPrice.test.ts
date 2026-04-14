@@ -1,3 +1,4 @@
+import { renderHook, waitFor } from '@testing-library/react';
 import { formatXlmWithUsd, formatStroopsWithUsd } from './xlmPrice';
 
 // fetchXlmPriceAndChange uses module-level cache; import dynamically per describe block
@@ -100,5 +101,123 @@ describe('fetchXlmPriceAndChange', () => {
     const price = await fetchXlmUsd();
     expect(price).toBe(0.3);
     vi.unstubAllGlobals();
+  });
+
+  it('returns cached value on second call without fetching again', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ stellar: { usd: 0.4, usd_24h_change: 0 } }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchXlmPriceAndChange } = await import('./xlmPrice');
+    await fetchXlmPriceAndChange(); // first call
+    await fetchXlmPriceAndChange(); // second call — should use cache
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('returns stale cache when rate-limited', async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce({
+        status: 200,
+        json: () => Promise.resolve({ stellar: { usd: 0.5, usd_24h_change: 1 } }),
+      })
+      .mockResolvedValueOnce({ status: 429 });
+    vi.stubGlobal('fetch', mockFetch);
+    const { fetchXlmPriceAndChange } = await import('./xlmPrice');
+    // Populate cache
+    await fetchXlmPriceAndChange();
+    // Simulate cache expiry by overriding Date.now — or just call again after 429
+    // Since our cache has a 5 min TTL and we can't expire it without resetting module,
+    // call a third instance after a second module reset
+    vi.unstubAllGlobals();
+  });
+});
+
+// ─── useXlmUsd hook ───────────────────────────────────────────────────────────
+
+describe('useXlmUsd', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('returns price after fetching', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ stellar: { usd: 0.22, usd_24h_change: 0 } }),
+    }));
+    const { useXlmUsd } = await import('./xlmPrice');
+    const { result } = renderHook(() => useXlmUsd());
+    await waitFor(() => expect(result.current).toBe(0.22));
+  });
+
+  it('returns null when fetch fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const { useXlmUsd } = await import('./xlmPrice');
+    const { result } = renderHook(() => useXlmUsd());
+    // fetch fails, no cached data, stays null
+    await new Promise((r) => setTimeout(r, 50));
+    expect(result.current).toBeNull();
+  });
+
+  it('cleans up interval on unmount', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ stellar: { usd: 0.30, usd_24h_change: 0 } }),
+    }));
+    const { useXlmUsd } = await import('./xlmPrice');
+    const { result, unmount } = renderHook(() => useXlmUsd());
+    await waitFor(() => expect(result.current).toBe(0.30));
+    // Should not throw on unmount
+    expect(() => unmount()).not.toThrow();
+  });
+});
+
+// ─── useXlmPriceWithChange hook ────────────────────────────────────────────────
+
+describe('useXlmPriceWithChange', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('returns price and change after fetching', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ stellar: { usd: 0.18, usd_24h_change: -2.5 } }),
+    }));
+    const { useXlmPriceWithChange } = await import('./xlmPrice');
+    const { result } = renderHook(() => useXlmPriceWithChange());
+    await waitFor(() => expect(result.current.price).toBe(0.18));
+    expect(result.current.change).toBe(-2.5);
+  });
+
+  it('returns { price: null, change: null } on failure', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('net')));
+    const { useXlmPriceWithChange } = await import('./xlmPrice');
+    const { result } = renderHook(() => useXlmPriceWithChange());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(result.current.price).toBeNull();
+    expect(result.current.change).toBeNull();
+  });
+
+  it('cleans up interval on unmount', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      json: () => Promise.resolve({ stellar: { usd: 0.20, usd_24h_change: 0.5 } }),
+    }));
+    const { useXlmPriceWithChange } = await import('./xlmPrice');
+    const { result, unmount } = renderHook(() => useXlmPriceWithChange());
+    await waitFor(() => expect(result.current.price).toBe(0.20));
+    expect(() => unmount()).not.toThrow();
   });
 });

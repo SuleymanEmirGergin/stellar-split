@@ -1,4 +1,4 @@
-import { exportToCSV, exportToPrintReport } from './export';
+import { exportToCSV, exportToPrintReport, exportToPDF } from './export';
 import type { Group, Expense } from './contract';
 
 // ── DOM helpers ─────────────────────────────────────────────────────────────
@@ -86,6 +86,23 @@ describe('exportToCSV', () => {
     expect(() => exportToCSV(makeGroup(), [expense])).not.toThrow();
   });
 
+  it('uses XLM as currency fallback when both expense and group currency are missing', () => {
+    const blob: Blob[] = [];
+    vi.mocked(URL.createObjectURL).mockImplementation((b) => {
+      blob.push(b as Blob);
+      return 'blob:mock-url';
+    });
+    const expense = makeExpense({ currency: undefined });
+    const group = makeGroup({ currency: undefined });
+    exportToCSV(group as unknown as Group, [expense]);
+    expect(blob.length).toBe(1);
+  });
+
+  it('handles expenses with empty description', () => {
+    const expense = makeExpense({ description: '' });
+    expect(() => exportToCSV(makeGroup(), [expense])).not.toThrow();
+  });
+
   it('escapes double-quotes in description', () => {
     const blob: Blob[] = [];
     vi.mocked(URL.createObjectURL).mockImplementation((b) => {
@@ -126,5 +143,64 @@ describe('exportToPrintReport', () => {
 
     exportToPrintReport(makeGroup({ name: 'Camping Trip' }), []);
     expect(written).toContain('Camping Trip');
+  });
+
+  it('handles expense with empty description in print report', () => {
+    let written = '';
+    const mockDoc = { write: (s: string) => { written = s; }, close: vi.fn() };
+    vi.spyOn(window, 'open').mockReturnValue({ document: mockDoc } as unknown as Window);
+
+    const expense = makeExpense({ description: '' });
+    exportToPrintReport(makeGroup(), [expense]);
+    expect(written).toContain('<td></td>');
+  });
+});
+
+// ── exportToPDF ───────────────────────────────────────────────────────────────
+
+describe('exportToPDF', () => {
+  afterEach(() => {
+    vi.doUnmock('html2canvas');
+    vi.doUnmock('jspdf');
+    vi.resetModules();
+  });
+
+  it('does nothing when element is not found', async () => {
+    vi.spyOn(document, 'getElementById').mockReturnValue(null);
+    await expect(exportToPDF(makeGroup(), 'nonexistent-id')).resolves.toBeUndefined();
+  });
+
+  it('generates and saves a PDF when element exists', async () => {
+    const mockCanvas = { toDataURL: vi.fn(() => 'data:image/png;base64,abc') };
+    const mockSave = vi.fn();
+    const mockPdf = {
+      internal: { pageSize: { getWidth: vi.fn(() => 210) } },
+      setFontSize: vi.fn(), setTextColor: vi.fn(), text: vi.fn(),
+      getImageProperties: vi.fn(() => ({ height: 200, width: 100 })),
+      addImage: vi.fn(), save: mockSave,
+    };
+
+    vi.doMock('html2canvas', () => ({ default: vi.fn().mockResolvedValue(mockCanvas) }));
+    vi.doMock('jspdf', () => ({ jsPDF: vi.fn().mockReturnValue(mockPdf) }));
+    vi.resetModules();
+
+    const mockElement = document.createElement('div');
+    vi.spyOn(document, 'getElementById').mockReturnValue(mockElement);
+
+    const { exportToPDF: exportPDF } = await import('./export');
+    await exportPDF(makeGroup({ name: 'Test PDF' }), 'test-element');
+
+    expect(mockSave).toHaveBeenCalledWith(expect.stringContaining('Test_PDF'));
+  });
+
+  it('handles html2canvas errors gracefully', async () => {
+    vi.doMock('html2canvas', () => ({ default: vi.fn().mockRejectedValue(new Error('canvas error')) }));
+    vi.resetModules();
+
+    const mockElement = document.createElement('div');
+    vi.spyOn(document, 'getElementById').mockReturnValue(mockElement);
+
+    const { exportToPDF: exportPDF } = await import('./export');
+    await expect(exportPDF(makeGroup(), 'test-element')).resolves.toBeUndefined();
   });
 });

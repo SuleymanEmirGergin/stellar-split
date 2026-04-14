@@ -305,6 +305,60 @@ export const auditApi = {
   },
 };
 
+// ─── Governance endpoints ─────────────────────────────────────────────────────
+
+export interface BackendProposal {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string;
+  status: 'ACTIVE' | 'PASSED' | 'REJECTED';
+  threshold: number;
+  endsAt: string;
+  createdAt: string;
+  creator: { id: string; walletAddress: string };
+  votes: Array<{ id: string; option: string; voter: { id: string; walletAddress: string } }>;
+}
+
+export interface BackendDispute {
+  id: string;
+  groupId: string;
+  expenseId: string;
+  amount: string;
+  category: string;
+  description: string;
+  status: 'OPEN' | 'RESOLVED' | 'DISMISSED';
+  createdAt: string;
+  initiator: { id: string; walletAddress: string };
+}
+
+export const governanceApi = {
+  listProposals: (groupId: string) =>
+    api.get<BackendProposal[]>(`/governance/proposals?groupId=${encodeURIComponent(groupId)}`),
+
+  createProposal: (payload: {
+    groupId: string;
+    title: string;
+    description: string;
+    threshold?: number;
+    endsAt: string;
+  }) => api.post<BackendProposal>('/governance/proposals', payload),
+
+  castVote: (proposalId: string, option: 'yes' | 'no') =>
+    api.post<{ id: string; option: string }>(`/governance/proposals/${proposalId}/vote`, { option }),
+
+  listDisputes: (groupId: string) =>
+    api.get<BackendDispute[]>(`/governance/disputes?groupId=${encodeURIComponent(groupId)}`),
+
+  createDispute: (payload: {
+    groupId: string;
+    expenseId: string;
+    amount: number;
+    category: string;
+    description: string;
+  }) => api.post<BackendDispute>('/governance/disputes', payload),
+};
+
 // ─── Users / GDPR endpoints ───────────────────────────────────────────────────
 
 export const usersApi = {

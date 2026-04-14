@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import Tesseract from 'tesseract.js';
 
 export function useOCR() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -9,11 +8,14 @@ export function useOCR() {
     setIsProcessing(true);
     setProgress(0);
     try {
+      // Dynamic import: Tesseract.js (+ WASM binary ~10 MB) is only loaded when
+      // the user actually triggers OCR, keeping it out of the initial bundle.
+      const { default: Tesseract } = await import('tesseract.js');
       const { data: { text } } = await Tesseract.recognize(
         image,
         'eng+tur',
         {
-          logger: m => {
+          logger: (m: { status: string; progress: number }) => {
             if (m.status === 'recognizing text') {
               setProgress(Math.round(m.progress * 100));
             }

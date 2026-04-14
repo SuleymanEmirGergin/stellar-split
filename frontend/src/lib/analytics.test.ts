@@ -63,4 +63,24 @@ describe('track', () => {
   it('accepts optional payload without throwing', () => {
     expect(() => track('group_created', { groupName: 'Test' })).not.toThrow();
   });
+
+  it('calls fetch when VITE_ANALYTICS_ENDPOINT is set', async () => {
+    vi.stubEnv('VITE_ANALYTICS_ENDPOINT', 'http://analytics.example.com');
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+
+    const { track: trackFresh } = await import('./analytics');
+    trackFresh('group_created');
+
+    // fetch is called async (fire-and-forget) — give it a tick
+    await new Promise((r) => setTimeout(r, 10));
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      'http://analytics.example.com',
+      expect.objectContaining({ method: 'POST' }),
+    );
+
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
 });

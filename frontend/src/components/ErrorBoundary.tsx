@@ -4,6 +4,7 @@ import { i18n } from '../lib/i18n';
 
 interface Props {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -23,6 +24,9 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.hasError) {
+      if (this.props.fallback !== undefined) {
+        return this.props.fallback;
+      }
       return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8 text-center">
           <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center mb-6">
