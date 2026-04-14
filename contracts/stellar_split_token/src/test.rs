@@ -115,8 +115,8 @@ fn test_mint_emits_event() {
     let events = env.events().all();
     assert!(!events.is_empty(), "mint eventi yayınlanmamış");
 
-    // En son event'in topic'i (mint, user_address) olmalı
+    // Tuple: (contract_id: Address, topics: Vec<Val>, data: Val)
     let last = events.last().unwrap();
-    let topic_symbol: Symbol = last.0.get(0).unwrap().into_val(&env);
+    let topic_symbol: Symbol = last.1.get(0).unwrap().into_val(&env);
     assert_eq!(topic_symbol, Symbol::new(&env, "mint"));
 }
