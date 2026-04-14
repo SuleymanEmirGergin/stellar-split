@@ -61,8 +61,11 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
   const redisUrl = requiredUrl('REDIS_URL');
 
   const jwtSecret = required('JWT_SECRET');
-  if (jwtSecret && jwtSecret.length < 32) {
-    errors.push('  JWT_SECRET — must be at least 32 characters');
+  if (jwtSecret) {
+    const minLen = nodeEnv === 'production' ? 64 : 32;
+    if (jwtSecret.length < minLen) {
+      errors.push(`  JWT_SECRET — must be at least ${minLen} characters (got ${jwtSecret.length})`);
+    }
   }
 
   const jwtAccessTtl = config['JWT_ACCESS_TTL'] ? requiredInt('JWT_ACCESS_TTL', 60) : 900;
@@ -74,9 +77,17 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
   }
 
   const sorobanRpcUrl = requiredUrl('SOROBAN_RPC_URL');
-  const contractId = required('SOROBAN_CONTRACT_ID');
-  if (contractId && contractId === 'CHANGE_ME_CONTRACT_ADDRESS') {
-    errors.push('  SOROBAN_CONTRACT_ID — still set to placeholder "CHANGE_ME_CONTRACT_ADDRESS"');
+
+  // SOROBAN_CONTRACT_ID: hard required in production; skipped in dev so local
+  // development works before a contract is deployed to testnet.
+  const rawContractId = String(config['SOROBAN_CONTRACT_ID'] ?? '').trim();
+  let contractId = rawContractId;
+  if (nodeEnv === 'production') {
+    if (!rawContractId || rawContractId === 'CHANGE_ME_CONTRACT_ADDRESS') {
+      errors.push('  SOROBAN_CONTRACT_ID — required in production');
+    }
+  } else if (rawContractId === 'CHANGE_ME_CONTRACT_ADDRESS') {
+    contractId = ''; // treat placeholder as unset in dev
   }
 
   if (errors.length > 0) {

@@ -23,7 +23,39 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Security headers
-  app.use(helmet());
+  const isProd = process.env.NODE_ENV === 'production';
+  app.use(
+    helmet({
+      // Strict CSP for production: API serves JSON only, no embedded resources needed.
+      // Dev relaxes CSP so Swagger UI (inline scripts/styles) can load.
+      contentSecurityPolicy: isProd
+        ? {
+            directives: {
+              defaultSrc: ["'none'"],
+              frameAncestors: ["'none'"],
+              formAction: ["'none'"],
+            },
+          }
+        : false,
+      // Never allow this API to be embedded in a frame
+      frameguard: { action: 'deny' },
+      // Hide Express fingerprint
+      hidePoweredBy: true,
+      // Strict referrer policy
+      referrerPolicy: { policy: 'no-referrer' },
+      // HSTS: 1 year, include subdomains (prod only — avoids breaking local HTTP)
+      hsts: isProd
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
+    }),
+  );
+
+  // Echo X-Request-ID back in every response for log correlation
+  app.use((req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
+    const id = (req.headers['x-request-id'] as string) || crypto.randomUUID();
+    res.setHeader('X-Request-ID', id);
+    next();
+  });
 
   // CORS — allow frontend origin only
   app.enableCors({
