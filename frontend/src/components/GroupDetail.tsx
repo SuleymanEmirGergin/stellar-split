@@ -21,9 +21,14 @@ import {
   Target,
   Clock,
 } from 'lucide-react';
-import { getRecovery, getGuardians, type RecoveryRequest, type GuardianConfig, estimateSettleGroupFee, type EstimatedFee, isDemoMode } from '../lib/contract';
+import { estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
+import ErrorBoundary from './ErrorBoundary';
 import { useGroup, useGroupExpenses, useBalances, useGroupSettlements, groupKeys } from '../hooks/useGroupQuery';
 import { useAddExpenseMutation, useCancelExpenseMutation, useSettleGroupMutation, useAddMemberMutation, useRemoveMemberMutation } from '../hooks/useExpenseMutations';
+import { useSecurityData } from '../hooks/useSecurityData';
+import { useGovernanceData } from '../hooks/useGovernanceData';
+import { useRecurringData } from '../hooks/useRecurringData';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useQueryClient } from '@tanstack/react-query';
 import { server, CONTRACT_ID } from '../lib/stellar';
 import { subscribeGroupEvents } from '../lib/events';
@@ -31,11 +36,8 @@ import { useGroupEvents } from '../hooks/useGroupEvents';
 import {
   useBackendExpenses,
   useBackendBalances,
-  useBackendRecurring,
   useBackendAudit,
   useSettlementPlan,
-  useCreateRecurringMutation,
-  useDeleteRecurringMutation,
   backendGroupKeys,
 } from '../hooks/useBackendGroups';
 import { getAccessToken } from '../lib/api';
@@ -63,30 +65,15 @@ import { SocialSavings } from './SocialSavings';
 
 import { sendWebhookNotification, sendSettlementReadyNotification, sendLocalNotification, requestNotificationPermission } from '../lib/notifications';
 import { useNotificationStore } from '../store/useNotificationStore';
-import {
-  type RecurringTemplate,
-  loadSubscriptions,
-  saveSubscriptions,
-} from '../lib/recurring';
+import { type RecurringTemplate } from '../lib/recurring';
 import { getLiveApy } from '../lib/defi';
-import { loadAllGuardians, loadRecoveryRequest } from '../lib/recovery';
-import { 
-  type Proposal, 
-  loadProposals, 
-  saveProposals, 
-  type VoteOption,
-  type Dispute,
-  loadDisputes,
-  saveDisputes,
-  initiateDispute
-} from '../lib/governance';
+import { type Proposal, type VoteOption, type Dispute } from '../lib/governance';
 import { scanReceiptAI, hasReceiptAI, getMockScannedData, type ScannedData } from '../lib/ai';
 import { useI18n } from '../lib/i18n';
 import { useToast } from './Toast';
 import { TxStatusTimeline, type TxStatus } from './ui/TxStatusTimeline';
 import SubscriptionModal from './SubscriptionModal';
 import { NotificationCenter } from './NotificationCenter';
-import { isSubscriptionDue } from '../lib/recurring';
 import { useXlmUsd } from '../lib/xlmPrice';
 import { track } from '../lib/analytics';
 
@@ -122,9 +109,6 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const hasJwt = !isDemo && !!getAccessToken();
   const { data: backendExpenses } = useBackendExpenses(isDemo ? null : groupIdStr);
   const { data: backendBalancesRaw } = useBackendBalances(isDemo ? null : groupIdStr);
-  const { data: backendRecurringData, isLoading: recurringLoading } = useBackendRecurring(groupIdStr, hasJwt);
-  const createRecurringMutation = useCreateRecurringMutation(groupIdStr);
-  const deleteRecurringMutation = useDeleteRecurringMutation(groupIdStr);
   const { data: auditData, isLoading: auditLoading } = useBackendAudit(groupIdStr, hasJwt && tab === 'audit');
   const { data: settlementPlanData } = useSettlementPlan(hasJwt ? groupIdStr : null, tab === 'balances');
 
@@ -163,25 +147,48 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const [estimatedSettleFee, setEstimatedSettleFee] = useState<EstimatedFee | null>(null);
   const [uploading, setUploading] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
-  const [webhookUrl, setWebhookUrl] = useState<string>(() => localStorage.getItem(`webhook_${groupId}`) || '');
   type WebhookNotifyPref = 'all' | 'mine' | 'off';
-  const [webhookNotifyPref, setWebhookNotifyPref] = useState<WebhookNotifyPref>(() => (localStorage.getItem(`webhook_pref_${groupId}`) as WebhookNotifyPref) || 'all');
-  const [webhookNotifySettlement, setWebhookNotifySettlement] = useState<boolean>(() => localStorage.getItem(`webhook_settlement_${groupId}`) !== 'false');
-  const [subscriptions, setSubscriptions] = useState<RecurringTemplate[]>(() => loadSubscriptions(numericGroupId));
-  const [disputes, setDisputes] = useState<Dispute[]>(() => loadDisputes(numericGroupId));
+  const [webhookUrl, setWebhookUrl] = useLocalStorage<string>(`webhook_${groupId}`, '');
+  const [webhookNotifyPref, setWebhookNotifyPref] = useLocalStorage<WebhookNotifyPref>(`webhook_pref_${groupId}`, 'all');
+  const [webhookNotifySettlement, setWebhookNotifySettlement] = useLocalStorage<boolean>(`webhook_settlement_${groupId}`, true);
   const [liveApy, setLiveApy] = useState<number | null>(null);
   const [showAddSub, setShowAddSub] = useState(false);
-  const [proposals, setProposals] = useState<Proposal[]>(() => loadProposals(numericGroupId));
-  const [showAddPropose, setShowAddPropose] = useState(false);
-  const [newPropTitle, setNewPropTitle] = useState('');
-  const [newPropDesc, setNewPropDesc] = useState('');
   const [showVisualGraph, setShowVisualGraph] = useState(false);
   const [aiScanning, setAiScanning] = useState(false);
   const [ocrResult, setOcrResult] = useState<ScannedData | null>(null);
   const [selectedOcrItems, setSelectedOcrItems] = useState<number[]>([]);
-  const [activeRecovery, setActiveRecovery] = useState<RecoveryRequest | null>(null);
-  const [guardianConfig, setGuardianConfig] = useState<GuardianConfig | null>(null);
   const [filterSearch, setFilterSearch] = useState('');
+
+  const { activeRecovery, guardianConfig, loadSecurityData } = useSecurityData(walletAddress, numericGroupId);
+
+  const {
+    proposals,
+    disputes,
+    setDisputes,
+    showAddPropose,
+    setShowAddPropose,
+    newPropTitle,
+    setNewPropTitle,
+    newPropDesc,
+    setNewPropDesc,
+    handleAddProposal,
+    handleVote,
+    handleInitiateDispute,
+  } = useGovernanceData(numericGroupId, walletAddress, { hasJwt, groupIdStr });
+
+  const {
+    subscriptions,
+    recurringLoading,
+    handleAddSubscription,
+    handleToggleSubscription,
+    handleDeleteSubscription,
+  } = useRecurringData(numericGroupId, {
+    groupIdStr,
+    hasJwt,
+    walletAddress,
+    group,
+    loading,
+  });
 
   const [settling, setSettling] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -218,82 +225,21 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
 
 
-  const loadSecurityData = useCallback(async () => {
-    if (!walletAddress) return;
-    try {
-      if (isDemoMode()) {
-        const local = loadAllGuardians(numericGroupId)[walletAddress];
-        if (local) {
-          setGuardianConfig({
-            user: local.userAddress,
-            guardians: local.guardians,
-            threshold: local.threshold,
-          });
-        } else {
-          setGuardianConfig(null);
-        }
-        const req = loadRecoveryRequest(numericGroupId);
-        if (req && req.status === 'pending' && req.targetAddress === walletAddress) {
-          setActiveRecovery({
-            target: req.targetAddress,
-            new_address: req.newAddress,
-            approvals: req.approvals,
-            status: 0,
-          });
-        } else {
-          setActiveRecovery(null);
-        }
-      } else {
-        const [req, config] = await Promise.all([
-          getRecovery(walletAddress, walletAddress),
-          getGuardians(walletAddress, walletAddress),
-        ]);
-        setActiveRecovery(req ?? null);
-        setGuardianConfig(config ?? null);
-      }
-    } catch (err) {
-      console.error('Failed to fetch security data:', err);
-    }
-  }, [walletAddress, groupId]);
-
+  // Event polling: refresh group when Soroban contract events fire.
+  // Skipped when JWT is available because backend SSE (useGroupEvents above) already covers these events.
   useEffect(() => {
-    loadSecurityData();
-  }, [loadSecurityData]);
-
-  // Event polling: refresh group when Soroban contract events fire
-  useEffect(() => {
-    if (isDemo) return;
+    if (isDemo || hasJwt) return;
     const cleanup = subscribeGroupEvents(server, CONTRACT_ID, numericGroupId, () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
     });
     return cleanup;
-  }, [groupId, isDemo, queryClient]);
+  }, [groupId, isDemo, hasJwt, queryClient]);
 
   useEffect(() => {
     let cancelled = false;
     getLiveApy().then(apy => { if (!cancelled) setLiveApy(apy); });
     return () => { cancelled = true; };
   }, []);
-
-  // Sync backend recurring templates into subscriptions state (backend takes precedence)
-  useEffect(() => {
-    if (!hasJwt || !backendRecurringData?.data?.items) return;
-    const mapped: RecurringTemplate[] = backendRecurringData.data.items.map((bt) => ({
-      id: bt.id,
-      name: bt.description,
-      amount: bt.amount,
-      interval: (bt.frequency.toLowerCase() as RecurringTemplate['interval']) === 'daily' ? 'daily'
-        : (bt.frequency.toLowerCase() as RecurringTemplate['interval']) === 'weekly' ? 'weekly'
-        : (bt.frequency.toLowerCase() as RecurringTemplate['interval']) === 'yearly' ? 'yearly'
-        : 'monthly',
-      status: bt.isActive ? 'active' : ('paused' as const),
-      members: (bt as { memberIds?: string[] }).memberIds ?? [],
-      category: '',
-      nextDue: new Date(bt.nextDue).getTime(),
-      createdAt: new Date(bt.createdAt).getTime(),
-    }));
-    setSubscriptions(mapped);
-  }, [hasJwt, backendRecurringData]);
 
   useEffect(() => {
     if (!webhookUrl || !webhookNotifySettlement || !group || settlements.length === 0) return;
@@ -308,38 +254,6 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
       type: 'settlement',
     });
   }, [groupId, group, webhookUrl, webhookNotifySettlement, settlements.length, t]);
-
-  // Automated Subscription Processing
-  useEffect(() => {
-    if (!group || loading) return;
-    const processSubscriptions = async () => {
-      const due = subscriptions.filter(isSubscriptionDue);
-      if (due.length === 0) return;
-
-      const updatedSubs = [...subscriptions];
-      for (const sub of due) {
-        try {
-          const splitAmong = group.members;
-          await addExpenseMutation.mutateAsync({
-            payer: walletAddress, 
-            amount: sub.amount * 10_000_000, 
-            splitAmong, 
-            description: `${sub.name} (Auto)`, 
-            category: ''
-          });
-          track('expense_added');
-          const idx = updatedSubs.findIndex(s => s.id === sub.id);
-          updatedSubs[idx] = { ...sub, lastProcessed: Date.now() };
-          console.log(`[StellarSplit] Auto-processed subscription: ${sub.name}`);
-        } catch (err) {
-          console.error(`[StellarSplit] Failed to auto-process subscription ${sub.name}:`, err);
-        }
-      }
-      setSubscriptions(updatedSubs);
-      await saveSubscriptions(numericGroupId, updatedSubs);
-    };
-    processSubscriptions();
-  }, [group, loading, subscriptions, walletAddress, groupId, addExpenseMutation]);
 
   const handleAddExpense = useCallback(async () => {
     const amountXlm = parseFloat(expAmount);
@@ -480,66 +394,6 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   }, [tab, settlements.length, walletAddress, groupId]);
 
 
-  const handleAddSubscription = useCallback(async (sub: Omit<RecurringTemplate, 'id' | 'createdAt'>) => {
-    if (hasJwt) {
-      try {
-        await createRecurringMutation.mutateAsync({
-          groupId: groupIdStr,
-          description: sub.name,
-          amount: sub.amount,
-          frequency: sub.interval === 'daily' ? 'DAILY'
-            : sub.interval === 'weekly' ? 'WEEKLY'
-            : sub.interval === 'yearly' ? 'YEARLY'
-            : 'MONTHLY',
-          nextDue: sub.nextDue ? new Date(sub.nextDue).toISOString() : new Date().toISOString(),
-        });
-        return;
-      } catch {
-        // fall through to localStorage
-      }
-    }
-    const newSub: RecurringTemplate = {
-      ...sub,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: Date.now(),
-    };
-    const updated = [...subscriptions, newSub];
-    setSubscriptions(updated);
-    await saveSubscriptions(numericGroupId, updated);
-  }, [hasJwt, groupIdStr, groupId, subscriptions, createRecurringMutation]);
-
-  const handleAddProposal = useCallback(() => {
-    if (!newPropTitle.trim()) return;
-    const newProp: Proposal = {
-      id: Math.random().toString(36).substr(2, 9),
-      creator: walletAddress,
-      title: newPropTitle,
-      description: newPropDesc,
-      votes: {},
-      status: 'active',
-      createdAt: Date.now(),
-      endsAt: Date.now() + (3 * 24 * 60 * 60 * 1000),
-      threshold: 51
-    };
-    const updated = [newProp, ...proposals];
-    setProposals(updated);
-    saveProposals(numericGroupId, updated);
-    setShowAddPropose(false);
-    setNewPropTitle('');
-    setNewPropDesc('');
-  }, [walletAddress, newPropTitle, newPropDesc, proposals, groupId]);
-
-  const handleVote = useCallback((proposalId: string, option: VoteOption) => {
-    const updated = proposals.map(p => {
-      if (p.id === proposalId) {
-        return { ...p, votes: { ...p.votes, [walletAddress]: option } };
-      }
-      return p;
-    });
-    setProposals(updated);
-    saveProposals(numericGroupId, updated);
-  }, [proposals, walletAddress, groupId]);
-
   if (loading) return (
     <div className="space-y-6">
       <SkeletonShimmer className="h-40 w-full" rounded="3xl" />
@@ -569,15 +423,15 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     { key: 'expenses', label: t('group.expenses'), icon: Receipt },
     { key: 'balances', label: t('group.balances'), icon: BarChart3 },
     { key: 'settle', label: t('group.settle'), icon: Zap },
-    { key: 'savings', label: 'Birikim', icon: Target },
+    { key: 'savings', label: t('group.tab_savings'), icon: Target },
     { key: 'insights', label: t('group.insights'), icon: Info },
     { key: 'recurring', label: t('group.recurring'), icon: Repeat },
-    { key: 'defi', label: 'DeFi', icon: DollarSign },
-    { key: 'social', label: 'Social', icon: Share2 },
-    { key: 'governance', label: 'Voting', icon: Users },
+    { key: 'defi', label: t('group.tab_defi'), icon: DollarSign },
+    { key: 'social', label: t('group.tab_social'), icon: Share2 },
+    { key: 'governance', label: t('group.tab_governance'), icon: Users },
     { key: 'security', label: 'Safety', icon: Shield },
-    { key: 'gallery', label: 'Fiş/Makbuzlar', icon: ImageIcon },
-    { key: 'audit', label: 'Activity', icon: Clock },
+    { key: 'gallery', label: t('group.tab_gallery'), icon: ImageIcon },
+    { key: 'audit', label: t('group.tab_audit'), icon: Clock },
   ];
 
   return (
@@ -685,6 +539,20 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
         {/* Tab content area */}
         <div className="flex-1 min-w-0 pb-20 sm:pb-0">
+      <ErrorBoundary fallback={
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center">
+            <AlertTriangle size={24} className="text-rose-500" />
+          </div>
+          <div>
+            <p className="font-black tracking-tight mb-1">{t('common.error_fallback_title')}</p>
+            <p className="text-xs text-muted-foreground">{t('common.error_fallback_desc')}</p>
+          </div>
+          <button type="button" onClick={() => window.location.reload()} className="text-xs font-bold px-4 py-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors">
+            {t('common.reload_page')}
+          </button>
+        </div>
+      }>
       <motion.div
         key={tab}
         initial={{ opacity: 0, x: 10 }}
@@ -709,11 +577,8 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             setAddExpenseError={setAddExpenseError}
             t={t}
             onDispute={(exp) => {
-              const newDispute = initiateDispute(walletAddress, exp.id.toString(), exp.amount, exp.category || 'other', `Harcama İtirazı: ${exp.description}`);
-              const updated = [...disputes, newDispute];
-              setDisputes(updated);
-              saveDisputes(numericGroupId, updated);
-              addToast("İtiraz süreci başlatıldı (DAO Lite)");
+              handleInitiateDispute(exp.id.toString(), exp.amount, exp.category || 'other', `${t('group.dispute_initiate')}: ${exp.description}`);
+              addToast(t('group.dispute_started'));
             }}
           />
         )}
@@ -723,6 +588,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             expenses={activeExpenses}
             currencyLabel={currencyLabel}
             xlmUsd={xlmUsd}
+            t={t}
           />
         )}
 
@@ -795,6 +661,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             liveApy={liveApy}
             currencyLabel={currencyLabel}
             t={t}
+            addToast={addToast}
           />
         )}
 
@@ -804,20 +671,9 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             setShowAddSub={setShowAddSub}
             isLoading={recurringLoading}
             isBackend={hasJwt}
-            onToggle={(id: string) => {
-              const updated = subscriptions.map(s => s.id === id ? { ...s, status: (s.status === 'active' ? 'paused' : 'active') as import('../lib/recurring').RecurringStatus } : s);
-              setSubscriptions(updated);
-              saveSubscriptions(numericGroupId, updated);
-            }}
-            onDelete={async (id: string) => {
-              if (hasJwt) {
-                await deleteRecurringMutation.mutateAsync(id);
-              } else {
-                const updated = subscriptions.filter(s => s.id !== id);
-                setSubscriptions(updated);
-                saveSubscriptions(numericGroupId, updated);
-              }
-            }}
+            onToggle={handleToggleSubscription}
+            onDelete={handleDeleteSubscription}
+            t={t}
           />
         )}
 
@@ -851,6 +707,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             handleVote={(id: number, vote: 'yes' | 'no') => {
               handleVote(String(id), vote);
             }}
+            t={t}
           />
         )}
 
@@ -874,6 +731,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           />
         )}
       </motion.div>
+      </ErrorBoundary>
         </div>
       </div>
 
