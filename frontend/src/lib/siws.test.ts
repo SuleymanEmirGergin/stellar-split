@@ -82,4 +82,14 @@ describe('signInWithStellar', () => {
     await signInWithStellar(wallet);
     expect(mockVerify).toHaveBeenCalledWith(wallet, 'base64signature', 'abc123');
   });
+
+  it('converts Uint8Array signedMessage to base64 (freighter v5 compat)', async () => {
+    // Simulate Freighter v5 returning a Uint8Array instead of a string
+    const bytes = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+    mockSignMessage.mockResolvedValue({ signedMessage: bytes, error: undefined } as never);
+    const result = await signInWithStellar(wallet);
+    // btoa("Hello") = "SGVsbG8="
+    expect(mockVerify).toHaveBeenCalledWith(wallet, 'SGVsbG8=', 'abc123');
+    expect(result.accessToken).toBe('tok_xyz');
+  });
 });

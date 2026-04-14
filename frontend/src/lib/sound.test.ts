@@ -98,4 +98,29 @@ describe('SoundEngine', () => {
     // AudioContext constructor called only once (ctx is cached)
     expect((AudioContext as unknown as ReturnType<typeof vi.fn>).mock.calls.length).toBeLessThanOrEqual(1);
   });
+
+  it('uses webkitAudioContext when AudioContext is not available on window', async () => {
+    (sounds as unknown as { ctx: null }).ctx = null;
+    const webkitNode = makeMockNode();
+    const webkitCtx = {
+      state: 'running' as AudioContextState,
+      currentTime: 0,
+      destination: {},
+      resume: vi.fn().mockResolvedValue(undefined),
+      createOscillator: vi.fn().mockReturnValue(webkitNode),
+      createGain: vi.fn().mockReturnValue(webkitNode),
+    };
+    const webkitConstructor = vi.fn(() => webkitCtx);
+    // Make window.AudioContext falsy so the || branch evaluates webkitAudioContext
+    vi.stubGlobal('AudioContext', undefined);
+    vi.stubGlobal('window', {
+      AudioContext: undefined,
+      webkitAudioContext: webkitConstructor,
+    });
+    await sounds.playTick();
+    expect(webkitConstructor).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+    vi.stubGlobal('AudioContext', vi.fn(() => mockCtx));
+    (sounds as unknown as { ctx: null }).ctx = null;
+  });
 });
