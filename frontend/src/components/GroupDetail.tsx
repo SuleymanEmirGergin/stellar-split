@@ -22,6 +22,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
+import ErrorBoundary from './ErrorBoundary';
 import { useGroup, useGroupExpenses, useBalances, useGroupSettlements, groupKeys } from '../hooks/useGroupQuery';
 import { useAddExpenseMutation, useCancelExpenseMutation, useSettleGroupMutation, useAddMemberMutation, useRemoveMemberMutation } from '../hooks/useExpenseMutations';
 import { useSecurityData } from '../hooks/useSecurityData';
@@ -538,6 +539,20 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
         {/* Tab content area */}
         <div className="flex-1 min-w-0 pb-20 sm:pb-0">
+      <ErrorBoundary fallback={
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center">
+            <AlertTriangle size={24} className="text-rose-500" />
+          </div>
+          <div>
+            <p className="font-black tracking-tight mb-1">{t('common.error_fallback_title')}</p>
+            <p className="text-xs text-muted-foreground">{t('common.error_fallback_desc')}</p>
+          </div>
+          <button type="button" onClick={() => window.location.reload()} className="text-xs font-bold px-4 py-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors">
+            {t('common.reload_page')}
+          </button>
+        </div>
+      }>
       <motion.div
         key={tab}
         initial={{ opacity: 0, x: 10 }}
@@ -715,6 +730,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           />
         )}
       </motion.div>
+      </ErrorBoundary>
         </div>
       </div>
 
