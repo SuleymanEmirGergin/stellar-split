@@ -35,6 +35,8 @@ import { useBackendGroups } from '../hooks/useBackendGroups';
 import { getAccessToken, groupsApi } from '../lib/api';
 import { useNotificationStore } from '../store/useNotificationStore';
 import { SkeletonShimmer } from './ui/SkeletonShimmer';
+import NewUserWizard from './NewUserWizard'
+import EmptyState from './EmptyState'
 
 interface Props {
   walletAddress: string;
@@ -95,6 +97,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
   const [archiveFilter, setArchiveFilter] = useState<'active' | 'archive'>('active');
   const [settledIds, setSettledIds] = useState<Set<number>>(new Set());
   const [estimatedCreateFee, setEstimatedCreateFee] = useState<EstimatedFee | null>(null);
+  const [showWizard, setShowWizard] = useState(!localStorage.getItem('wizard_v1_done'));
 
   const { t } = useI18n();
   const xlmUsd = useXlmUsd();
@@ -388,6 +391,23 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                 <SkeletonShimmer className="h-24" rounded="2xl" />
               </>
             )}
+            {/* Wizard — shown on first visit when no groups */}
+            <AnimatePresence>
+              {!backendLoading && displayGroups.length === 0 && showWizard && (
+                <NewUserWizard onClose={() => setShowWizard(false)} />
+              )}
+            </AnimatePresence>
+
+            {/* Empty state — after wizard is dismissed */}
+            {!backendLoading && displayGroups.length === 0 && !showWizard && (
+              <EmptyState
+                icon="🌍"
+                title="Henüz grup yok"
+                description="İlk grubunuzu oluşturun ve arkadaşlarınızı davet edin"
+                action={{ label: 'Grup Oluştur', onClick: () => setShowCreate(true) }}
+              />
+            )}
+
             {displayGroups.length > 0 ? displayGroups.map(g => {
               const gIdStr = String(g.id);
               const balance = balanceMap.get(gIdStr);

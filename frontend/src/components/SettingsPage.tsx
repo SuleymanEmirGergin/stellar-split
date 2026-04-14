@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Loader2,
   Cloud,
+  Link,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { maskAddress } from '../lib/format';
@@ -20,6 +21,7 @@ import { downloadGdprExport, usersApi, getAccessToken } from '../lib/api';
 import { useToast } from './Toast';
 import { useI18n } from '../lib/i18n';
 import { useMotionEnabled } from '../lib/motion';
+import { usePushSubscription } from '../hooks/usePushSubscription';
 
 interface SettingsPageProps {
   dark: boolean;
@@ -70,6 +72,14 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
   const [reduceMotion, setReduceMotion] = useState(() =>
     localStorage.getItem('stellarsplit_reduce_motion') === 'true',
   );
+
+  // Push subscription
+  const { isSubscribed, isSupported, subscribe } = usePushSubscription();
+  const [subscribing, setSubscribing] = useState(false);
+
+  // Webhook URLs
+  const [discordUrl, setDiscordUrl] = useState(() => localStorage.getItem('webhook_global_discord') ?? '');
+  const [slackUrl, setSlackUrl] = useState(() => localStorage.getItem('webhook_global_slack') ?? '');
 
   const handleExport = useCallback(async () => {
     if (!hasJwt) return;
@@ -291,8 +301,9 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
       )}
 
       {/* Section 4 — Notifications */}
-      <SectionCard icon={Bell} title="Notifications">
+      <SectionCard icon={Bell} title="Bildirimler">
         <div className="space-y-4">
+          {/* Browser notifications */}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Browser notifications</p>
@@ -321,12 +332,128 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
             )}
           </div>
 
+          <div className="border-t border-white/5" />
+
+          {/* Push Bildirimleri */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Push Bildirimleri</span>
+            {!isSupported ? (
+              <span className="text-xs text-foreground/40">⏳ Bu tarayıcıda desteklenmiyor</span>
+            ) : isSubscribed ? (
+              <span className="text-xs font-bold text-emerald-400">✅ Aktif</span>
+            ) : (
+              <button
+                onClick={async () => {
+                  setSubscribing(true);
+                  await subscribe();
+                  setSubscribing(false);
+                }}
+                disabled={subscribing}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 text-xs font-bold hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+              >
+                {subscribing && <Loader2 size={12} className="animate-spin" />}
+                Bildirimleri Etkinleştir
+              </button>
+            )}
+          </div>
+
           {hasJwt && (
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
               <Cloud size={11} />
               In-app notifications are always synced from the server.
             </div>
           )}
+        </div>
+      </SectionCard>
+
+      {/* Section 5 — Webhook Entegrasyonları */}
+      <SectionCard icon={Link} title="Webhook Entegrasyonları">
+        <div className="space-y-5">
+          {/* Discord */}
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Discord</p>
+            <input
+              type="url"
+              value={discordUrl}
+              onChange={(e) => setDiscordUrl(e.target.value)}
+              placeholder="https://discord.com/api/webhooks/..."
+              className="bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-white/20"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem('webhook_global_discord', discordUrl);
+                  addToast('Kaydedildi', 'success');
+                }}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+              >
+                Kaydet
+              </button>
+              <button
+                onClick={async () => {
+                  if (!discordUrl) return;
+                  try {
+                    await fetch(discordUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ content: '🧪 StellarSplit webhook test' }),
+                    });
+                    addToast('Test gönderildi', 'success');
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Test başarısız';
+                    addToast(msg, 'error');
+                  }
+                }}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 transition-colors"
+              >
+                Test Gönder
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-white/5" />
+
+          {/* Slack */}
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Slack</p>
+            <input
+              type="url"
+              value={slackUrl}
+              onChange={(e) => setSlackUrl(e.target.value)}
+              placeholder="https://hooks.slack.com/services/..."
+              className="bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-white/20"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem('webhook_global_slack', slackUrl);
+                  addToast('Kaydedildi', 'success');
+                }}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+              >
+                Kaydet
+              </button>
+              <button
+                onClick={async () => {
+                  if (!slackUrl) return;
+                  try {
+                    await fetch(slackUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ text: '🧪 StellarSplit webhook test' }),
+                    });
+                    addToast('Test gönderildi', 'success');
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Test başarısız';
+                    addToast(msg, 'error');
+                  }
+                }}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 transition-colors"
+              >
+                Test Gönder
+              </button>
+            </div>
+          </div>
         </div>
       </SectionCard>
     </div>

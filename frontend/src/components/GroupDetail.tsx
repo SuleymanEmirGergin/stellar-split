@@ -76,6 +76,7 @@ import SubscriptionModal from './SubscriptionModal';
 import { NotificationCenter } from './NotificationCenter';
 import { useXlmUsd } from '../lib/xlmPrice';
 import { track } from '../lib/analytics';
+import BottomSheet from './BottomSheet';
 
 interface Props {
   walletAddress: string;
@@ -513,6 +514,48 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         )}
       </AnimatePresence>
 
+      {/* ── Balance Summary Widget ── */}
+      {group && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {[
+            {
+              label: 'Toplam Harcama',
+              value: activeExpenses.length > 0
+                ? `${(activeExpenses.reduce((s, e) => {
+                    const amt = typeof e.amount === 'string' ? parseFloat(e.amount) : e.amount / 10_000_000
+                    return s + amt
+                  }, 0)).toFixed(2)} ${group.currency || 'XLM'}`
+                : `0 ${group.currency || 'XLM'}`,
+              color: 'text-foreground',
+            },
+            {
+              label: 'Harcama Sayısı',
+              value: String(activeExpenses.length),
+              color: 'text-foreground',
+            },
+            {
+              label: (() => {
+                const b = activeBalances.get(walletAddress) ?? 0
+                return b >= 0 ? 'Alacaklısın' : 'Borçlusun'
+              })(),
+              value: (() => {
+                const b = activeBalances.get(walletAddress) ?? 0
+                return `${Math.abs(b / 10_000_000).toFixed(2)} ${group.currency || 'XLM'}`
+              })(),
+              color: (() => {
+                const b = activeBalances.get(walletAddress) ?? 0
+                return b > 0 ? 'text-emerald-400' : b < 0 ? 'text-red-400' : 'text-foreground/50'
+              })(),
+            },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-card/50 border border-white/5 rounded-2xl p-3 text-center">
+              <p className={`text-base font-bold truncate ${color}`}>{value}</p>
+              <p className="text-xs text-foreground/40 mt-0.5 truncate">{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Layout: left sidebar menu + main content */}
       <div className="flex gap-6 items-start">
         {/* Left sidebar – hidden on mobile, icon-only on tablet, full on desktop */}
@@ -742,7 +785,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[600] flex items-center justify-center p-4 overflow-y-auto" 
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[600] hidden md:flex items-center justify-center p-4 overflow-y-auto"
             onClick={()=>setShowAdd(false)}
           >
              <motion.div 
@@ -900,7 +943,114 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           </motion.div>
         )}
       </AnimatePresence>
-      
+
+      {/* Add Expense BottomSheet – mobile only (md:hidden is built into BottomSheet) */}
+      <BottomSheet open={showAdd} onClose={() => setShowAdd(false)} title={t('group.new_expense')}>
+        <div className="space-y-4 pt-2">
+          <div className="relative">
+            <Receipt className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <input data-testid="expense-description-input-mobile" aria-label={t('group.what_for')} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-sm font-bold outline-none focus:border-indigo-500/50 transition-all" placeholder={t('group.what_for')} value={expDesc} onChange={e => setExpDesc(e.target.value)} />
+          </div>
+          <div className="relative">
+            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <input data-testid="expense-amount-input-mobile" aria-label={t('group.amount') || 'Amount'} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-xl font-black tabular-nums outline-none focus:border-indigo-500/50 transition-all" placeholder="0.00" value={expAmount} onChange={e => setExpAmount(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block ml-1">{t('group.category')}</label>
+            <select value={expCategory} onChange={e => setExpCategory(e.target.value)} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/50 transition-all">
+              <option value="">—</option>
+              <option value="food">{t('group.category_food')}</option>
+              <option value="transport">{t('group.category_transport')}</option>
+              <option value="accommodation">{t('group.category_accommodation')}</option>
+              <option value="entertainment">{t('group.category_entertainment')}</option>
+              <option value="market">{t('group.category_market')}</option>
+              <option value="other">{t('group.category_other')}</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <label htmlFor="f-up" className="flex-1 p-4 bg-indigo-500/5 border border-indigo-500/20 border-dashed rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-400 text-center cursor-pointer hover:bg-indigo-500/10 transition-all flex items-center justify-center gap-2">
+              {uploading || aiScanning ? <Zap className="animate-spin" size={14} /> : <Camera size={14} />}
+              {uploading ? t('group.uploading') : (aiScanning ? t('group.analyzing') : t('group.scan_receipt'))}
+            </label>
+            {!hasReceiptAI() && (
+              <button
+                type="button"
+                onClick={() => {
+                  const mock = getMockScannedData();
+                  setOcrResult(mock);
+                  setSelectedOcrItems(mock.items.map((_, i) => i));
+                }}
+                className="px-4 py-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-400 hover:bg-amber-500/20 transition-all whitespace-nowrap"
+              >
+                {t('ocr.demo_receipt')}
+              </button>
+            )}
+          </div>
+          {addExpenseError && (
+            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 flex flex-col gap-2">
+              <p className="text-sm font-bold text-red-400">{addExpenseError}</p>
+              <button type="button" onClick={() => { setAddExpenseError(null); handleAddExpense(); }} className="text-sm font-black text-red-400 hover:text-red-300 underline">
+                {t('common.retry')}
+              </button>
+            </div>
+          )}
+          <AnimatePresence>
+            {ocrResult && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="pt-4 border-t border-white/5 space-y-3"
+              >
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('ocr.review_title')}</h4>
+                  <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-full">{ocrResult.merchant}</span>
+                </div>
+                {ocrResult.currency !== 'XLM' && (
+                  <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[10px] font-bold text-amber-400">
+                    <AlertTriangle size={12} />
+                    {t('ocr.currency_warn')}
+                  </div>
+                )}
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                  {ocrResult.items.map((item: { description: string, amount: number }, idx: number) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedOcrItems(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${selectedOcrItems.includes(idx) ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-secondary/30 border-white/5 opacity-50'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${selectedOcrItems.includes(idx) ? 'bg-indigo-500 animate-pulse' : 'bg-white/20'}`} />
+                        <span className="text-xs font-bold leading-tight">{item.description}</span>
+                      </div>
+                      <span className="text-xs font-black tabular-nums">{item.amount} XLM</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    const selected = ocrResult.items.filter((_, i) => selectedOcrItems.includes(i));
+                    if (selected.length > 0) {
+                      setExpDesc(selected.map(s => s.description).join(', '));
+                      setExpAmount(String(selected.reduce((acc, s) => acc + s.amount, 0)));
+                      setOcrResult(null);
+                    }
+                  }}
+                  className="w-full py-4 bg-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 size={14} /> {t('ocr.add_button')}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="pt-2">
+            <button onClick={handleAddExpense} disabled={adding} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-600/30 hover:-translate-y-1 transition-all active:scale-95 disabled:opacity-50">
+              {adding ? t('common.processing') : `${t('group.add_expense')} ✨`}
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
       {/* Proposal Modal */}
       <AnimatePresence>
         {showAddPropose && (
