@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { PushSubscriptionDto } from './dto/push-subscription.dto';
 
 export type NotificationPayload = Record<string, unknown>;
 
@@ -11,8 +13,27 @@ export class NotificationsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     @InjectQueue('notifications') private readonly notifQueue: Queue,
   ) {}
+
+  getVapidPublicKey(): string {
+    return this.config.get<string>('VAPID_PUBLIC_KEY') ?? '';
+  }
+
+  async subscribePush(userId: string, dto: PushSubscriptionDto): Promise<void> {
+    await this.prisma.pushSubscription.upsert({
+      where: { endpoint: dto.endpoint },
+      update: { p256dh: dto.p256dh, auth: dto.auth, userId },
+      create: { userId, endpoint: dto.endpoint, p256dh: dto.p256dh, auth: dto.auth },
+    });
+  }
+
+  async unsubscribePush(userId: string, endpoint: string): Promise<void> {
+    await this.prisma.pushSubscription.deleteMany({
+      where: { endpoint, userId },
+    });
+  }
 
   async findAll(userId: string, cursor?: string, limit = 20) {
     const take = Math.min(limit, 100);

@@ -44,6 +44,7 @@ import { useOffline } from './lib/network';
 import { useAppStore } from './store/useAppStore';
 import { useXlmPriceWithChange } from './lib/xlmPrice';
 import { getSPLTBalance } from './lib/contract';
+import { useInstallPrompt } from './hooks/useInstallPrompt';
 
 // ── Wallet Balance Hook ──────────────────────────────────────
 function useWalletBalance(address: string | null, isDemo: boolean) {
@@ -149,8 +150,7 @@ function AppContent() {
   const { t, lang, setLang } = useI18n();
   const isOffline = useOffline();
   const motionOn = useMotionEnabled();
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<{ prompt: () => Promise<{ outcome: string }> } | null>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(() => localStorage.getItem('stellarsplit_pwa_install_dismissed') !== 'true');
+  const { canInstall, showBanner: showInstallBanner, promptInstall, dismissBanner } = useInstallPrompt();
   const [showReceivePanel, setShowReceivePanel] = useState(false);
   const [bridgeUri, setBridgeUri] = useState<string | null>(null);
   const location = useLocation();
@@ -258,15 +258,6 @@ function AppContent() {
       navigate(walletAddress ? '/dashboard' : '/', { replace: true });
     }
   }, [isJoin, hasValidJoinGroupId, walletAddress, navigate]);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredInstallPrompt(e as unknown as { prompt: () => Promise<{ outcome: string }> });
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
 
   // Sponsorlu İşlem (Gasless Tx) Toast Dinleyicisi
   useEffect(() => {
@@ -602,7 +593,7 @@ function AppContent() {
       </main>
 
       {/* PWA install banner */}
-      {deferredInstallPrompt && showInstallBanner && (
+      {canInstall && showInstallBanner && (
         <div className="sticky bottom-0 z-40 flex items-center justify-between gap-4 px-6 py-3 bg-indigo-600/90 backdrop-blur border-t border-indigo-500/30 text-white text-sm">
           <div>
             <span className="font-bold">{t('pwa.install_app')}</span>
@@ -611,22 +602,14 @@ function AppContent() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => {
-                deferredInstallPrompt.prompt().then(() => {
-                  setDeferredInstallPrompt(null);
-                  setShowInstallBanner(false);
-                });
-              }}
+              onClick={promptInstall}
               className="px-4 py-2 bg-white text-indigo-600 font-bold rounded-xl hover:bg-white/90 transition-colors"
             >
               {t('pwa.install_app')}
             </button>
             <button
               type="button"
-              onClick={() => {
-                setShowInstallBanner(false);
-                localStorage.setItem('stellarsplit_pwa_install_dismissed', 'true');
-              }}
+              onClick={dismissBanner}
               className="p-2 text-white/80 hover:text-white transition-colors"
               aria-label="Dismiss"
             >

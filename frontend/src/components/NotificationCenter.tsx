@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Bell, CheckCheck, Zap, Users, RefreshCw, Settings, Info } from 'lucide-react';
+import { Bell, BellPlus, CheckCheck, Zap, Users, RefreshCw, Settings, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore, type NotificationType } from '../store/useNotificationStore';
 import { useNotifications, useMarkNotificationRead } from '../hooks/useBackendGroups';
 import { getAccessToken, notificationsApi } from '../lib/api';
+import { usePushSubscription } from '../hooks/usePushSubscription';
 
 function relativeTime(ts: number): string {
   const diff = Date.now() - ts;
@@ -39,6 +40,7 @@ export function NotificationCenter() {
   const { mutate: markRead } = useMarkNotificationRead();
 
   const hasJwt = !!getAccessToken();
+  const { isSubscribed, isSupported, subscribe } = usePushSubscription();
 
   // Fetch backend notifications when authenticated
   useNotifications();
@@ -127,6 +129,21 @@ export function NotificationCenter() {
                 </button>
               )}
             </div>
+
+            {/* Enable push notifications banner */}
+            {isSupported && !isSubscribed && (
+              <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-indigo-500/10">
+                <span className="text-[10px] text-indigo-300 font-semibold">Get real-time alerts</span>
+                <button
+                  onClick={subscribe}
+                  className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                  aria-label="Enable push notifications"
+                >
+                  <BellPlus size={12} />
+                  Enable Notifications
+                </button>
+              </div>
+            )}
 
             {/* List */}
             <div className="max-h-[360px] overflow-y-auto divide-y divide-white/5">

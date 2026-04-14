@@ -33,9 +33,10 @@ model User {
   notifications    Notification[]
   refreshTokens    RefreshToken[]
   badges           UserBadge[]
-  proposalsCreated Proposal[]     @relation("ProposalCreator")
-  proposalVotes    ProposalVote[] @relation("ProposalVoter")
-  disputesCreated  Dispute[]      @relation("DisputeInitiator")
+  proposalsCreated  Proposal[]          @relation("ProposalCreator")
+  proposalVotes     ProposalVote[]      @relation("ProposalVoter")
+  disputesCreated   Dispute[]           @relation("DisputeInitiator")
+  pushSubscriptions PushSubscription[]
 
   @@index([walletAddress])
 }
@@ -262,6 +263,22 @@ model Notification {
   @@index([userId, readAt])
 }
 
+// ─────────────────────────────────────────────
+// PushSubscription — Web Push VAPID subscriptions
+// ─────────────────────────────────────────────
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 enum NotificationType {
   EXPENSE_ADDED
   EXPENSE_CANCELLED
@@ -270,6 +287,7 @@ enum NotificationType {
   MEMBER_LEFT
   RECURRING_TRIGGERED
   GUARDIAN_ADDED
+  TOKEN_MINTED
 }
 
 // ─────────────────────────────────────────────
