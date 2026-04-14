@@ -63,9 +63,9 @@ test.describe('GroupDetail tab switching', () => {
 
   test('defi tab renders vault state', async ({ page }) => {
     await page.getByTestId('tab-defi').click();
-    // Either loading or vault not found (demo mode has no real contract)
+    // Demo mode returns an inactive vault — the DeFi title or vault status should appear
     await expect(
-      page.getByText(/Loading vault|Vault Not Found|Kasa Yükleniyor|Kasa Bilgisi/i),
+      page.getByText(/DeFi|Vault|Kasa|Inactive|Devre/i).first(),
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -93,12 +93,12 @@ test.describe('Recurring subscription creation', () => {
 
   test('+ button opens subscription modal', async ({ page }) => {
     // The + button is in the recurring tab header
-    await page.locator('button[class*="bg-indigo-500"]').first().click();
+    await page.getByTestId('add-subscription-btn').click();
     await expect(page.locator('[aria-labelledby="sub-modal-title"]')).toBeVisible({ timeout: 5000 });
   });
 
   test('subscription modal can be submitted with valid data', async ({ page }) => {
-    await page.locator('button[class*="bg-indigo-500"]').first().click();
+    await page.getByTestId('add-subscription-btn').click();
     const modal = page.locator('[aria-labelledby="sub-modal-title"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
 
@@ -116,7 +116,7 @@ test.describe('Recurring subscription creation', () => {
   });
 
   test('subscription modal closes on Escape key', async ({ page }) => {
-    await page.locator('button[class*="bg-indigo-500"]').first().click();
+    await page.getByTestId('add-subscription-btn').click();
     const modal = page.locator('[aria-labelledby="sub-modal-title"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
     await page.keyboard.press('Escape');

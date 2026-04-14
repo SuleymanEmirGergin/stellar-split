@@ -45,6 +45,7 @@ export default function RecurringTab({
           )}
         </h3>
         <button
+          data-testid="add-subscription-btn"
           onClick={() => setShowAddSub(true)}
           className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 hover:scale-110 transition-transform"
         >
