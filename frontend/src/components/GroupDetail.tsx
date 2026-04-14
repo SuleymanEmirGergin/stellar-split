@@ -174,7 +174,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     handleAddProposal,
     handleVote,
     handleInitiateDispute,
-  } = useGovernanceData(numericGroupId, walletAddress);
+  } = useGovernanceData(numericGroupId, walletAddress, { hasJwt, groupIdStr });
 
   const {
     subscriptions,
