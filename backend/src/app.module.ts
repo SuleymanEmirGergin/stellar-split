@@ -23,13 +23,18 @@ import { EventsModule } from './events/events.module';
 import { AuditModule } from './audit/audit.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { UsersModule } from './users/users.module';
+import { GovernanceModule } from './governance/governance.module';
 
 @Module({
   imports: [
-    // Config — load .env
+    // Config — load .env and validate required variables at startup
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate: (config) => {
+        const { validateEnv } = require('./common/config/env.validation');
+        return validateEnv(config);
+      },
     }),
 
     // Pino structured logging
@@ -99,6 +104,7 @@ import { UsersModule } from './users/users.module';
     AuditModule,
     MetricsModule,
     UsersModule,
+    GovernanceModule,
   ],
   providers: [
     // Apply JWT auth globally — @Public() bypasses it

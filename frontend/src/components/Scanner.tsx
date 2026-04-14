@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import type { Html5QrcodeScanner } from 'html5-qrcode';
 import { useI18n } from '../lib/i18n';
 
 interface Props {
@@ -12,33 +12,43 @@ interface Props {
  */
 export default function Scanner({ onScan, onClose }: Props) {
   const { t } = useI18n();
+  // Type-only import keeps html5-qrcode out of the initial bundle.
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
-    scannerRef.current = new Html5QrcodeScanner(
-      'qr-reader',
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      /* verbose= */ false
-    );
+    let mounted = true;
 
-    scannerRef.current.render(
-      (decodedText) => {
-        // Look for pattern: stellarsplit:join:<id>
-        if (decodedText.startsWith('stellarsplit:join:')) {
-          const groupId = parseInt(decodedText.split(':')[2]);
-          if (!isNaN(groupId)) {
-            scannerRef.current?.clear();
-            onScan(groupId);
+    // Dynamic import: html5-qrcode (camera API + worker) is only loaded when
+    // the Scanner modal is actually opened.
+    import('html5-qrcode').then(({ Html5QrcodeScanner: Scanner }) => {
+      if (!mounted) return;
+
+      scannerRef.current = new Scanner(
+        'qr-reader',
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+      );
+
+      scannerRef.current.render(
+        (decodedText) => {
+          // Look for pattern: stellarsplit:join:<id>
+          if (decodedText.startsWith('stellarsplit:join:')) {
+            const groupId = parseInt(decodedText.split(':')[2]);
+            if (!isNaN(groupId)) {
+              scannerRef.current?.clear();
+              onScan(groupId);
+            }
           }
+        },
+        () => {
+          // silent fail for most frames (error callback)
         }
-      },
-      () => {
-        // silent fail for most frames (error callback)
-      }
-    );
+      );
+    });
 
     return () => {
-      scannerRef.current?.clear();
+      mounted = false;
+      scannerRef.current?.clear().catch(() => {});
     };
   }, [onScan]);
 

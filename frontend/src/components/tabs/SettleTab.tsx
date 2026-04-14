@@ -134,29 +134,29 @@ export default function SettleTab({
                   >
                     <div className="bg-black/20 rounded-2xl p-4 border border-indigo-500/10">
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-xs font-bold text-muted-foreground">Hedef (USDC)</span>
+                        <span className="text-xs font-bold text-muted-foreground">{t('group.path_pay_target')}</span>
                         <span className="text-sm font-black">{amountXlm} USDC</span>
                       </div>
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-xs font-bold text-muted-foreground">Tahmini Tutar (XLM)</span>
+                        <span className="text-xs font-bold text-muted-foreground">{t('group.path_pay_estimated')}</span>
                         <span className="text-sm font-black text-indigo-400">~{(parseFloat(amountXlm) / (xlmUsd || 0.1)).toFixed(2)} XLM</span>
                       </div>
                       <div className="text-[10px] text-muted-foreground italic mb-4 text-center">
-                        * Stellar DEX kullanılarak cüzdanınızdan XLM çekilecek, alıcıya anında USDC varacaktır.
+                        {t('group.path_pay_note')}
                       </div>
-                      
+
                       {pathSuccess ? (
                         <div className="w-full py-3 bg-emerald-500/20 text-emerald-400 rounded-xl font-bold flex items-center justify-center gap-2">
-                          <CheckCircle2 size={16} /> İşlem Başarılı!
+                          <CheckCircle2 size={16} /> {t('group.path_pay_success')}
                         </div>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => handleSimulatePathPayment()}
                           disabled={simulatingPath}
                           className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-500 transition-all disabled:opacity-50"
                         >
                           {simulatingPath ? <Zap className="animate-spin" size={16} /> : <ArrowRightLeft size={16} />}
-                          {simulatingPath ? 'DEX Üzerinden Swap Ediliyor...' : 'XLM ile Öde'}
+                          {simulatingPath ? t('group.path_pay_swapping') : t('group.path_pay_btn')}
                         </button>
                       )}
                     </div>

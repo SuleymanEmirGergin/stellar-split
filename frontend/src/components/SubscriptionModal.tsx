@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Repeat } from 'lucide-react';
 import { type RecurringTemplate, type Interval } from '../lib/recurring';
@@ -30,6 +30,29 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
   const [interval, setInterval] = useState<Interval>('monthly');
   const [category, setCategory] = useState('entertainment');
   const [nextDue, setNextDue]   = useState<string>(defaultNextDue);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const trapFocus = useCallback((e: KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const el = dialogRef.current;
+    if (!el) return;
+    const focusable = el.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.addEventListener('keydown', trapFocus);
+    return () => document.removeEventListener('keydown', trapFocus);
+  }, [isOpen, trapFocus]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,13 +86,17 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
             className="absolute inset-0 bg-background/80 backdrop-blur-sm"
           />
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sub-modal-title"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative w-full max-w-lg bg-card border border-border rounded-[32px] shadow-2xl overflow-hidden p-8"
           >
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
+              <h2 id="sub-modal-title" className="text-2xl font-black tracking-tight flex items-center gap-3">
                 <Repeat className="text-indigo-500" /> Yeni Abonelik
               </h2>
               <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">

@@ -6,6 +6,8 @@ interface AppState {
   setWalletAddress: (address: string) => void;
   backendUser: AuthUser | null;
   setBackendUser: (user: AuthUser | null) => void;
+  demoMode: boolean;
+  setDemoMode: (enabled: boolean) => void;
 }
 
 // E2E: Playwright sets window.__PLAYWRIGHT_E2E_WALLET__ before page scripts run.
@@ -15,9 +17,16 @@ const e2eWallet =
     ? (window as unknown as { __PLAYWRIGHT_E2E_WALLET__?: string }).__PLAYWRIGHT_E2E_WALLET__ ?? ''
     : '';
 
+const DEMO_KEY = 'stellarsplit_demo_mode';
+
 export const useAppStore = create<AppState>((set) => ({
   walletAddress: e2eWallet,
   setWalletAddress: (address) => set({ walletAddress: address }),
   backendUser: null,
   setBackendUser: (user) => set({ backendUser: user }),
+  demoMode: typeof window !== 'undefined' && localStorage.getItem(DEMO_KEY) === 'true',
+  setDemoMode: (enabled) => {
+    localStorage.setItem(DEMO_KEY, String(enabled));
+    set({ demoMode: enabled });
+  },
 }));

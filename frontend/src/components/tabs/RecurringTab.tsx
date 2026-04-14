@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Plus, Repeat, Trash2, Cloud } from 'lucide-react';
 import { type RecurringTemplate } from '../../lib/recurring';
 import { SkeletonShimmer } from '../ui/SkeletonShimmer';
+import type { TranslationKey } from '../../lib/i18n';
 
 interface RecurringTabProps {
   subscriptions: RecurringTemplate[];
@@ -10,6 +11,7 @@ interface RecurringTabProps {
   isBackend?: boolean;
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
+  t: (key: TranslationKey) => string;
 }
 
 export default function RecurringTab({
@@ -18,6 +20,7 @@ export default function RecurringTab({
   isLoading,
   isBackend,
   onDelete,
+  t,
 }: RecurringTabProps) {
   if (isLoading) {
     return (
@@ -33,11 +36,11 @@ export default function RecurringTab({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="font-black text-lg tracking-tight flex items-center gap-2">
-          Active Subscriptions
+          {t('group.recurring_title')}
           {isBackend && (
             <span className="flex items-center gap-1 text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
               <Cloud size={10} />
-              Synced
+              {t('group.recurring_synced')}
             </span>
           )}
         </h3>
@@ -62,9 +65,9 @@ export default function RecurringTab({
           >
             <Repeat className="w-16 h-16 mx-auto text-indigo-500/20 mb-6" />
           </motion.div>
-          <p className="text-lg font-black text-white/90 tracking-tight">Abonelik Bulunmuyor</p>
+          <p className="text-lg font-black text-white/90 tracking-tight">{t('group.recurring_empty')}</p>
           <p className="text-sm font-bold text-muted-foreground mt-2 max-w-[250px] mx-auto leading-relaxed">
-            Grubunuzda henüz tekrarlayan bir ödeme planı yok.
+            {t('group.recurring_empty_hint')}
           </p>
         </motion.div>
       )}

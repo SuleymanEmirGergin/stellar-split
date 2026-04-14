@@ -1,0 +1,37 @@
+{
+	"folders": [
+		{
+			"path": "stellar-split/.github"
+		},
+		{
+			"path": "stellar-split/Antigravity Skills Repo"
+		},
+		{
+			"path": "stellar-split/api"
+		},
+		{
+			"path": "stellar-split/backend agent"
+		},
+		{
+			"path": "stellar-split/contracts"
+		},
+		{
+			"path": "stellar-split/docs"
+		},
+		{
+			"path": "stellar-split/frontend"
+		},
+		{
+			"path": "stellar-split/packages"
+		},
+		{
+			"path": "stellar-split/scripts"
+		},
+		{
+			"path": "stellar-split/target"
+		}
+	],
+	"settings": {
+		"prisma.pinToPrisma6": false
+	}
+}

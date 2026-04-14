@@ -23,7 +23,39 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Security headers
-  app.use(helmet());
+  const isProd = process.env.NODE_ENV === 'production';
+  app.use(
+    helmet({
+      // Strict CSP for production: API serves JSON only, no embedded resources needed.
+      // Dev relaxes CSP so Swagger UI (inline scripts/styles) can load.
+      contentSecurityPolicy: isProd
+        ? {
+            directives: {
+              defaultSrc: ["'none'"],
+              frameAncestors: ["'none'"],
+              formAction: ["'none'"],
+            },
+          }
+        : false,
+      // Never allow this API to be embedded in a frame
+      frameguard: { action: 'deny' },
+      // Hide Express fingerprint
+      hidePoweredBy: true,
+      // Strict referrer policy
+      referrerPolicy: { policy: 'no-referrer' },
+      // HSTS: 1 year, include subdomains (prod only — avoids breaking local HTTP)
+      hsts: isProd
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
+    }),
+  );
+
+  // Echo X-Request-ID back in every response for log correlation
+  app.use((req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
+    const id = (req.headers['x-request-id'] as string) || crypto.randomUUID();
+    res.setHeader('X-Request-ID', id);
+    next();
+  });
 
   // CORS — allow frontend origin only
   app.enableCors({
@@ -52,16 +84,70 @@ async function bootstrap() {
   // Prometheus request duration + counter metrics
   app.useGlobalInterceptors(new MetricsInterceptor());
 
-  // Swagger API docs
-  if (process.env.NODE_ENV !== 'production') {
+  // Swagger API docs — enabled in development, or when SWAGGER_ENABLED=true (e.g. staging)
+  const swaggerEnabled =
+    process.env.SWAGGER_ENABLED === 'true' || process.env.NODE_ENV !== 'production';
+
+  if (swaggerEnabled) {
     const config = new DocumentBuilder()
       .setTitle('StellarSplit API')
-      .setDescription('Decentralized group expense splitting — backend API')
+      .setDescription(
+        `## Overview
+Decentralized group expense splitting on the Stellar blockchain.
+
+## Authentication flow
+1. \`GET /auth/challenge\` — receive a one-time nonce
+2. Sign the nonce with Freighter wallet (Sign-In With Stellar)
+3. \`POST /auth/verify\` — receive \`accessToken\` (JWT Bearer) + \`refresh_token\` (HttpOnly cookie)
+4. Use \`Authorization: Bearer <accessToken>\` on all protected endpoints
+5. \`POST /auth/refresh\` — silently renew using the HttpOnly cookie
+
+## Response envelope
+Every response is wrapped:
+\`\`\`json
+{ "success": true,  "data": { ... }, "error": null }
+{ "success": false, "data": null,   "error": { "statusCode": 403, "message": "...", "timestamp": "...", "path": "..." } }
+\`\`\`
+
+## Rate limits
+Auth endpoints are throttled to **10 requests / 60 s** per IP.`,
+      )
       .setVersion('1.0')
-      .addBearerAuth()
+      .setContact('StellarSplit', 'https://github.com/SuleymanEmirGergin/stellar-split', '')
+      .setLicense('MIT', 'https://opensource.org/licenses/MIT')
+      .addServer('http://localhost:3001', 'Local development')
+      .addServer('https://api.stellarsplit.app', 'Production')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Access token from POST /auth/verify (expires in 15 min)',
+        },
+        'access-token',
+      )
+      .addCookieAuth(
+        'refresh_token',
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          description: 'HttpOnly refresh token — set automatically by POST /auth/verify',
+        },
+        'refresh-cookie',
+      )
       .build();
+
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        tagsSorter: 'alpha',
+        operationsSorter: 'alpha',
+        docExpansion: 'none',
+        filter: true,
+      },
+      customSiteTitle: 'StellarSplit API Docs',
+    });
   }
 
   const port = process.env.PORT ?? 3001;

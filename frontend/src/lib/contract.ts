@@ -1,18 +1,20 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { rpc } from '@stellar/stellar-sdk';
 import { server, NETWORK_PASSPHRASE, CONTRACT_ID, getNativeTokenContractId, USDC_CONTRACT_ID } from './stellar';
+import { useAppStore } from '../store/useAppStore';
 
 const contract = new StellarSdk.Contract(CONTRACT_ID);
 
-// Reward Token ID (in production, this would be in .env)
-export const SPLT_CONTRACT_ID = 'CDA7...REWARD'; 
+// Reward Token ID — read from env; empty string disables SPLT features gracefully
+export const SPLT_CONTRACT_ID: string =
+  (import.meta.env.VITE_SPLT_CONTRACT_ID as string | undefined) ?? '';
 
 /**
- * Demo Mode Check: If 'stellarsplit_demo_mode' is 'true' in localStorage, 
- * we bypass the blockchain and return mock data.
+ * Demo Mode Check: Single source of truth via Zustand store.
+ * All lib functions call this; toggling via useAppStore.setDemoMode() updates everything.
  */
 export function isDemoMode(): boolean {
-  return localStorage.getItem('stellarsplit_demo_mode') === 'true';
+  return useAppStore.getState().demoMode;
 }
 
 /** Helper for demo delays */
@@ -998,7 +1000,8 @@ export async function awardBadge(
 /** Fetch SPLT (StellarSplit Reward Token) balance for a user. */
 export async function getSPLTBalance(userAddress: string): Promise<number> {
   if (isDemoMode()) return 1200; // Mock SPLT
-  
+  if (!SPLT_CONTRACT_ID) return 0; // Contract not deployed yet
+
   try {
     const spltContract = new StellarSdk.Contract(SPLT_CONTRACT_ID);
     const account = await server.getAccount(userAddress);
