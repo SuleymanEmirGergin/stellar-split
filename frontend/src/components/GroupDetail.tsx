@@ -707,6 +707,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             handleVote={(id: number, vote: 'yes' | 'no') => {
               handleVote(String(id), vote);
             }}
+            t={t}
           />
         )}
 

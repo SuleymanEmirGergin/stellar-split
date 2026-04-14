@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Users, Plus } from 'lucide-react';
 import { type Group } from '../../lib/contract';
 import { type Proposal, calculateProposalMetrics } from '../../lib/governance';
+import type { TranslationKey } from '../../lib/i18n';
 
 interface GovernanceTabProps {
   group: Group;
@@ -9,6 +10,7 @@ interface GovernanceTabProps {
   walletAddress: string;
   setShowAddPropose: (val: boolean) => void;
   handleVote: (proposalId: number, vote: 'yes' | 'no') => void;
+  t: (key: TranslationKey) => string;
 }
 
 const itemVars = {
@@ -21,12 +23,13 @@ export default function GovernanceTab({
   walletAddress,
   proposals,
   setShowAddPropose,
-  handleVote
+  handleVote,
+  t,
 }: GovernanceTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="font-black text-lg tracking-tight">Grup Kararları</h3>
+        <h3 className="font-black text-lg tracking-tight">{t('group.governance_title')}</h3>
         <button 
           onClick={() => setShowAddPropose(true)} 
           className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 hover:scale-110 transition-transform"
@@ -48,8 +51,8 @@ export default function GovernanceTab({
           >
             <Users className="w-16 h-16 mx-auto text-indigo-500/20 mb-6" />
           </motion.div>
-          <p className="text-lg font-black text-white/90 tracking-tight">Oylama Yok</p>
-          <p className="text-sm font-bold text-muted-foreground mt-2 max-w-[250px] mx-auto leading-relaxed">Şu anda onay bekleyen aktif bir grup kararı bulunmuyor.</p>
+          <p className="text-lg font-black text-white/90 tracking-tight">{t('group.governance_empty')}</p>
+          <p className="text-sm font-bold text-muted-foreground mt-2 max-w-[250px] mx-auto leading-relaxed">{t('group.governance_empty_desc')}</p>
         </motion.div>
       )}
 
@@ -71,7 +74,7 @@ export default function GovernanceTab({
 
               <div className="space-y-2">
                  <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
-                   <span>Onay Oranı</span>
+                   <span>{t('group.governance_approval')}</span>
                    <span>%{metrics.yesPercent.toFixed(1)} / %{p.threshold}</span>
                  </div>
                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -85,14 +88,14 @@ export default function GovernanceTab({
                   disabled={hasVoted}
                   className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${p.votes[walletAddress] === 'yes' ? 'bg-emerald-500 text-white' : 'bg-white/5 text-muted-foreground hover:bg-emerald-500/10'}`}
                 >
-                  Evet {p.votes[walletAddress] === 'yes' && '✓'}
+                  {t('group.vote_yes')} {p.votes[walletAddress] === 'yes' && '✓'}
                 </button>
-                <button 
+                <button
                   onClick={() => handleVote(Number(p.id), 'no')}
                   disabled={hasVoted}
                   className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${p.votes[walletAddress] === 'no' ? 'bg-rose-500 text-white' : 'bg-white/5 text-muted-foreground hover:bg-rose-500/10'}`}
                 >
-                  Hayır {p.votes[walletAddress] === 'no' && '✓'}
+                  {t('group.vote_no')} {p.votes[walletAddress] === 'no' && '✓'}
                 </button>
               </div>
             </motion.div>
