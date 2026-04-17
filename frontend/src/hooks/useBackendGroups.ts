@@ -9,6 +9,7 @@ import {
   groupsApi,
   expensesApi,
   settlementsApi,
+  guardiansApi,
   reputationApi,
   notificationsApi,
   recurringApi,
@@ -17,6 +18,7 @@ import {
   type SplitType,
   type ExpenseSplitInput,
   type CreateRecurringPayload,
+  type GroupAnalytics,
 } from '../lib/api';
 import { useNotificationStore } from '../store/useNotificationStore';
 
@@ -32,6 +34,7 @@ export const backendGroupKeys = {
   settlements: (id: string) => [...backendGroupKeys.detail(id), 'settlements'] as const,
   recurring: (id: string) => [...backendGroupKeys.detail(id), 'recurring'] as const,
   audit: (id: string) => [...backendGroupKeys.detail(id), 'audit'] as const,
+  analytics: (id: string) => [...backendGroupKeys.detail(id), 'analytics'] as const,
   reputation: () => ['backend', 'reputation'] as const,
   notifications: () => ['backend', 'notifications'] as const,
 };
@@ -243,5 +246,98 @@ export function useBackendAudit(groupId: string | null, enabled: boolean) {
     queryFn: () => auditApi.list(groupId!),
     enabled: !!groupId && enabled,
     staleTime: 30_000,
+  });
+}
+
+export function useGroupAnalytics(groupId: string | null, enabled = true) {
+  return useQuery<GroupAnalytics>({
+    queryKey: backendGroupKeys.analytics(groupId ?? ''),
+    queryFn: () => groupsApi.analytics(groupId!),
+    enabled: !!groupId && enabled,
+    staleTime: 60_000,
+  });
+}
+
+// ─── Transfer Ownership ───────────────────────────────────────────────────────
+
+export function useTransferOwnershipMutation(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (newOwnerId: string) =>
+      groupsApi.transferOwnership(groupId, newOwnerId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: backendGroupKeys.detail(groupId) });
+      qc.invalidateQueries({ queryKey: backendGroupKeys.all });
+    },
+  });
+}
+
+// ─── Settlement Status ────────────────────────────────────────────────────────
+
+export function useUpdateSettlementStatusMutation(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'CONFIRMED' | 'FAILED' }) =>
+      settlementsApi.updateStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: backendGroupKeys.settlements(groupId) });
+      qc.invalidateQueries({ queryKey: backendGroupKeys.detail(groupId) });
+    },
+  });
+}
+
+// ─── Social Recovery Requests ─────────────────────────────────────────────────
+
+const recoveryKeys = {
+  pending: () => ['guardians', 'recovery-requests'] as const,
+};
+
+export function usePendingRecoveryRequests(enabled = true) {
+  return useQuery({
+    queryKey: recoveryKeys.pending(),
+    queryFn: () => guardiansApi.listRecoveryRequests(),
+    enabled: enabled && !!getAccessToken(),
+    staleTime: 30_000,
+  });
+}
+
+export function useInitiateRecoveryMutation(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => guardiansApi.initiateRecoveryRequest(groupId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recoveryKeys.pending() });
+    },
+  });
+}
+
+export function useApproveRecoveryMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => guardiansApi.approveRecoveryRequest(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recoveryKeys.pending() });
+    },
+  });
+}
+
+export function useRejectRecoveryMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => guardiansApi.rejectRecoveryRequest(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recoveryKeys.pending() });
+    },
+  });
+}
+
+// ─── Invite Link ──────────────────────────────────────────────────────────────
+
+export function useInviteLink(groupId: string | null, enabled = false) {
+  return useQuery({
+    queryKey: [...backendGroupKeys.detail(groupId ?? ''), 'invite'] as const,
+    queryFn: () => groupsApi.inviteLink(groupId!),
+    enabled: !!groupId && enabled,
+    staleTime: 300_000, // 5 min — invite codes change rarely
   });
 }

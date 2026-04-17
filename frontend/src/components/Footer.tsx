@@ -4,7 +4,7 @@ import { useI18n } from '../lib/i18n';
 export default function Footer() {
   const { t } = useI18n();
   return (
-    <footer className="border-t border-border glass-panel mt-auto">
+    <footer className="relative z-10 border-t border-white/[0.06] bg-background/60 backdrop-blur-xl mt-auto">
       <div className="max-w-[1200px] mx-auto px-8 py-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Brand */}

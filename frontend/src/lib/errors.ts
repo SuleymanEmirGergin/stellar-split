@@ -3,6 +3,11 @@
  */
 export type Lang = 'tr' | 'en';
 
+/** Safely maps any language string to a supported Lang key. */
+export function getLangKey(lang: string): Lang {
+  return lang === 'tr' ? 'tr' : 'en';
+}
+
 const MAP: { pattern: RegExp | string; tr: string; en: string }[] = [
   { pattern: /group is already settled/i, tr: 'Grup zaten kapatılmış (settle edilmiş).', en: 'Group is already settled.' },
   { pattern: /at least 2 members required/i, tr: 'En az 2 üye gerekli.', en: 'At least 2 members required.' },

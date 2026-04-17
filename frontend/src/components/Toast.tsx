@@ -50,16 +50,28 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 300);
   }, []);
 
-  const typeStyles: Record<ToastType, string> = {
-    success: 'bg-green-600/95 border-green-500/40',
-    error: 'bg-red-700/95 border-red-500/40',
-    info: 'bg-primary/90 border-primary/40',
+  const typeConfig: Record<ToastType, { bg: string; icon: string; dot: string }> = {
+    success: {
+      bg: 'bg-[#0d1a12]/95 border-emerald-500/25',
+      icon: '✓',
+      dot: 'bg-emerald-400',
+    },
+    error: {
+      bg: 'bg-[#1a0d0d]/95 border-rose-500/25',
+      icon: '✕',
+      dot: 'bg-rose-400',
+    },
+    info: {
+      bg: 'bg-[#0d1120]/95 border-indigo-500/25',
+      icon: 'i',
+      dot: 'bg-indigo-400',
+    },
   };
 
-  const icons: Record<ToastType, string> = {
-    success: '✅',
-    error: '❌',
-    info: 'ℹ️',
+  const dotColor: Record<ToastType, string> = {
+    success: 'text-emerald-400',
+    error: 'text-rose-400',
+    info: 'text-indigo-400',
   };
 
   return (
@@ -69,13 +81,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`flex items-center gap-2.5 px-5 py-3 rounded-lg text-sm font-medium text-white pointer-events-auto cursor-pointer backdrop-blur-xl shadow-lg max-w-[400px] border ${
-              typeStyles[toast.type]
-            } ${toast.type === 'success' && !toast.exiting ? 'toast-success-pulse' : ''} ${toast.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-white/90 pointer-events-auto cursor-pointer backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] max-w-[380px] border ${
+              typeConfig[toast.type].bg
+            } ${toast.exiting ? 'animate-toast-out' : 'animate-toast-in'}`}
             onClick={() => dismissToast(toast.id)}
           >
-            <span className="text-base shrink-0">{icons[toast.type]}</span>
-            <span className="flex-1 leading-snug">{toast.message}</span>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-black ${dotColor[toast.type]} bg-current/10`} style={{ color: 'inherit' }}>
+              <span className={dotColor[toast.type]}>{typeConfig[toast.type].icon}</span>
+            </div>
+            <span className="flex-1 leading-snug text-white/85">{toast.message}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); dismissToast(toast.id); }}
+              className="text-white/25 hover:text-white/60 transition-colors text-lg leading-none shrink-0"
+            >
+              ×
+            </button>
           </div>
         ))}
       </div>

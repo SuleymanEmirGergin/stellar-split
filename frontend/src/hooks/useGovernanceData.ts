@@ -5,6 +5,7 @@ import {
   loadProposals,
   saveProposals,
   type VoteOption,
+  type DisputeVoteOption,
   type Dispute,
   loadDisputes,
   saveDisputes,
@@ -33,6 +34,10 @@ function toFrontendProposal(p: BackendProposal): Proposal {
 }
 
 function toFrontendDispute(d: BackendDispute): Dispute {
+  const votes: Record<string, DisputeVoteOption> = {};
+  for (const v of (d.votes ?? [])) {
+    votes[v.voter.walletAddress] = v.option;
+  }
   return {
     id: d.id,
     initiator: d.initiator.walletAddress,
@@ -40,7 +45,7 @@ function toFrontendDispute(d: BackendDispute): Dispute {
     amount: parseFloat(d.amount),
     category: d.category,
     description: d.description,
-    votes: {},
+    votes,
     status: d.status.toLowerCase() as 'open' | 'resolved' | 'dismissed',
     createdAt: new Date(d.createdAt).getTime(),
   };
@@ -104,6 +109,14 @@ export function useGovernanceData(
   const createDisputeMutation = useMutation({
     mutationFn: (payload: Parameters<typeof governanceApi.createDispute>[0]) =>
       governanceApi.createDispute(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: governanceKeys.disputes(groupIdStr ?? String(groupId)) });
+    },
+  });
+
+  const castDisputeVoteMutation = useMutation({
+    mutationFn: ({ disputeId, option }: { disputeId: string; option: DisputeVoteOption }) =>
+      governanceApi.castDisputeVote(disputeId, option),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: governanceKeys.disputes(groupIdStr ?? String(groupId)) });
     },
@@ -184,6 +197,21 @@ export function useGovernanceData(
     [hasJwt, castVoteMutation, localProposals, walletAddress, groupId],
   );
 
+  const handleVoteDispute = useCallback(
+    (disputeId: string, option: DisputeVoteOption) => {
+      if (hasJwt) {
+        castDisputeVoteMutation.mutate({ disputeId, option });
+      } else {
+        const updated = localDisputes.map((d) =>
+          d.id === disputeId ? { ...d, votes: { ...d.votes, [walletAddress]: option } } : d,
+        );
+        setLocalDisputes(updated);
+        saveDisputes(groupId, updated);
+      }
+    },
+    [hasJwt, castDisputeVoteMutation, localDisputes, walletAddress, groupId],
+  );
+
   const handleInitiateDispute = useCallback(
     (expId: string, amount: number, category: string, description: string) => {
       if (hasJwt && groupIdStr) {
@@ -212,10 +240,11 @@ export function useGovernanceData(
     setNewPropDesc,
     handleAddProposal,
     handleVote,
+    handleVoteDispute,
     handleInitiateDispute,
   }), [
     proposals, disputes, setDisputes,
     showAddPropose, setShowAddPropose, newPropTitle, newPropDesc,
-    handleAddProposal, handleVote, handleInitiateDispute,
+    handleAddProposal, handleVote, handleVoteDispute, handleInitiateDispute,
   ]);
 }

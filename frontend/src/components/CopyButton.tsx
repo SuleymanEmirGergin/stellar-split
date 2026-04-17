@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { useI18n } from '../lib/i18n';
 
 interface Props {
   text: string;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function CopyButton({ text, className = '', size = 'sm', onCopy }: Props) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -50,7 +52,7 @@ export default function CopyButton({ text, className = '', size = 'sm', onCopy }
   return (
     <button
       onClick={handleCopy}
-      title={copied ? 'Kopyalandı!' : 'Kopyala'}
+      title={copied ? t('common.copied') : t('common.copy')}
       className={`inline-flex items-center gap-1 rounded border transition-all duration-200 font-medium ${sizeClasses} ${
         copied
           ? 'bg-green-500/20 border-green-500/40 text-green-400 copy-just-copied'
@@ -60,12 +62,12 @@ export default function CopyButton({ text, className = '', size = 'sm', onCopy }
       {copied ? (
         <>
           <span className="text-[10px]">✓</span>
-          <span>Kopyalandı</span>
+          <span>{t('common.copied')}</span>
         </>
       ) : (
         <>
           <span className="text-[10px]">⎘</span>
-          <span>Kopyala</span>
+          <span>{t('common.copy')}</span>
         </>
       )}
     </button>

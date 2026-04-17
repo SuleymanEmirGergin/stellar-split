@@ -23,7 +23,7 @@ export default function QRCode({ groupId, groupName, destination, amount, memo, 
   } else {
     // Standard URL + internal protocol for scanner
     data = `stellarsplit:join:${groupId}`; 
-    label = `Grup #${groupId} — ${groupName}`;
+    label = `${t('qr.group_label')}${groupId} — ${groupName}`;
     subText = t('dash.empty'); // Placeholder for scan text
   }
 
@@ -50,7 +50,7 @@ export default function QRCode({ groupId, groupName, destination, amount, memo, 
             className="text-xs text-primary hover:underline"
             onClick={() => { navigator.clipboard.writeText(data).catch(() => {}); }}
           >
-            🔗 {type === 'pay' ? 'Ödeme Linkini Kopyala' : 'Grup Linkini Kopyala'}
+            🔗 {type === 'pay' ? t('qr.copy_payment_link') : t('qr.copy_group_link')}
           </button>
           {type === 'pay' && (
             <a
@@ -59,7 +59,7 @@ export default function QRCode({ groupId, groupName, destination, amount, memo, 
               target="_blank"
               rel="noopener noreferrer"
             >
-              📱 Cüzdanda Aç
+              📱 {t('qr.open_wallet')}
             </a>
           )}
         </div>

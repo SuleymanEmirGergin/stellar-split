@@ -166,7 +166,21 @@ export const groupsApi = {
     api.get<{ transfers: Array<{ fromUserId: string; toUserId: string; amount: number }>; totalTransfers: number; savedTransfers: number }>(`/groups/${groupId}/settlement-plan`),
   inviteLink: (groupId: string) =>
     api.get<{ data: { inviteCode: string; groupId: string } }>(`/groups/${groupId}/invite`),
+  analytics: (groupId: string) =>
+    api.get<GroupAnalytics>(`/groups/${groupId}/analytics`),
+  transferOwnership: (groupId: string, newOwnerId: string) =>
+    api.patch<void>(`/groups/${groupId}/transfer-ownership`, { newOwnerId }),
 };
+
+// ─── Analytics types ──────────────────────────────────────────────────────────
+
+export interface GroupAnalytics {
+  totalExpenses: number;
+  totalAmount: number;
+  categoryBreakdown: Array<{ category: string; total: number; count: number }>;
+  memberSpending: Array<{ walletAddress: string; total: number }>;
+  timeline: Array<{ date: string; amount: number; cumulative: number }>;
+}
 
 // ─── Expenses endpoints ───────────────────────────────────────────────────────
 
@@ -211,11 +225,27 @@ export const expensesApi = {
 
 // ─── Settlements endpoints ────────────────────────────────────────────────────
 
+export type SettlementStatus = 'PENDING' | 'CONFIRMED' | 'FAILED';
+
+export interface BackendSettlement {
+  id: string;
+  groupId: string;
+  settledById: string;
+  txHash: string;
+  amount: string;
+  currency: 'XLM' | 'USDC';
+  status: SettlementStatus;
+  confirmedAt: string | null;
+  timestamp: string;
+}
+
 export const settlementsApi = {
   list: (groupId: string) =>
-    api.get<{ data: { items: unknown[]; hasMore: boolean } }>(`/groups/${groupId}/settlements`),
+    api.get<{ data: { items: BackendSettlement[]; hasMore: boolean } }>(`/groups/${groupId}/settlements`),
   create: (groupId: string, txHash: string, amount: number) =>
-    api.post<{ data: unknown }>(`/groups/${groupId}/settlements`, { groupId, txHash, amount }),
+    api.post<{ data: BackendSettlement }>(`/groups/${groupId}/settlements`, { groupId, txHash, amount }),
+  updateStatus: (settlementId: string, status: 'CONFIRMED' | 'FAILED') =>
+    api.patch<{ data: BackendSettlement }>(`/settlements/${settlementId}/status`, { status }),
 };
 
 // ─── Notifications endpoints ──────────────────────────────────────────────────
@@ -236,6 +266,11 @@ export const notificationsApi = {
   markRead: (id: string) => api.patch<void>(`/notifications/${id}/read`),
   markAllRead: (ids: string[]) =>
     Promise.allSettled(ids.map((id) => api.patch<void>(`/notifications/${id}/read`))),
+  // Push Notification (Web Push / VAPID)
+  getVapidPublicKey: () => api.get<{ data: { publicKey: string } }>('/notifications/vapid-public-key'),
+  subscribePush: (subscription: PushSubscriptionJSON) =>
+    api.post<void>('/notifications/push-subscriptions', subscription),
+  unsubscribePush: () => api.delete<void>('/notifications/push-subscriptions'),
 };
 
 // ─── Recurring endpoints ──────────────────────────────────────────────────────
@@ -330,6 +365,7 @@ export interface BackendDispute {
   status: 'OPEN' | 'RESOLVED' | 'DISMISSED';
   createdAt: string;
   initiator: { id: string; walletAddress: string };
+  votes: Array<{ voter: { id: string; walletAddress: string }; option: 'uphold' | 'dismiss' }>;
 }
 
 export const governanceApi = {
@@ -357,6 +393,98 @@ export const governanceApi = {
     category: string;
     description: string;
   }) => api.post<BackendDispute>('/governance/disputes', payload),
+
+  castDisputeVote: (disputeId: string, option: 'uphold' | 'dismiss') =>
+    api.post<{ id: string; option: string }>(`/governance/disputes/${disputeId}/vote`, { option }),
+};
+
+// ─── Payment Requests ─────────────────────────────────────────────────────────
+
+export interface BackendPaymentRequest {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  groupId: string;
+  amount: string; // Decimal serialized as string
+  currency: 'XLM' | 'USDC';
+  note: string | null;
+  dueDate: string | null;
+  status: 'PENDING' | 'PAID' | 'CANCELLED' | 'EXPIRED';
+  createdAt: string;
+  updatedAt: string;
+  fromWallet?: string;
+  toWallet?: string;
+  groupName?: string;
+}
+
+export const paymentRequestsApi = {
+  create: (payload: {
+    groupId: string;
+    toUserId: string;
+    amount: number;
+    currency?: 'XLM' | 'USDC';
+    note?: string;
+    dueDate?: string;
+  }) => api.post<BackendPaymentRequest>('/payment-requests', payload),
+
+  listByGroup: (groupId: string) =>
+    api.get<BackendPaymentRequest[]>(`/payment-requests?groupId=${encodeURIComponent(groupId)}`),
+
+  listReceived: () =>
+    api.get<BackendPaymentRequest[]>('/payment-requests/received'),
+
+  markPaid: (id: string) =>
+    api.patch<BackendPaymentRequest>(`/payment-requests/${id}/paid`, {}),
+
+  cancel: (id: string) =>
+    api.patch<BackendPaymentRequest>(`/payment-requests/${id}/cancel`, {}),
+};
+
+// ─── Savings Pools ────────────────────────────────────────────────────────────
+
+export interface BackendSavingsPool {
+  id: string;
+  groupId: string;
+  createdById: string;
+  title: string;
+  goalAmount: string;
+  currentAmount: string;
+  currency: 'XLM' | 'USDC';
+  deadline: string | null;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: { walletAddress: string };
+  contributions?: Array<{
+    id: string;
+    userId: string;
+    amount: string;
+    note: string | null;
+    createdAt: string;
+    user: { walletAddress: string };
+  }>;
+}
+
+export const savingsApi = {
+  create: (payload: {
+    groupId: string;
+    title: string;
+    goalAmount: number;
+    currency?: 'XLM' | 'USDC';
+    deadline?: string;
+  }) => api.post<BackendSavingsPool>('/savings', payload),
+
+  listByGroup: (groupId: string) =>
+    api.get<BackendSavingsPool[]>(`/savings?groupId=${encodeURIComponent(groupId)}`),
+
+  getOne: (id: string) =>
+    api.get<BackendSavingsPool>(`/savings/${id}`),
+
+  contribute: (id: string, amount: number, note?: string) =>
+    api.post<{ contribution: unknown; goalReached: boolean }>(`/savings/${id}/contribute`, { amount, note }),
+
+  cancel: (id: string) =>
+    api.delete<BackendSavingsPool>(`/savings/${id}`),
 };
 
 // ─── Users / GDPR endpoints ───────────────────────────────────────────────────
@@ -384,6 +512,49 @@ export async function downloadGdprExport(): Promise<void> {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ─── Guardians endpoints ──────────────────────────────────────────────────────
+
+export interface BackendGuardian {
+  id: string;
+  guardianAddress: string;
+  groupId: string;
+  userId: string;
+  createdAt: string;
+}
+
+export interface BackendRecoveryRequest {
+  id: string;
+  userId: string;
+  groupId: string;
+  requestedAt: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  user?: { id: string; walletAddress: string };
+}
+
+export const guardiansApi = {
+  list: (groupId: string) =>
+    api.get<BackendGuardian[]>(`/groups/${encodeURIComponent(groupId)}/guardians`),
+
+  add: (guardianAddress: string, groupId: string) =>
+    api.post<BackendGuardian>('/guardians', { guardianAddress, groupId }),
+
+  remove: (id: string) =>
+    api.delete<void>(`/guardians/${id}`),
+
+  // ── Social Recovery Requests ──
+  initiateRecoveryRequest: (groupId: string) =>
+    api.post<{ data: BackendRecoveryRequest }>('/guardians/recovery-request', { groupId }),
+
+  listRecoveryRequests: () =>
+    api.get<{ data: BackendRecoveryRequest[] }>('/guardians/recovery-requests'),
+
+  approveRecoveryRequest: (id: string) =>
+    api.post<{ data: BackendRecoveryRequest }>(`/guardians/recovery-requests/${id}/approve`),
+
+  rejectRecoveryRequest: (id: string) =>
+    api.post<{ data: BackendRecoveryRequest }>(`/guardians/recovery-requests/${id}/reject`),
+};
 
 // ─── Reputation endpoints ─────────────────────────────────────────────────────
 

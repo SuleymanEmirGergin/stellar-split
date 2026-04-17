@@ -14,9 +14,7 @@ export async function forwardToWebhookProxy(webhookUrl: string, message: Record<
   //   body: JSON.stringify({ target: webhookUrl, content: message }) 
   // });
 
-  console.log('[Webhook Proxy] Forwarding message to:', webhookUrl);
-
-  // For the hackathon, we still call the original URL if it's safe, 
+  // For the hackathon, we still call the original URL if it's safe,
   // but via this wrapper so the architectural pattern is ready.
   if (webhookUrl.startsWith('https://hooks.slack.com') || webhookUrl.startsWith('https://discord.com/api/webhooks')) {
      try {

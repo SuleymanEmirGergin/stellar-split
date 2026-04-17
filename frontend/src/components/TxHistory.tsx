@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { truncateAddress, getExplorerTxUrl } from '../lib/stellar';
 import { SkeletonShimmer } from './ui';
+import { useI18n } from '../lib/i18n';
 
 interface TxRecord {
   id: string;
@@ -17,6 +18,7 @@ interface TxHistoryProps {
 const HORIZON_TESTNET = 'https://horizon-testnet.stellar.org';
 
 export default function TxHistory({ walletAddress }: TxHistoryProps) {
+  const { t } = useI18n();
   const [transactions, setTransactions] = useState<TxRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
       }));
       setTransactions(records);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Yüklenemedi');
+      setError(err instanceof Error ? err.message : t('tx.load_error'));
     } finally {
       setLoading(false);
     }
@@ -68,13 +70,13 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
 
   function typeLabel(type: string) {
     const labels: Record<string, string> = {
-      invoke_host_function: '📜 Kontrat Çağrısı',
-      create_account: '🆕 Hesap Oluştur',
-      payment: '💸 Ödeme',
-      path_payment_strict_receive: '🔄 Yol Ödemesi',
-      manage_sell_offer: '📊 Satış Teklifi',
-      manage_buy_offer: '📊 Alış Teklifi',
-      change_trust: '🔑 Trust Değiştir',
+      invoke_host_function: `📜 ${t('tx.type_contract')}`,
+      create_account: `🆕 ${t('tx.type_create_account')}`,
+      payment: `💸 ${t('tx.type_payment')}`,
+      path_payment_strict_receive: `🔄 ${t('tx.type_path_payment')}`,
+      manage_sell_offer: `📊 ${t('tx.type_sell_offer')}`,
+      manage_buy_offer: `📊 ${t('tx.type_buy_offer')}`,
+      change_trust: `🔑 ${t('tx.type_change_trust')}`,
     };
     return labels[type] || `⚡ ${type}`;
   }
@@ -83,12 +85,12 @@ export default function TxHistory({ walletAddress }: TxHistoryProps) {
     <div className="mt-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold">📋 İşlem Geçmişi</h3>
+        <h3 className="text-base font-semibold">{t('tx.history_title')}</h3>
         <button
           className="px-3 py-1.5 bg-muted border border-border rounded-lg text-foreground text-xs font-medium hover:bg-muted/80 transition-colors"
           onClick={fetchTransactions}
         >
-          🔄 Yenile
+          {t('tx.refresh')}
         </button>
       </div>
 

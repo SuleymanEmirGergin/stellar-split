@@ -2,19 +2,22 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Repeat } from 'lucide-react';
 import { type RecurringTemplate, type Interval } from '../lib/recurring';
+import type { TranslationKey } from '../lib/i18n';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSave: (sub: Omit<RecurringTemplate, 'id' | 'createdAt'>) => void;
+  t: (key: TranslationKey) => string;
 }
 
-const INTERVAL_OPTIONS: { value: Interval; label: string }[] = [
-  { value: 'daily',   label: 'Günlük' },
-  { value: 'weekly',  label: 'Haftalık' },
-  { value: 'monthly', label: 'Aylık' },
-  { value: 'yearly',  label: 'Yıllık' },
-];
+const INTERVAL_VALUES: Interval[] = ['daily', 'weekly', 'monthly', 'yearly'];
+const INTERVAL_KEYS: Record<Interval, TranslationKey> = {
+  daily: 'recurring.interval_daily',
+  weekly: 'recurring.interval_weekly',
+  monthly: 'recurring.interval_monthly',
+  yearly: 'recurring.interval_yearly',
+};
 
 const CATEGORIES = ['entertainment', 'home', 'services', 'other'];
 
@@ -24,7 +27,7 @@ function defaultNextDue(): string {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
+export default function SubscriptionModal({ isOpen, onClose, onSave, t }: Props) {
   const [name, setName]         = useState('');
   const [amount, setAmount]     = useState('');
   const [interval, setInterval] = useState<Interval>('monthly');
@@ -97,7 +100,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
           >
             <div className="flex justify-between items-center mb-8">
               <h2 id="sub-modal-title" className="text-2xl font-black tracking-tight flex items-center gap-3">
-                <Repeat className="text-indigo-500" /> Yeni Abonelik
+                <Repeat className="text-indigo-500" /> {t('recurring.new_subscription')}
               </h2>
               <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
                 <X size={20} />
@@ -108,13 +111,13 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
               {/* Name */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
-                  Hizmet Adı
+                  {t('recurring.service_name')}
                 </label>
                 <input
                   autoFocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Netflix, Spotify, Kira..."
+                  placeholder={t('recurring.service_placeholder')}
                   className="w-full bg-secondary/50 border border-border focus:border-indigo-500/50 rounded-2xl py-4 px-5 outline-none font-bold transition-all"
                 />
               </div>
@@ -123,7 +126,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
-                    Miktar (XLM)
+                    {t('recurring.amount_label')}
                   </label>
                   <input
                     type="number"
@@ -137,15 +140,15 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
-                    Periyot
+                    {t('recurring.period_label')}
                   </label>
                   <select
                     value={interval}
                     onChange={(e) => setInterval(e.target.value as Interval)}
                     className="w-full bg-secondary/50 border border-border focus:border-indigo-500/50 rounded-2xl py-4 px-5 outline-none font-bold transition-all appearance-none"
                   >
-                    {INTERVAL_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
+                    {INTERVAL_VALUES.map((v) => (
+                      <option key={v} value={v}>{t(INTERVAL_KEYS[v])}</option>
                     ))}
                   </select>
                 </div>
@@ -154,7 +157,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
               {/* Next due date */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
-                  İlk Ödeme Tarihi
+                  {t('recurring.first_payment_date')}
                 </label>
                 <input
                   type="date"
@@ -168,7 +171,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
               {/* Category */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">
-                  Kategori
+                  {t('recurring.category_label')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map((cat) => (
@@ -193,7 +196,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSave }: Props) {
                 disabled={!name.trim() || !amount}
                 className="w-full py-5 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <Check size={20} /> Aboneliği Başlat
+                <Check size={20} /> {t('recurring.start_btn')}
               </button>
             </form>
           </motion.div>

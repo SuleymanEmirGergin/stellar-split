@@ -9,6 +9,7 @@
  */
 import { signMessage } from '@stellar/freighter-api';
 import { authApi, setAccessToken, type AuthUser } from './api';
+import { claimReferralCode } from './referral';
 
 export interface SiwsResult {
   accessToken: string;
@@ -41,6 +42,13 @@ export async function signInWithStellar(walletAddress: string): Promise<SiwsResu
 
   // Store access token in memory (never in localStorage)
   setAccessToken(accessToken);
+
+  // Auto-claim referral code from URL query param (?ref=CODE)
+  const refCode = new URLSearchParams(window.location.search).get('ref');
+  if (refCode) {
+    // Fire and forget — don't block login on referral claim failure
+    void claimReferralCode(refCode).catch(() => undefined);
+  }
 
   return { accessToken, user };
 }

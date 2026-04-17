@@ -30,31 +30,31 @@ export default function GlobalImpact() {
           🌍 {t('group.impact_stats')}
         </h3>
         <p className="text-xs text-muted-foreground mb-6">
-          StellarSplit ağ genelindeki verimlilik ve tasarruf verileri.
+          {t('impact.subtitle')}
         </p>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
-            <div className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">Toplam Tasarruf</div>
+            <div className="text-[10px] text-primary font-bold uppercase tracking-widest mb-1">{t('impact.total_saved')}</div>
             <div className="text-xl font-black text-foreground font-mono">{impact.totalSaved.toFixed(2)} XLM</div>
           </div>
           <div className="p-4 bg-accent/5 border border-accent/10 rounded-xl">
-            <div className="text-[10px] text-accent font-bold uppercase tracking-widest mb-1">Transfer Azaltma</div>
+            <div className="text-[10px] text-accent font-bold uppercase tracking-widest mb-1">{t('impact.tx_reduction')}</div>
             <div className="text-xl font-black text-foreground font-mono">%{((impact.txReduced / (impact.txReduced * 1.8)) * 100).toFixed(1)}</div>
           </div>
           <div className="p-4 bg-muted/50 border border-border rounded-xl">
-            <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Aktif Gruplar</div>
+            <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">{t('impact.active_groups')}</div>
             <div className="text-xl font-black text-foreground font-mono">{impact.activeGroups}</div>
           </div>
           <div className="p-4 bg-green-500/5 border border-green-500/10 rounded-xl">
-            <div className="text-[10px] text-green-500 font-bold uppercase tracking-widest mb-1">CO2 Tasarrufu</div>
+            <div className="text-[10px] text-green-500 font-bold uppercase tracking-widest mb-1">{t('impact.co2_saved')}</div>
             <div className="text-xl font-black text-foreground font-mono">{impact.co2Saved.toFixed(1)} kg</div>
           </div>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
           <div className="text-[10px] text-muted-foreground italic">
-            * Veriler Stellar ağındaki akıllı algoritma verimliliğinden tahmin edilmektedir.
+            {t('impact.disclaimer')}
           </div>
           <div className="flex gap-1">
              {[...Array(5)].map((_, i) => (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { truncateAddress } from '../lib/stellar';
 import Avatar from './Avatar';
+import { useI18n } from '../lib/i18n';
 
 interface Activity {
   id: string;
@@ -16,32 +17,34 @@ interface ActivityFeedProps {
 
 const HORIZON = 'https://horizon-testnet.stellar.org';
 
-const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
-  invoke_host_function: { icon: '📜', label: 'StellarSplit İşlemi', color: 'text-accent' },
-  payment: { icon: '💸', label: 'Ödeme', color: 'text-chart-4' },
-};
-
-function getConfig(type: string) {
-  return TYPE_CONFIG[type] || { icon: '⚡', label: type.replace(/_/g, ' '), color: 'text-foreground' };
-}
-
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: (key: string) => string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return `${seconds} sn önce`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} dk önce`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} sa önce`;
-  return `${Math.floor(seconds / 86400)} gün önce`;
+  if (seconds < 60) return `${seconds} ${t('common.seconds_ago')}`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} ${t('common.minutes_ago')}`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} ${t('common.hours_ago')}`;
+  return `${Math.floor(seconds / 86400)} ${t('common.days_ago')}`;
 }
 
 export default function ActivityFeed({ members }: ActivityFeedProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
-  const fetchActivities = useCallback(async () => {
+  const TYPE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
+    invoke_host_function: { icon: '📜', label: t('activity.type_contract'), color: 'text-accent' },
+    payment: { icon: '💸', label: t('activity.type_payment'), color: 'text-chart-4' },
+  };
+
+  function getConfig(type: string) {
+    return TYPE_CONFIG[type] || { icon: '⚡', label: type.replace(/_/g, ' '), color: 'text-foreground' };
+  }
+
+  const fetchActivities = useCallback(async (signal?: AbortSignal) => {
     try {
       const px = members.map(async (m) => {
         const resp = await fetch(
-          `${HORIZON}/accounts/${m}/operations?order=desc&limit=15`
+          `${HORIZON}/accounts/${m}/operations?order=desc&limit=15`,
+          { signal }
         );
         if (!resp.ok) return [];
         const data = await resp.json();
@@ -50,19 +53,17 @@ export default function ActivityFeed({ members }: ActivityFeedProps) {
 
       const allResults = await Promise.all(px);
       const flat = allResults.flat();
-      
-      // Sort by newest
+
       flat.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      // Filter to relevant types (contract calls and payments)
-      // Deduplicate by transaction_hash to avoid showing the same tx multiple times if multiple members are involved
+      // Deduplicate by transaction_hash — same tx can appear for multiple members
       const filtered: Activity[] = [];
       const seenTx = new Set<string>();
 
       for (const r of flat) {
         if (!['invoke_host_function', 'payment'].includes(r.type)) continue;
         if (seenTx.has(r.transaction_hash)) continue;
-        
+
         seenTx.add(r.transaction_hash);
         filtered.push({
           id: r.id,
@@ -76,15 +77,17 @@ export default function ActivityFeed({ members }: ActivityFeedProps) {
       }
 
       setActivities(filtered);
-    } catch {
-      // silently fail
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }, [members]);
 
   useEffect(() => {
-    fetchActivities();
+    const controller = new AbortController();
+    fetchActivities(controller.signal);
+    return () => controller.abort();
   }, [fetchActivities]);
 
   if (loading) {
@@ -103,17 +106,17 @@ export default function ActivityFeed({ members }: ActivityFeedProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold">📋 Son Aktiviteler</h3>
+        <h3 className="text-sm font-semibold">📋 {t('group.activity_title')}</h3>
         <button
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           onClick={fetchActivities}
         >
-          ↻ Yenile
+          ↻ {t('common.refresh')}
         </button>
       </div>
 
       {activities.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">Henüz aktivite yok</p>
+        <p className="text-sm text-muted-foreground text-center py-4">{t('group.activity_empty')}</p>
       ) : (
         <div className="space-y-1">
           {activities.map((a) => {
@@ -137,7 +140,7 @@ export default function ActivityFeed({ members }: ActivityFeedProps) {
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground shrink-0">
-                  {timeAgo(a.created_at)}
+                  {timeAgo(a.created_at, t)}
                 </div>
                 <span className="text-accent opacity-0 group-hover:opacity-100 transition-opacity text-xs">↗</span>
               </a>

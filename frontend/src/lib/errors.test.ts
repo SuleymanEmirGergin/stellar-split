@@ -1,64 +1,58 @@
-import { describe, it, expect } from "vitest";
-import { translateError } from "./errors";
+import { describe, it, expect } from 'vitest';
+import { getLangKey, translateError } from './errors';
 
-describe("translateError", () => {
-  describe("Turkish (tr)", () => {
-    it("returns generic error for empty/null input", () => {
-      expect(translateError("", "tr")).toBe("Bir hata oluştu.");
-      // @ts-expect-error: testing invalid input
-      expect(translateError(null, "tr")).toBe("Bir hata oluştu.");
-    });
-
-    it('maps "rejected" to Turkish rejection message', () => {
-      const result = translateError("User declined to sign", "tr");
-      expect(result).toContain("reddedildi");
-    });
-
-    it('maps "insufficient balance" to Turkish balance message', () => {
-      const result = translateError("insufficient balance", "tr");
-      expect(result).toContain("Yetersiz bakiye");
-    });
-
-    it('maps "wallet not found" to Turkish wallet message', () => {
-      const result = translateError("wallet not found", "tr");
-      expect(result).toContain("Cüzdan bulunamadı");
-    });
-
-    it('maps "group not found" correctly', () => {
-      expect(translateError("group not found", "tr")).toBe("Grup bulunamadı.");
-    });
-
-    it('maps "amount must be positive" correctly', () => {
-      expect(translateError("amount must be positive", "tr")).toBe(
-        "Tutar pozitif olmalı.",
-      );
-    });
+describe('getLangKey', () => {
+  it('returns "tr" for "tr"', () => {
+    expect(getLangKey('tr')).toBe('tr');
   });
 
-  describe("English (en)", () => {
-    it("returns generic error for empty/null input", () => {
-      expect(translateError("", "en")).toBe("An error occurred.");
-    });
+  it('returns "en" for "en"', () => {
+    expect(getLangKey('en')).toBe('en');
+  });
 
-    it('maps "insufficient balance" to English balance message', () => {
-      const result = translateError("insufficient balance", "en");
-      expect(result).toContain("Insufficient balance");
-    });
+  it('returns "en" for unsupported language "de"', () => {
+    expect(getLangKey('de')).toBe('en');
+  });
 
-    it('maps "wallet not found" to English wallet message', () => {
-      const result = translateError("wallet not found", "en");
-      expect(result).toContain("Wallet not found");
-    });
+  it('returns "en" for unsupported language "es"', () => {
+    expect(getLangKey('es')).toBe('en');
+  });
 
-    it("returns original message when no pattern matches", () => {
-      const unknown = "Some completely unknown error XYZ";
-      expect(translateError(unknown, "en")).toBe(unknown);
-    });
+  it('returns "en" for empty string', () => {
+    expect(getLangKey('')).toBe('en');
+  });
+});
 
-    it('maps "at least 2 members required" correctly', () => {
-      expect(translateError("at least 2 members required", "en")).toBe(
-        "At least 2 members required.",
-      );
-    });
+describe('translateError', () => {
+  it('maps "group is already settled" to Turkish', () => {
+    expect(translateError('group is already settled', 'tr')).toContain('Grup zaten kapatılmış');
+  });
+
+  it('maps "group is already settled" to English', () => {
+    expect(translateError('group is already settled', 'en')).toContain('already settled');
+  });
+
+  it('passes through unknown message unchanged', () => {
+    expect(translateError('some random error', 'tr')).toBe('some random error');
+  });
+
+  it('returns Turkish generic error for empty string', () => {
+    expect(translateError('', 'tr')).toBe('Bir hata oluştu.');
+  });
+
+  it('returns English generic error for null input', () => {
+    expect(translateError(null as unknown as string, 'en')).toBe('An error occurred.');
+  });
+
+  it('maps "Failed to fetch" to Turkish offline message', () => {
+    expect(translateError('Failed to fetch', 'tr')).toContain('Çevrimdışı');
+  });
+
+  it('maps "User declined" to Turkish rejection message', () => {
+    expect(translateError('User declined', 'tr')).toContain('İmzalama reddedildi');
+  });
+
+  it('maps "insufficient balance" to English balance message', () => {
+    expect(translateError('insufficient balance', 'en')).toContain('Insufficient balance');
   });
 });

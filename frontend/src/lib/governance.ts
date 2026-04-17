@@ -1,4 +1,5 @@
 export type VoteOption = 'yes' | 'no';
+export type DisputeVoteOption = 'uphold' | 'dismiss';
 
 export interface Dispute {
   id: string;
@@ -7,7 +8,7 @@ export interface Dispute {
   amount: number;
   category: string;
   description: string;
-  votes: Record<string, VoteOption>;
+  votes: Record<string, DisputeVoteOption>;
   status: 'open' | 'resolved' | 'dismissed';
   createdAt: number;
 }
