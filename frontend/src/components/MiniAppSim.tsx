@@ -19,7 +19,7 @@ export function MiniAppSim({ onClose }: Props) {
     {
       id: '1',
       sender: 'bot',
-      text: 'Hello! I am the StellarSplit bot. 🤖\n\nSend me a command like "Split 120 XLM for Dinner" to instantly generate a tracking group!',
+      text: 'Hello! I am the Birik bot. 🤖\n\nSend me a command like "Split 120 XLM for Dinner" to instantly generate a tracking group!',
     }
   ]);
   const [inputMsg, setInputMsg] = useState('');
@@ -74,7 +74,7 @@ export function MiniAppSim({ onClose }: Props) {
               <Bot size={22} />
             </div>
             <div>
-              <h3 className="text-white font-bold leading-tight">StellarSplit Bot</h3>
+              <h3 className="text-white font-bold leading-tight">Birik Bot</h3>
               <p className="text-[#8e8e93] text-xs">bot • online</p>
             </div>
           </div>

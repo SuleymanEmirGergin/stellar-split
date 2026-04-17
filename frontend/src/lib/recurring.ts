@@ -1,5 +1,5 @@
 /**
- * Recurring Expenses Logic for StellarSplit.
+ * Recurring Expenses Logic for Birik.
  * Handles templates for subscriptions like Netflix, Rent, etc.
  */
 

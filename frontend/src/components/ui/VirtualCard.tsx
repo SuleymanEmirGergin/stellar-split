@@ -81,7 +81,7 @@ export function VirtualCard({ walletAddress }: VirtualCardProps) {
           <div className="relative h-full flex flex-col justify-between p-6 z-10" style={{ transform: 'translateZ(30px)' }}>
             <div className="flex justify-between items-start">
               <div className="text-xl font-bold tracking-widest text-indigo-100 flex items-center gap-2">
-                StellarSplit <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-[10px] text-indigo-400">BLACK</span>
+                Birik <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-[10px] text-indigo-400">BLACK</span>
               </div>
               <Wifi size={24} className="text-white/40 rotate-90" />
             </div>

@@ -1,5 +1,5 @@
 /**
- * Receipt storage for StellarSplit.
+ * Receipt storage for Birik.
  * Supports multiple backends (priority order):
  * 1. Pinata (VITE_PINATA_JWT)
  * 2. Infura IPFS (VITE_INFURA_IPFS_PROJECT_ID + VITE_INFURA_IPFS_PROJECT_SECRET)

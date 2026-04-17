@@ -1,0 +1,8 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="Birik logomark">
+  <!-- Three ascending bars -->
+  <rect x="11" y="34" width="9" height="15" rx="2" fill="#0A0A0A"/>
+  <rect x="24" y="24" width="9" height="25" rx="2" fill="#0A0A0A"/>
+  <rect x="37" y="14" width="9" height="35" rx="2" fill="#0A0A0A"/>
+  <!-- Baseline foot -->
+  <rect x="8" y="51" width="42" height="5" rx="2" fill="#0A0A0A"/>
+</svg>

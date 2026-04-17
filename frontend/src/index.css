@@ -2,11 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Fintech palette (glow & depth) ── */
+/* ── Birik component utilities (used by new landing + marketing surfaces) ── */
+@layer components {
+  .btn-birik {
+    @apply inline-flex items-center justify-center gap-2 rounded-pill bg-birik px-8 py-4 font-display text-lg text-ink transition-all hover:bg-birik-hot active:bg-birik-deep active:translate-y-0.5 shadow-chunk;
+  }
+  .btn-ghost-birik {
+    @apply inline-flex items-center justify-center gap-2 rounded-pill border border-edge px-8 py-4 font-display text-lg text-bone transition-all hover:border-birik hover:text-birik;
+  }
+  .chip-birik {
+    @apply inline-flex items-center gap-2 rounded-pill border border-edge bg-mist px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-bone/70;
+  }
+  .section-birik {
+    @apply relative mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-12;
+  }
+  .display {
+    @apply font-display uppercase tracking-tight;
+  }
+  .card-birik {
+    @apply relative rounded-brick border border-edge bg-fog p-8 transition-all hover:border-birik/40;
+  }
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+  }
+}
+
+::selection {
+  background: #C4FF4D;
+  color: #0A0A0A;
+}
+
+/* ── Ambient glow palette (values remapped to birik/plum/heat; legacy names kept for backward compat) ── */
 :root {
-  --fintech-blue: 217 91% 60%;
-  --fintech-cyan: 187 85% 53%;
-  --fintech-purple: 263 70% 58%;
+  --fintech-blue: 75 100% 65%;      /* birik lime — primary glow */
+  --fintech-cyan: 262 83% 58%;      /* plum — secondary glow */
+  --fintech-purple: 14 100% 59%;    /* heat — tertiary glow */
   --fintech-glow-opacity: 0.06;
   --fintech-grid-opacity: 0.04;
   --glass-bg: 0 0% 100% / 0.08;
@@ -24,44 +60,46 @@
     0 4px 24px -4px hsl(0 0% 0% / 0.35), 0 8px 48px -8px hsl(0 0% 0% / 0.2);
 }
 
-/* ── Theme: Modern Minimal (Tweakcn) ── */
+/* ── Theme: Birik (neon-lime Cash App aesthetic, dark-first) ── */
+/* Light-mode palette kept for theme-toggle completeness — real home is .dark */
 :root {
   --glow-intensity: 0.12;
-  --background: 0 0% 100%;
-  --foreground: 0 0% 20%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 20%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 20%;
-  --primary: 217.2193 91.2195% 59.8039%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 14.2857% 95.8824%;
-  --secondary-foreground: 215 13.7931% 34.1176%;
-  --muted: 210 20% 98.0392%;
-  --muted-foreground: 220 8.9362% 46.0784%;
-  --accent: 204 93.75% 93.7255%;
-  --accent-foreground: 224.4444 64.2857% 32.9412%;
-  --destructive: 0 84.2365% 60.1961%;
+  --background: 60 14% 97%;          /* cream #FAFAF5 */
+  --foreground: 0 0% 4%;              /* ink */
+  --card: 60 14% 95%;                 /* bone */
+  --card-foreground: 0 0% 4%;
+  --popover: 60 14% 97%;
+  --popover-foreground: 0 0% 4%;
+  --primary: 75 100% 65%;             /* birik lime #C4FF4D */
+  --primary-foreground: 0 0% 4%;      /* ink on lime */
+  --secondary: 0 0% 92%;
+  --secondary-foreground: 0 0% 15%;
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 35%;
+  --accent: 75 100% 90%;              /* very pale lime */
+  --accent-foreground: 78 100% 20%;   /* birik deep */
+  --destructive: 14 100% 59%;         /* heat #FF5B2E */
   --destructive-foreground: 0 0% 100%;
-  --border: 220 13.0435% 90.9804%;
-  --input: 220 13.0435% 90.9804%;
-  --ring: 217.2193 91.2195% 59.8039%;
-  --chart-1: 217.2193 91.2195% 59.8039%;
-  --chart-2: 221.2121 83.1933% 53.3333%;
-  --chart-3: 224.2781 76.3265% 48.0392%;
-  --chart-4: 225.931 70.7317% 40.1961%;
-  --chart-5: 224.4444 64.2857% 32.9412%;
-  --sidebar: 210 20% 98.0392%;
-  --sidebar-foreground: 0 0% 20%;
-  --sidebar-primary: 217.2193 91.2195% 59.8039%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 204 93.75% 93.7255%;
-  --sidebar-accent-foreground: 224.4444 64.2857% 32.9412%;
-  --sidebar-border: 220 13.0435% 90.9804%;
-  --sidebar-ring: 217.2193 91.2195% 59.8039%;
+  --border: 0 0% 85%;
+  --input: 0 0% 85%;
+  --ring: 75 100% 65%;
+  --chart-1: 75 100% 65%;             /* birik */
+  --chart-2: 262 83% 58%;             /* plum */
+  --chart-3: 14 100% 59%;             /* heat */
+  --chart-4: 78 100% 40%;             /* birik-deep */
+  --chart-5: 0 0% 50%;
+  --sidebar: 60 14% 95%;
+  --sidebar-foreground: 0 0% 4%;
+  --sidebar-primary: 75 100% 65%;
+  --sidebar-primary-foreground: 0 0% 4%;
+  --sidebar-accent: 75 100% 90%;
+  --sidebar-accent-foreground: 78 100% 20%;
+  --sidebar-border: 0 0% 85%;
+  --sidebar-ring: 75 100% 65%;
   --font-sans: "Inter, sans-serif";
   --font-serif: "Source Serif 4, serif";
   --font-mono: "JetBrains Mono, monospace";
+  --font-display: '"Archivo Black", Impact, sans-serif';
   --radius: 0.625rem;
   --shadow-x: 0;
   --shadow-y: 1px;
@@ -83,10 +121,10 @@
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-  /* Wallet background mesh (indigo/purple/blue, low opacity) */
-  --mesh-start: hsl(238 58% 55% / 0.12);
-  --mesh-mid: hsl(270 52% 52% / 0.08);
-  --mesh-end: hsl(217 91% 60% / 0.1);
+  /* Background mesh (birik lime / plum / heat, low opacity) */
+  --mesh-start: hsl(75 100% 65% / 0.1);
+  --mesh-mid: hsl(262 83% 58% / 0.08);
+  --mesh-end: hsl(14 100% 59% / 0.06);
   --wallet-mesh:
     radial-gradient(
       ellipse 80% 50% at 20% 30%,
@@ -108,40 +146,41 @@
 }
 
 /* Glow intensity: slightly stronger in dark for depth, softer in light */
+/* ── Birik dark (primary experience) ── ink base + neon-lime primary */
 .dark {
   --glow-intensity: 0.2;
-  --background: 222 20% 7%;
-  --foreground: 215 20% 90%;
-  --card: 222 18% 11%;
-  --card-foreground: 215 20% 90%;
-  --popover: 0 0% 14.902%;
-  --popover-foreground: 0 0% 89.8039%;
-  --primary: 217.2193 91.2195% 59.8039%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 222 18% 13%;
-  --secondary-foreground: 215 15% 80%;
-  --muted: 222 16% 10%;
-  --muted-foreground: 215 12% 55%;
-  --accent: 224.4444 64.2857% 32.9412%;
-  --accent-foreground: 213.3333 96.9231% 87.2549%;
-  --destructive: 0 84.2365% 60.1961%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 222 16% 20%;
-  --input: 222 16% 18%;
-  --ring: 217.2193 91.2195% 59.8039%;
-  --chart-1: 213.1169 93.9024% 67.8431%;
-  --chart-2: 217.2193 91.2195% 59.8039%;
-  --chart-3: 221.2121 83.1933% 53.3333%;
-  --chart-4: 224.2781 76.3265% 48.0392%;
-  --chart-5: 225.931 70.7317% 40.1961%;
-  --sidebar: 0 0% 9.0196%;
-  --sidebar-foreground: 0 0% 89.8039%;
-  --sidebar-primary: 217.2193 91.2195% 59.8039%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 224.4444 64.2857% 32.9412%;
-  --sidebar-accent-foreground: 213.3333 96.9231% 87.2549%;
-  --sidebar-border: 0 0% 25.098%;
-  --sidebar-ring: 217.2193 91.2195% 59.8039%;
+  --background: 0 0% 4%;              /* ink #0A0A0A */
+  --foreground: 60 14% 95%;           /* bone #F5F5F0 */
+  --card: 0 0% 10%;                   /* fog #1A1A1A */
+  --card-foreground: 60 14% 95%;
+  --popover: 0 0% 7%;                 /* mist #111111 */
+  --popover-foreground: 60 14% 95%;
+  --primary: 75 100% 65%;             /* birik lime #C4FF4D */
+  --primary-foreground: 0 0% 4%;      /* ink on lime for AAA contrast */
+  --secondary: 0 0% 10%;              /* fog — quiet surface */
+  --secondary-foreground: 60 14% 80%;
+  --muted: 0 0% 7%;                   /* mist */
+  --muted-foreground: 60 14% 60%;
+  --accent: 262 83% 58%;              /* plum */
+  --accent-foreground: 60 14% 97%;    /* cream on plum */
+  --destructive: 14 100% 59%;         /* heat #FF5B2E */
+  --destructive-foreground: 0 0% 4%;
+  --border: 0 0% 15%;                 /* edge #262626 */
+  --input: 0 0% 12%;
+  --ring: 75 100% 65%;                /* focus ring = birik lime */
+  --chart-1: 75 100% 65%;             /* birik */
+  --chart-2: 262 83% 58%;             /* plum */
+  --chart-3: 14 100% 59%;             /* heat */
+  --chart-4: 78 100% 40%;             /* birik-deep */
+  --chart-5: 60 14% 70%;              /* muted bone */
+  --sidebar: 0 0% 7%;                 /* mist */
+  --sidebar-foreground: 60 14% 95%;
+  --sidebar-primary: 75 100% 65%;
+  --sidebar-primary-foreground: 0 0% 4%;
+  --sidebar-accent: 262 83% 58%;
+  --sidebar-accent-foreground: 60 14% 97%;
+  --sidebar-border: 0 0% 15%;
+  --sidebar-ring: 75 100% 65%;
   --font-sans: "Inter, sans-serif";
   --font-serif: "Source Serif 4, serif";
   --font-mono: "JetBrains Mono, monospace";
@@ -164,10 +203,10 @@
   --shadow-xl:
     0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-  /* Wallet background overrides for dark */
-  --mesh-start: hsl(238 58% 65% / 0.15);
-  --mesh-mid: hsl(270 52% 60% / 0.1);
-  --mesh-end: hsl(217 91% 65% / 0.12);
+  /* Background mesh dark overrides — birik/plum/heat */
+  --mesh-start: hsl(75 100% 65% / 0.12);
+  --mesh-mid: hsl(262 83% 58% / 0.1);
+  --mesh-end: hsl(14 100% 59% / 0.08);
   --wallet-grid-color: hsl(0 0% 100% / 0.04);
   --wallet-dot-color: hsl(0 0% 100% / 0.04);
 }
@@ -184,6 +223,32 @@
     linear-gradient(var(--wallet-grid-color) 1px, transparent 1px),
     linear-gradient(90deg, var(--wallet-grid-color) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+/* ── Direction B (expanded): primary top-right spotlight + bottom-left echo ── */
+/* Single-hue (lime) ambient; full viewport coverage with preserved directional feel. */
+.bg-birik-glow {
+  background:
+    /* Primary: bright lime spotlight from top-right (directional light source) */
+    radial-gradient(
+      ellipse 80% 60% at 85% 10%,
+      rgba(196, 255, 77, 0.11) 0%,
+      rgba(196, 255, 77, 0.05) 35%,
+      transparent 75%
+    ),
+    /* Secondary: subtle lime wash from bottom-left — fills the opposite void */
+    radial-gradient(
+      ellipse 100% 80% at 15% 100%,
+      rgba(196, 255, 77, 0.04) 0%,
+      rgba(196, 255, 77, 0.015) 50%,
+      transparent 85%
+    );
+}
+
+.bg-film-grain {
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
 }
 
 .bg-wallet-dots {

@@ -82,7 +82,7 @@ export function Wrapped({ walletAddress, onClose, isDemo }: Props) {
   }, [currentSlide, slides.length]);
 
   const handleShare = () => {
-    const text = `I just settled ${insights.totalSpent} ${insights.favoriteToken} with my friends on StellarSplit and unlocked ${insights.tier} status on Soroban! 🔥💳 Calculate your on-chain splitting reputation at [Demo URL] 💸 @StellarOrg`;
+    const text = `I just settled ${insights.totalSpent} ${insights.favoriteToken} with my friends on Birik and unlocked ${insights.tier} status on Soroban! 🔥💳 Calculate your on-chain splitting reputation at [Demo URL] 💸 @StellarOrg`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };

@@ -52,6 +52,18 @@ const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--c
 const chartTextFill = 'hsl(var(--foreground))';
 /** Day labels on X-axis: visible and distinct (e.g. Çar, Per) */
 const chartDayFill = 'hsl(var(--primary))';
+/** Tooltip styling — matches Birik dark card surface, not the default white */
+const tooltipContentStyle = {
+  backgroundColor: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '12px',
+  color: chartTextFill,
+  boxShadow: '0 8px 32px -8px rgba(0, 0, 0, 0.5)',
+};
+/** Bar hover highlight — subtle lime wash instead of default white */
+const barCursor = { fill: 'rgba(196, 255, 77, 0.08)' };
+/** Line chart crosshair — lime tinted, not default grey */
+const lineCursor = { stroke: 'hsl(var(--primary))', strokeOpacity: 0.4, strokeWidth: 1 };
 
 export function WalletCharts({
   balanceHistory = DEFAULT_BALANCE_HISTORY,
@@ -82,8 +94,9 @@ export function WalletCharts({
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartDayFill }} stroke={chartDayFill} tickFormatter={formatDay} />
                 <YAxis tick={{ fontSize: 10, fill: chartTextFill }} stroke={chartTextFill} width={40} />
                 <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', color: chartTextFill }}
+                  contentStyle={tooltipContentStyle}
                   labelStyle={{ fontWeight: 700, color: chartTextFill }}
+                  cursor={lineCursor}
                   labelFormatter={(label) => formatDay(String(label))}
                   formatter={(value: number | undefined) => [(value ?? 0).toFixed(2), 'XLM']}
                 />
@@ -118,8 +131,9 @@ export function WalletCharts({
                 <XAxis dataKey="day" tick={{ fontSize: 10, fill: chartDayFill }} stroke={chartDayFill} tickFormatter={formatDay} />
                 <YAxis tick={{ fontSize: 10, fill: chartTextFill }} stroke={chartTextFill} width={24} />
                 <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', color: chartTextFill }}
+                  contentStyle={tooltipContentStyle}
                   labelStyle={{ fontWeight: 700, color: chartTextFill }}
+                  cursor={barCursor}
                   labelFormatter={(label) => formatDay(String(label))}
                   formatter={(value: number | undefined) => [value ?? 0, t('charts.tx_count') || 'tx']}
                 />

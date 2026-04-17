@@ -24,7 +24,7 @@ describe('getMintedSBTs', () => {
   });
 
   it('returns previously stored SBTs', () => {
-    const mock = [{ tokenId: 'sbt_flash_1', name: 'StellarSplit SBT: Flash' }];
+    const mock = [{ tokenId: 'sbt_flash_1', name: 'Birik SBT: Flash' }];
     localStorage.setItem('stellarsplit_minted_sbts', JSON.stringify(mock));
     expect(getMintedSBTs()).toHaveLength(1);
   });

@@ -84,7 +84,7 @@ export function useRecurringData(
           const idx = updatedSubs.findIndex((s) => s.id === sub.id);
           updatedSubs[idx] = { ...sub, lastProcessed: Date.now() };
         } catch (err) {
-          console.error(`[StellarSplit] Failed to auto-process subscription ${sub.name}:`, err);
+          console.error(`[Birik] Failed to auto-process subscription ${sub.name}:`, err);
         }
       }
       setSubscriptions(updatedSubs);

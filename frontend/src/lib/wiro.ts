@@ -1,5 +1,5 @@
 /**
- * Wiro.ai Generic Client for StellarSplit.
+ * Wiro.ai Generic Client for Birik.
  * Handles Run requests and Task Detail polling for asynchronous AI models.
  */
 

@@ -24,7 +24,7 @@ export async function sendWebhookNotification(
 
   const amountXlm = (expenseData.amount / 10_000_000).toFixed(2);
   const payload: WebhookPayload = {
-    username: 'StellarSplit Bot',
+    username: 'Birik Bot',
     content: `🚀 **Yeni Harcama!**\n**Grup:** ${expenseData.groupName}\n**Açıklama:** ${expenseData.description}\n**Miktar:** ${amountXlm} XLM\n**Ödeyen:** ${expenseData.payer}`,
   };
 
@@ -43,7 +43,7 @@ export async function sendSettlementReadyNotification(
 ): Promise<boolean> {
   if (!url || !url.startsWith('http')) return false;
   const payload: WebhookPayload = {
-    username: 'StellarSplit Bot',
+    username: 'Birik Bot',
     content: `✅ **Settlement planı hazır**\n**Grup:** ${data.groupName}\n**Transfer sayısı:** ${data.transactionCount}`,
   };
   try {
@@ -55,7 +55,7 @@ export async function sendSettlementReadyNotification(
 }
 
 export function generateTelegramShareUrl(groupId: number, groupName: string): string {
-  const text = `Join my StellarSplit group: ${groupName}!\n\nUse this link to join and split expenses on-chain: https://stellarsplit.app/join/${groupId}\n\nProtocol: stellarsplit:join:${groupId}`;
+  const text = `Join my Birik group: ${groupName}!\n\nUse this link to join and split expenses on-chain: https://stellarsplit.app/join/${groupId}\n\nProtocol: stellarsplit:join:${groupId}`;
   return `https://t.me/msg?text=${encodeURIComponent(text)}`;
 }
 

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { sounds } from '../../lib/sound';
 
 const steps = [
-  { target: '/', text: 'Welcome to StellarSplit. The future of social finance.', duration: 3000 },
+  { target: '/', text: 'Welcome to Birik. The future of social finance.', duration: 3000 },
   { target: '/dashboard', text: 'Manage all your groups and expenses in one sleek dashboard.', duration: 4000 },
   { target: '/reputation', text: 'Build your on-chain splitting reputation and unlock perks.', duration: 4000 },
   { target: '/dashboard', text: 'Ready to split? Let our AI handle the math on-chain.', duration: 3000 },

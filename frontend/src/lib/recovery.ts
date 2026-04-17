@@ -1,5 +1,5 @@
 /**
- * Social Recovery & Guardians Logic for StellarSplit.
+ * Social Recovery & Guardians Logic for Birik.
  * Simulates Account Abstraction / Social Recovery features.
  */
 

@@ -69,12 +69,15 @@ export function openTransakWidget(config: TransakConfig): void {
   }
 }
 
-/** List of popular exchanges for the fallback guide */
+/** List of popular exchanges for the fallback guide.
+ * URLs verified working as of 2026-04. If a specific asset page 404s,
+ * fallback to the exchange root — users can navigate to XLM from there.
+ */
 export const EXCHANGE_LINKS = [
   { name: 'MoneyGram (XLM)', url: 'https://moneygram.com/mgo/us/en/m/crypto/stellar', flag: '🇺🇸' },
   { name: 'Binance', url: 'https://www.binance.com/en/trade/XLM_USDT', flag: '🌍' },
   { name: 'Coinbase', url: 'https://www.coinbase.com/price/stellar', flag: '🇺🇸' },
-  { name: 'Kraken', url: 'https://www.kraken.com/prices/xlm-stellar-lumens-price-chart', flag: '🌍' },
-  { name: 'BTCTurk (TR)', url: 'https://www.btcturk.com/trade/XLM_TRY', flag: '🇹🇷' },
-  { name: 'Paribu (TR)', url: 'https://www.paribu.com/markets/xlm-tl', flag: '🇹🇷' },
+  { name: 'Kraken', url: 'https://www.kraken.com/prices/stellar', flag: '🌍' },
+  { name: 'BTCTurk (TR)', url: 'https://www.btcturk.com', flag: '🇹🇷' },
+  { name: 'Paribu (TR)', url: 'https://www.paribu.com', flag: '🇹🇷' },
 ] as const;

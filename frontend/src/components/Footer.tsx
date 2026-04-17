@@ -11,7 +11,7 @@ export default function Footer() {
           <div className="flex items-center gap-2 text-sm">
             <Logo size={20} />
             <span className="font-semibold bg-gradient-to-r from-primary via-[#ffffff] to-accent bg-[length:200%_auto] animate-glimmer bg-clip-text text-transparent">
-              StellarSplit
+              Birik
             </span>
             <span className="text-muted-foreground">·</span>
             <span className="text-muted-foreground">

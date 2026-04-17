@@ -117,7 +117,7 @@ export function ContractVisualizer({ transactionHash, sourceAmount, sourceCurren
                 <div className="w-12 h-12 rounded-xl bg-purple-500 mx-auto flex items-center justify-center mb-3">
                   <Cpu className="text-white animate-pulse" size={24} />
                 </div>
-                <div className="text-white font-black">StellarSplit</div>
+                <div className="text-white font-black">Birik</div>
                 <div className="text-purple-200 text-xs font-bold uppercase mt-1 tracking-widest">Router Program</div>
               </motion.div>
             </div>

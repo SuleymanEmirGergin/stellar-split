@@ -5,6 +5,22 @@ export default {
   theme: {
     extend: {
       colors: {
+        // ── Birik brand tokens (direct — used by new landing + icon accents) ──
+        ink: "#0A0A0A",
+        mist: "#111111",
+        fog: "#1A1A1A",
+        edge: "#262626",
+        bone: "#F5F5F0",
+        cream: "#FAFAF5",
+        birik: {
+          DEFAULT: "#C4FF4D",
+          hot: "#E5FF66",
+          deep: "#8FCC00",
+        },
+        heat: "#FF5B2E",
+        plum: "#7C3AED",
+
+        // ── shadcn/ui semantic tokens (consumed by all existing components) ──
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -56,16 +72,27 @@ export default {
           5: "hsl(var(--chart-5))",
         },
       },
+      fontFamily: {
+        sans: ["var(--font-sans)"],
+        serif: ["var(--font-serif)"],
+        mono: ["var(--font-mono)"],
+        display: ['"Archivo Black"', "Impact", "sans-serif"],
+      },
+      fontSize: {
+        mega: ["clamp(3.5rem, 10vw, 9rem)", { lineHeight: "0.9", letterSpacing: "-0.04em" }],
+        huge: ["clamp(2.5rem, 6vw, 5rem)", { lineHeight: "0.95", letterSpacing: "-0.03em" }],
+        big: ["clamp(1.75rem, 3.5vw, 3rem)", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
+      },
       borderRadius: {
         xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        brick: "28px",
+        pill: "9999px",
       },
-      fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
+      boxShadow: {
+        chunk: "0 20px 60px -20px rgba(196, 255, 77, 0.4)",
       },
       keyframes: {
         shimmer: {
