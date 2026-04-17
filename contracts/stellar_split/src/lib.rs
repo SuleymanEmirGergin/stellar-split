@@ -11,9 +11,10 @@ use storage::{
     get_expense, get_expenses_count, get_group, get_next_expense_id, get_next_group_id,
     is_group_settled, remove_expense, save_expense, save_group, set_expenses_count, set_group_settled,
     set_next_expense_id, set_next_group_id,
-    get_guardian_config, save_guardian_config, get_recovery_request, save_recovery_request
+    get_guardian_config, save_guardian_config, get_recovery_request, save_recovery_request,
+    get_savings_pool, save_savings_pool,
 };
-use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault};
+use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault, SavingsPool};
 
 // Stellar native token (XLM) SAC adresi — testnet
 // Gerçek deployda env üzerinden alınabilir.
@@ -729,6 +730,207 @@ impl StellarSplitContract {
     pub fn get_badges(env: Env, user: Address) -> Vec<u32> {
         let user_badges = storage::get_user_badges(&env, &user);
         user_badges.badges
+    }
+
+    // ─────────────────────────────────────────────
+    //  SAVINGS POOL (KUMBARA)
+    // ─────────────────────────────────────────────
+
+    /// Grupta bir tasarruf havuzu (kumbara) oluşturur.
+    /// Her grup için yalnızca bir aktif havuz olabilir.
+    /// goal_amount: hedef tutar (stroops). deadline: Unix timestamp (0 = süresiz).
+    pub fn create_savings_pool(
+        env: Env,
+        group_id: u64,
+        creator: Address,
+        goal_amount: i128,
+        deadline: u64,
+    ) -> SavingsPool {
+        creator.require_auth();
+
+        if goal_amount <= 0 {
+            panic!("goal amount must be positive");
+        }
+
+        // Creator grupta mı?
+        let group = get_group(&env, group_id);
+        let mut creator_in_group = false;
+        for i in 0..group.members.len() {
+            if group.members.get(i).unwrap() == creator {
+                creator_in_group = true;
+                break;
+            }
+        }
+        if !creator_in_group {
+            panic!("creator is not a group member");
+        }
+
+        // Zaten aktif bir havuz var mı?
+        if let Some(existing) = get_savings_pool(&env, group_id) {
+            if existing.status == 0 {
+                panic!("group already has an active savings pool");
+            }
+        }
+
+        // Deadline kontrol: 0 ise süresiz; değilse gelecekte olmalı
+        if deadline > 0 && deadline <= env.ledger().timestamp() {
+            panic!("deadline must be in the future");
+        }
+
+        let pool = SavingsPool {
+            group_id,
+            goal_amount,
+            current_amount: 0,
+            deadline,
+            status: 0,
+            creator: creator.clone(),
+        };
+
+        save_savings_pool(&env, group_id, &pool);
+
+        env.events().publish(
+            (Symbol::new(&env, "pool_created"), group_id),
+            (creator, goal_amount, deadline),
+        );
+
+        pool
+    }
+
+    /// Savings pool'a katkı ekler. Token transferini gerçekleştirir.
+    /// Katkı yapan kişi grupta olmalı; havuz aktif olmalı.
+    pub fn contribute_pool(
+        env: Env,
+        group_id: u64,
+        contributor: Address,
+        amount: i128,
+    ) -> SavingsPool {
+        contributor.require_auth();
+
+        if amount <= 0 {
+            panic!("contribution amount must be positive");
+        }
+
+        // Contributor grupta mı?
+        let group = get_group(&env, group_id);
+        let mut in_group = false;
+        for i in 0..group.members.len() {
+            if group.members.get(i).unwrap() == contributor {
+                in_group = true;
+                break;
+            }
+        }
+        if !in_group {
+            panic!("contributor is not a group member");
+        }
+
+        let mut pool = get_savings_pool(&env, group_id).expect("no savings pool for this group");
+
+        if pool.status != 0 {
+            panic!("savings pool is not active");
+        }
+
+        // Token transferi: contributor → contract
+        let token_client = token::Client::new(&env, &group.token);
+        token_client.transfer(&contributor, &env.current_contract_address(), &amount);
+
+        pool.current_amount += amount;
+
+        // Hedef tutuldu mu? Otomatik complete.
+        if pool.current_amount >= pool.goal_amount {
+            pool.status = 1; // Completed
+            env.events().publish(
+                (Symbol::new(&env, "pool_goal_reached"), group_id),
+                pool.current_amount,
+            );
+        }
+
+        save_savings_pool(&env, group_id, &pool);
+
+        env.events().publish(
+            (Symbol::new(&env, "pool_contributed"), group_id),
+            (contributor, amount),
+        );
+
+        pool
+    }
+
+    /// Savings pool'u serbest bırakır (release).
+    /// Biriken tutarı üyelere eşit dağıtır.
+    /// Status 0 (Active) veya 1 (Completed) ise çağrılabilir.
+    /// Sadece pool creator'ı veya goal tamamlanmışsa herhangi bir üye çağırabilir.
+    pub fn release_pool(
+        env: Env,
+        group_id: u64,
+        caller: Address,
+    ) -> i128 {
+        caller.require_auth();
+
+        let group = get_group(&env, group_id);
+
+        // Caller grupta mı?
+        let mut in_group = false;
+        for i in 0..group.members.len() {
+            if group.members.get(i).unwrap() == caller {
+                in_group = true;
+                break;
+            }
+        }
+        if !in_group {
+            panic!("caller is not a group member");
+        }
+
+        let mut pool = get_savings_pool(&env, group_id).expect("no savings pool for this group");
+
+        if pool.status == 2 {
+            panic!("savings pool is already cancelled");
+        }
+
+        // Sadece creator veya goal tamamlanmışsa herkes release edebilir
+        if pool.status == 0 && pool.creator != caller {
+            panic!("only the creator can release an active pool before goal is reached");
+        }
+
+        let total = pool.current_amount;
+        if total <= 0 {
+            pool.status = 2; // Cancelled — empty pool
+            save_savings_pool(&env, group_id, &pool);
+            return 0;
+        }
+
+        // Üyelere eşit dağıt
+        let member_count = group.members.len() as i128;
+        let share = total / member_count;
+        let remainder = total - (share * member_count);
+
+        let token_client = token::Client::new(&env, &group.token);
+
+        for i in 0..group.members.len() {
+            let member = group.members.get(i).unwrap();
+            let mut member_share = share;
+            // Kalan stroops'u ilk üyeye ver
+            if i == 0 {
+                member_share += remainder;
+            }
+            if member_share > 0 {
+                token_client.transfer(&env.current_contract_address(), &member, &member_share);
+            }
+        }
+
+        pool.current_amount = 0;
+        pool.status = 1; // Completed
+        save_savings_pool(&env, group_id, &pool);
+
+        env.events().publish(
+            (Symbol::new(&env, "pool_released"), group_id),
+            (caller, total),
+        );
+
+        total
+    }
+
+    /// Savings pool bilgisini döndürür.
+    pub fn get_savings_pool(env: Env, group_id: u64) -> Option<SavingsPool> {
+        storage::get_savings_pool(&env, group_id)
     }
 }
 

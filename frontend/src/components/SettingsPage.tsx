@@ -37,14 +37,74 @@ function SectionCard({ icon: Icon, title, children }: { icon: React.ElementType;
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-6"
+      className="bg-white/[0.025] border border-white/[0.07] rounded-2xl overflow-hidden"
     >
-      <div className="flex items-center gap-2 mb-5">
-        <Icon size={14} className="text-indigo-400" />
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-foreground">{title}</h2>
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">
+        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+          <Icon size={13} className="text-indigo-400" />
+        </div>
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-foreground/80">{title}</h2>
       </div>
-      {children}
+      <div className="p-5">
+        {children}
+      </div>
     </motion.div>
+  );
+}
+
+interface WebhookRowProps {
+  label: string;
+  storageKey: string;
+  payloadKey: string;
+  placeholder: string;
+}
+
+function WebhookRow({ label, storageKey, payloadKey, placeholder }: WebhookRowProps) {
+  const [url, setUrl] = useState(() => localStorage.getItem(storageKey) ?? '');
+  const { t } = useI18n();
+  const { addToast } = useToast();
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <input
+        type="url"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder={placeholder}
+        className="bg-white/[0.04] border border-white/[0.09] rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500/40 focus:bg-white/[0.06]"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            localStorage.setItem(storageKey, url);
+            addToast(t('common.saved'), 'success');
+          }}
+          className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-indigo-500/25 text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors"
+        >
+          {t('common.save')}
+        </button>
+        <button
+          onClick={async () => {
+            if (!url) return;
+            try {
+              await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [payloadKey]: '🧪 StellarSplit webhook test' }),
+              });
+              addToast(t('settings.test_sent'), 'success');
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : t('settings.test_failed');
+              addToast(msg, 'error');
+            }
+          }}
+          className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 transition-colors"
+        >
+          {t('settings.test_send')}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -53,7 +113,7 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
   const backendUser = useAppStore((s) => s.backendUser);
   const hasJwt = !!getAccessToken();
   const { addToast } = useToast();
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, t } = useI18n();
   const motionOn = useMotionEnabled();
 
   // GDPR export state
@@ -76,10 +136,6 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
   // Push subscription
   const { isSubscribed, isSupported, subscribe } = usePushSubscription();
   const [subscribing, setSubscribing] = useState(false);
-
-  // Webhook URLs
-  const [discordUrl, setDiscordUrl] = useState(() => localStorage.getItem('webhook_global_discord') ?? '');
-  const [slackUrl, setSlackUrl] = useState(() => localStorage.getItem('webhook_global_slack') ?? '');
 
   const handleExport = useCallback(async () => {
     if (!hasJwt) return;
@@ -129,7 +185,7 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
     <div className="max-w-xl mx-auto py-6 space-y-4">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage your account, appearance, and data.</p>
       </div>
 
@@ -162,7 +218,7 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
             <span className="text-sm text-muted-foreground">Theme</span>
             <button
               onClick={toggleTheme}
-              className="flex items-center gap-2 px-3 py-1.5 bg-secondary/60 border border-white/5 rounded-xl text-xs font-bold hover:bg-white/5 transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.05] border border-white/[0.09] rounded-xl text-xs font-bold hover:bg-white/[0.08] transition-all"
             >
               {dark ? <><Moon size={13} /> Dark</> : <><Sun size={13} /> Light</>}
             </button>
@@ -178,7 +234,7 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
                   onClick={() => setLang(l)}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all ${
                     lang === l
-                      ? 'bg-indigo-500 text-white'
+                      ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-[0_2px_8px_rgba(99,102,241,0.3)]'
                       : 'text-muted-foreground hover:bg-white/5'
                   }`}
                   title={LANG_LABELS[l]}
@@ -232,7 +288,7 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 text-xs font-bold hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/15 border border-indigo-500/25 rounded-xl text-indigo-300 text-xs font-bold hover:bg-indigo-500/25 transition-all disabled:opacity-50"
               >
                 {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                 {exporting ? 'Exporting…' : 'Export'}
@@ -301,7 +357,7 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
       )}
 
       {/* Section 4 — Notifications */}
-      <SectionCard icon={Bell} title="Bildirimler">
+      <SectionCard icon={Bell} title={t('settings.notifications')}>
         <div className="space-y-4">
           {/* Browser notifications */}
           <div className="flex items-center justify-between">
@@ -336,11 +392,11 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
 
           {/* Push Bildirimleri */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Push Bildirimleri</span>
+            <span className="text-sm text-muted-foreground">{t('settings.notifications_push')}</span>
             {!isSupported ? (
-              <span className="text-xs text-foreground/40">⏳ Bu tarayıcıda desteklenmiyor</span>
+              <span className="text-xs text-foreground/40">⏳ {t('settings.push_not_supported')}</span>
             ) : isSubscribed ? (
-              <span className="text-xs font-bold text-emerald-400">✅ Aktif</span>
+              <span className="text-xs font-bold text-emerald-400">✅ {t('settings.push_subscribed')}</span>
             ) : (
               <button
                 onClick={async () => {
@@ -352,7 +408,7 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 text-xs font-bold hover:bg-indigo-500/20 transition-all disabled:opacity-50"
               >
                 {subscribing && <Loader2 size={12} className="animate-spin" />}
-                Bildirimleri Etkinleştir
+                {t('settings.push_subscribe')}
               </button>
             )}
           </div>
@@ -367,93 +423,21 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
       </SectionCard>
 
       {/* Section 5 — Webhook Entegrasyonları */}
-      <SectionCard icon={Link} title="Webhook Entegrasyonları">
+      <SectionCard icon={Link} title={t('settings.webhooks_title')}>
         <div className="space-y-5">
-          {/* Discord */}
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Discord</p>
-            <input
-              type="url"
-              value={discordUrl}
-              onChange={(e) => setDiscordUrl(e.target.value)}
-              placeholder="https://discord.com/api/webhooks/..."
-              className="bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-white/20"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  localStorage.setItem('webhook_global_discord', discordUrl);
-                  addToast('Kaydedildi', 'success');
-                }}
-                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-              >
-                Kaydet
-              </button>
-              <button
-                onClick={async () => {
-                  if (!discordUrl) return;
-                  try {
-                    await fetch(discordUrl, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ content: '🧪 StellarSplit webhook test' }),
-                    });
-                    addToast('Test gönderildi', 'success');
-                  } catch (err) {
-                    const msg = err instanceof Error ? err.message : 'Test başarısız';
-                    addToast(msg, 'error');
-                  }
-                }}
-                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 transition-colors"
-              >
-                Test Gönder
-              </button>
-            </div>
-          </div>
-
+          <WebhookRow
+            label="Discord"
+            storageKey="webhook_global_discord"
+            payloadKey="content"
+            placeholder="https://discord.com/api/webhooks/..."
+          />
           <div className="border-t border-white/5" />
-
-          {/* Slack */}
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Slack</p>
-            <input
-              type="url"
-              value={slackUrl}
-              onChange={(e) => setSlackUrl(e.target.value)}
-              placeholder="https://hooks.slack.com/services/..."
-              className="bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:border-white/20"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  localStorage.setItem('webhook_global_slack', slackUrl);
-                  addToast('Kaydedildi', 'success');
-                }}
-                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-              >
-                Kaydet
-              </button>
-              <button
-                onClick={async () => {
-                  if (!slackUrl) return;
-                  try {
-                    await fetch(slackUrl, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ text: '🧪 StellarSplit webhook test' }),
-                    });
-                    addToast('Test gönderildi', 'success');
-                  } catch (err) {
-                    const msg = err instanceof Error ? err.message : 'Test başarısız';
-                    addToast(msg, 'error');
-                  }
-                }}
-                className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20 transition-colors"
-              >
-                Test Gönder
-              </button>
-            </div>
-          </div>
+          <WebhookRow
+            label="Slack"
+            storageKey="webhook_global_slack"
+            payloadKey="text"
+            placeholder="https://hooks.slack.com/services/..."
+          />
         </div>
       </SectionCard>
     </div>

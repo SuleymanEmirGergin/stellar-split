@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Repeat, Trash2, Cloud } from 'lucide-react';
 import { type RecurringTemplate } from '../../lib/recurring';
@@ -14,7 +15,7 @@ interface RecurringTabProps {
   t: (key: TranslationKey) => string;
 }
 
-export default function RecurringTab({
+export default memo(function RecurringTab({
   subscriptions,
   setShowAddSub,
   isLoading,
@@ -47,7 +48,7 @@ export default function RecurringTab({
         <button
           data-testid="add-subscription-btn"
           onClick={() => setShowAddSub(true)}
-          className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 hover:scale-110 transition-transform"
+          className="w-10 h-10 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 flex items-center justify-center text-white shadow-[0_4px_16px_rgba(99,102,241,0.3)] hover:scale-110 transition-all"
         >
           <Plus size={20} />
         </button>
@@ -57,7 +58,7 @@ export default function RecurringTab({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="py-20 text-center bg-secondary/20 rounded-[32px] border border-dashed border-white/5 relative group overflow-hidden"
+          className="py-20 text-center bg-white/[0.025] border border-dashed border-white/[0.07] rounded-[32px] relative group overflow-hidden"
         >
           <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <motion.div
@@ -70,6 +71,13 @@ export default function RecurringTab({
           <p className="text-sm font-bold text-muted-foreground mt-2 max-w-[250px] mx-auto leading-relaxed">
             {t('group.recurring_empty_hint')}
           </p>
+          <button
+            type="button"
+            onClick={() => setShowAddSub(true)}
+            className="mt-6 px-6 py-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 text-xs font-black uppercase tracking-widest hover:bg-indigo-500/30 transition-colors"
+          >
+            + {t('group.recurring')}
+          </button>
         </motion.div>
       )}
 
@@ -77,15 +85,17 @@ export default function RecurringTab({
         {subscriptions.map((s: RecurringTemplate) => (
           <div
             key={s.id}
-            className="bg-secondary/30 border border-white/5 p-5 rounded-3xl flex justify-between items-center group hover:border-white/10 transition-all"
+            className="bg-white/[0.025] border border-white/[0.07] p-5 rounded-2xl flex justify-between items-center group hover:border-white/[0.12] hover:bg-white/[0.04] transition-all"
           >
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center">
                 <Repeat size={18} className="text-indigo-400" />
               </div>
               <div>
                 <div className="font-bold text-sm tracking-tight">{s.name}</div>
-                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{s.interval}</div>
+                <div className="inline-flex items-center text-[10px] text-indigo-300 font-black uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full mt-0.5">
+                  {s.interval}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -107,4 +117,4 @@ export default function RecurringTab({
       </div>
     </div>
   );
-}
+});

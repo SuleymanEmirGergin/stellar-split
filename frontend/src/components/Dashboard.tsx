@@ -19,6 +19,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { createGroup, isGroupSettled, estimateCreateGroupFee, type EstimatedFee } from '../lib/contract';
 import { truncateAddress } from '../lib/stellar';
+import { GROUP_TEMPLATES, type GroupTemplate } from '../lib/group-templates';
 import OnRampGuide from './OnRampGuide';
 import Scanner from './Scanner';
 import { useI18n } from '../lib/i18n';
@@ -87,6 +88,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
     return saved ? JSON.parse(saved) : [];
   });
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<GroupTemplate | null>(null);
   const [newName, setNewName] = useState('');
   const [newMembers, setNewMembers] = useState('');
   const [creating, setCreating] = useState(false);
@@ -99,7 +101,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
   const [estimatedCreateFee, setEstimatedCreateFee] = useState<EstimatedFee | null>(null);
   const [showWizard, setShowWizard] = useState(!localStorage.getItem('wizard_v1_done'));
 
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const xlmUsd = useXlmUsd();
   const [contacts] = useState<Record<string, string>>(() => addressBook.getAll());
 
@@ -240,6 +242,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
       setShowCreate(false);
       setNewName('');
       setNewMembers('');
+      setSelectedTemplate(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Grup oluşturulamadı');
     } finally {
@@ -438,7 +441,10 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                           {g.memberCount} {t('group.members_count')}
                           <span className="w-1 h-1 bg-white/20 rounded-full" />
                           {g.isBackend
-                            ? <span className="text-indigo-400/60">synced</span>
+                            ? <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-emerald-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                live
+                              </span>
                             : `#${g.id}`}
                         </div>
                       </div>
@@ -520,6 +526,34 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               </h3>
               
               <div className="space-y-4 relative">
+                {/* Template selector */}
+                <div className="mb-5">
+                  <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">
+                    {lang === 'tr' ? 'Şablon Seç' : 'Choose Template'}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {GROUP_TEMPLATES.map(tpl => (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTemplate(tpl);
+                          if (tpl.id !== 'blank' && !newName) {
+                            setNewName(`${tpl.emoji} `);
+                          }
+                        }}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all text-center ${
+                          selectedTemplate?.id === tpl.id
+                            ? `bg-gradient-to-br ${tpl.gradient} border-indigo-500/40 shadow-[0_0_12px_rgba(99,102,241,0.15)]`
+                            : 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <span className="text-xl">{tpl.emoji}</span>
+                        <span className={`text-[10px] font-black ${tpl.color}`}>{t(tpl.labelKey as Parameters<typeof t>[0])}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block ml-1">{t('create.group_name_label')}</label>
                   <input
@@ -620,8 +654,8 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                 )}
 
                 <div className="flex gap-3 mt-8">
-                  <button 
-                    onClick={() => setShowCreate(false)} 
+                  <button
+                    onClick={() => { setShowCreate(false); setSelectedTemplate(null); }}
                     className="flex-1 py-3.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors rounded-xl font-bold"
                   >
                     {t('common.cancel')}

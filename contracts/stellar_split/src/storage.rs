@@ -1,6 +1,6 @@
 use soroban_sdk::{Address, Env, Vec};
 
-use crate::types::{DataKey, Expense, Group, GuardianConfig, RecoveryRequest, Vault, UserBadges};
+use crate::types::{DataKey, Expense, Group, GuardianConfig, RecoveryRequest, Vault, UserBadges, SavingsPool};
 
 // ── TTL Sabitleri ──
 // Soroban'da persistent storage girişleri süresi dolar.
@@ -197,4 +197,26 @@ pub fn get_user_badges(env: &Env, user: &Address) -> UserBadges {
             badges: Vec::new(env),
         }
     }
+}
+
+// ── Savings Pool ──
+
+pub fn save_savings_pool(env: &Env, group_id: u64, pool: &SavingsPool) {
+    let key = DataKey::SavingsPool(group_id);
+    env.storage().persistent().set(&key, pool);
+    bump_persistent(env, &key);
+}
+
+pub fn get_savings_pool(env: &Env, group_id: u64) -> Option<SavingsPool> {
+    let key = DataKey::SavingsPool(group_id);
+    let result = env.storage().persistent().get(&key);
+    if result.is_some() {
+        bump_persistent(env, &key);
+    }
+    result
+}
+
+pub fn remove_savings_pool(env: &Env, group_id: u64) {
+    let key = DataKey::SavingsPool(group_id);
+    env.storage().persistent().remove(&key);
 }

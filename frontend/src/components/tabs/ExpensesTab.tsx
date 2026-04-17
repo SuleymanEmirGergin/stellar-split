@@ -1,17 +1,19 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, FileText, Receipt, Camera, Trash2, ChevronRight, Plus, Filter } from 'lucide-react';
+import { Search, Download, FileText, Camera, Trash2, ChevronRight, Plus, Filter, CheckSquare, Square, X as XIcon, AlertTriangle, Upload } from 'lucide-react';
 import { type Group, type Expense } from '../../lib/contract';
 import { formatStroopsWithUsd } from '../../lib/xlmPrice';
 import { truncateAddress } from '../../lib/stellar';
 import { exportToCSV, exportToPrintReport } from '../../lib/export';
 import type { TranslationKey } from '../../lib/i18n';
 import EmptyState from '../EmptyState';
+import { getExpenseCreatedAt, getExpenseStatus } from '../../lib/expense-utils';
 
 interface ExpensesTabProps {
   group: Group;
   expenses: Expense[];
+  onImport?: () => void;
   walletAddress: string;
   currencyLabel: string;
   xlmUsd: number | null;
@@ -38,16 +40,7 @@ const itemVars = {
   visible: { opacity: 1, scale: 1, y: 0 }
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  food: 'Yemek',
-  transport: 'Ulaşım',
-  accommodation: 'Konaklama',
-  entertainment: 'Eğlence',
-  market: 'Market',
-  other: 'Diğer',
-};
-
-export default function ExpensesTab({
+export default memo(function ExpensesTab({
   group,
   expenses,
   walletAddress,
@@ -62,9 +55,25 @@ export default function ExpensesTab({
   handleCancelLastExpense,
   setShowAdd,
   setAddExpenseError,
-  t
+  t,
+  onDispute,
+  onImport,
 }: ExpensesTabProps) {
   const getCategoryLabel = (cat: string) => t(`group.category_${cat}` as Parameters<typeof t>[0]) || cat;
+
+  // Bulk select state
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+  const exitBulkMode = () => { setBulkMode(false); clearSelection(); };
 
   // Advanced filter state
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -76,7 +85,7 @@ export default function ExpensesTab({
   const [filterShowCancelled, setFilterShowCancelled] = useState(false);
   const [sortMode, setSortMode] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
 
-  const hasCreatedAt = expenses.length > 0 && !!(expenses[0] as unknown as { createdAt?: unknown }).createdAt;
+  const hasCreatedAt = expenses.length > 0 && getExpenseCreatedAt(expenses[0]) !== undefined;
 
   const uniquePayers = useMemo(() =>
     [...new Set(expenses.map(e => e.payer))],
@@ -94,12 +103,12 @@ export default function ExpensesTab({
     if (filterPayerAddr) list = list.filter(e => e.payer === filterPayerAddr);
     if (filterAmountMin) list = list.filter(e => (e.amount / 10_000_000) >= parseFloat(filterAmountMin));
     if (filterAmountMax) list = list.filter(e => (e.amount / 10_000_000) <= parseFloat(filterAmountMax));
-    if (!filterShowCancelled) list = list.filter(e => (e as unknown as { status?: string }).status !== 'CANCELLED');
+    if (!filterShowCancelled) list = list.filter(e => getExpenseStatus(e) !== 'CANCELLED');
 
     // date filter — only if createdAt exists
     if (hasCreatedAt) {
-      if (filterDateFrom) list = list.filter(e => new Date((e as unknown as { createdAt: string }).createdAt) >= new Date(filterDateFrom));
-      if (filterDateTo) list = list.filter(e => new Date((e as unknown as { createdAt: string }).createdAt) <= new Date(filterDateTo + 'T23:59:59'));
+      if (filterDateFrom) list = list.filter(e => new Date(getExpenseCreatedAt(e)!) >= new Date(filterDateFrom));
+      if (filterDateTo) list = list.filter(e => new Date(getExpenseCreatedAt(e)!) <= new Date(filterDateTo + 'T23:59:59'));
     }
 
     // sort
@@ -127,6 +136,12 @@ export default function ExpensesTab({
     setSortMode('newest');
   };
 
+  const selectAll = () => setSelectedIds(new Set(filteredExpenses.map(e => e.id)));
+  const handleBulkExportCSV = () => {
+    const selected = filteredExpenses.filter(e => selectedIds.has(e.id));
+    if (selected.length > 0) exportToCSV(group, selected);
+  };
+
   const inputCls = 'bg-background/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs w-full focus:outline-none focus:border-white/20';
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -137,6 +152,16 @@ export default function ExpensesTab({
     overscan: 5,
   });
   const useVirtual = filteredExpenses.length > 40;
+
+  const CATEGORY_ICON: Record<string, { emoji: string; bg: string; text: string }> = {
+    food:          { emoji: '🍽️', bg: 'bg-amber-500/15',   text: 'text-amber-400' },
+    transport:     { emoji: '🚗', bg: 'bg-blue-500/15',    text: 'text-blue-400' },
+    accommodation: { emoji: '🏠', bg: 'bg-green-500/15',   text: 'text-green-400' },
+    entertainment: { emoji: '🎮', bg: 'bg-purple-500/15',  text: 'text-purple-400' },
+    market:        { emoji: '🛍️', bg: 'bg-pink-500/15',    text: 'text-pink-400' },
+    other:         { emoji: '📦', bg: 'bg-slate-500/15',   text: 'text-slate-400' },
+  };
+  const getExpIcon = (cat?: string) => CATEGORY_ICON[cat || ''] ?? { emoji: '💰', bg: 'bg-indigo-500/15', text: 'text-indigo-400' };
 
   return (
     <div className="space-y-6">
@@ -180,7 +205,7 @@ export default function ExpensesTab({
             }`}
           >
             <Filter size={13} />
-            Filtreler
+            {t('expenses.filters')}
             {activeFilterCount > 0 && (
               <span className="ml-0.5 bg-indigo-500 text-white rounded-full px-1.5 py-0.5 text-[10px] leading-none">
                 {activeFilterCount}
@@ -188,6 +213,19 @@ export default function ExpensesTab({
             )}
           </button>
 
+          <button
+            type="button"
+            onClick={() => { setBulkMode(b => !b); if (bulkMode) clearSelection(); }}
+            disabled={!expenses.length}
+            className={`p-4 rounded-2xl border transition-all disabled:opacity-50 shrink-0 ${
+              bulkMode
+                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+                : 'bg-secondary/50 border-white/5 hover:border-indigo-500/30 text-muted-foreground hover:text-indigo-400'
+            }`}
+            title={t('group.bulk_select')}
+          >
+            <CheckSquare size={18} />
+          </button>
           <button
             type="button"
             onClick={() => exportToCSV(group, expenses)}
@@ -206,6 +244,16 @@ export default function ExpensesTab({
           >
             <FileText size={18} />
           </button>
+          {onImport && (
+            <button
+              type="button"
+              onClick={onImport}
+              className="p-4 rounded-2xl bg-secondary/50 border border-white/5 hover:border-emerald-500/30 text-muted-foreground hover:text-emerald-400 transition-all shrink-0"
+              title={t('import.title')}
+            >
+              <Upload size={18} />
+            </button>
+          )}
         </div>
 
         {/* Collapsible advanced filter panel */}
@@ -221,7 +269,7 @@ export default function ExpensesTab({
                 {/* Date From */}
                 {hasCreatedAt && (
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-foreground/40 uppercase tracking-wider">Başlangıç Tarihi</label>
+                    <label className="text-[10px] text-foreground/40 uppercase tracking-wider">{t('expenses.filter_start_date')}</label>
                     <input
                       type="date"
                       value={filterDateFrom}
@@ -234,7 +282,7 @@ export default function ExpensesTab({
                 {/* Date To */}
                 {hasCreatedAt && (
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-foreground/40 uppercase tracking-wider">Bitiş Tarihi</label>
+                    <label className="text-[10px] text-foreground/40 uppercase tracking-wider">{t('expenses.filter_end_date')}</label>
                     <input
                       type="date"
                       value={filterDateTo}
@@ -246,13 +294,13 @@ export default function ExpensesTab({
 
                 {/* Payer select */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">Ödeyen</label>
+                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">{t('expenses.filter_payer')}</label>
                   <select
                     value={filterPayerAddr}
                     onChange={e => setFilterPayerAddr(e.target.value)}
                     className={inputCls}
                   >
-                    <option value="">Tümü</option>
+                    <option value="">{t('expenses.all_payers')}</option>
                     {uniquePayers.map(addr => (
                       <option key={addr} value={addr}>{truncateAddress(addr)}</option>
                     ))}
@@ -261,7 +309,7 @@ export default function ExpensesTab({
 
                 {/* Amount min */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">Min Tutar</label>
+                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">{t('expenses.filter_amount_min')}</label>
                   <input
                     type="number"
                     min="0"
@@ -275,7 +323,7 @@ export default function ExpensesTab({
 
                 {/* Amount max */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">Maks Tutar</label>
+                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">{t('expenses.filter_amount_max')}</label>
                   <input
                     type="number"
                     min="0"
@@ -289,16 +337,16 @@ export default function ExpensesTab({
 
                 {/* Sort select */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">Sıralama</label>
+                  <label className="text-[10px] text-foreground/40 uppercase tracking-wider">{t('expenses.sort_label')}</label>
                   <select
                     value={sortMode}
                     onChange={e => setSortMode(e.target.value as typeof sortMode)}
                     className={inputCls}
                   >
-                    <option value="newest">En Yeni</option>
-                    <option value="oldest">En Eski</option>
-                    <option value="highest">En Yüksek</option>
-                    <option value="lowest">En Düşük</option>
+                    <option value="newest">{t('expenses.sort_newest')}</option>
+                    <option value="oldest">{t('expenses.sort_oldest')}</option>
+                    <option value="highest">{t('expenses.sort_highest')}</option>
+                    <option value="lowest">{t('expenses.sort_lowest')}</option>
                   </select>
                 </div>
 
@@ -311,7 +359,7 @@ export default function ExpensesTab({
                       onChange={e => setFilterShowCancelled(e.target.checked)}
                       className="rounded"
                     />
-                    İptal edilenleri göster
+                    {t('expenses.show_cancelled')}
                   </label>
                 </div>
 
@@ -321,7 +369,7 @@ export default function ExpensesTab({
                   onClick={resetAllFilters}
                   className="col-span-full text-xs text-foreground/40 hover:text-foreground/60 underline text-center py-1"
                 >
-                  Filtreleri Sıfırla
+                  {t('expenses.reset_filters')}
                 </button>
               </div>
             </motion.div>
@@ -339,10 +387,10 @@ export default function ExpensesTab({
       ) : filteredExpenses.length === 0 ? (
         <EmptyState
           icon="💸"
-          title={activeFilterCount > 0 ? 'Filtrelerle eşleşen harcama yok' : 'Henüz harcama eklenmemiş'}
-          description={activeFilterCount > 0 ? 'Filtreleri temizleyerek tüm harcamaları görün' : undefined}
+          title={activeFilterCount > 0 ? t('expenses.no_matching_expenses') : t('group.empty_expenses')}
+          description={activeFilterCount > 0 ? t('expenses.clear_filters_hint') : undefined}
           action={activeFilterCount > 0
-            ? { label: 'Filtreleri Temizle', onClick: resetAllFilters }
+            ? { label: t('expenses.clear_filters'), onClick: resetAllFilters }
             : { label: t('group.add_expense'), onClick: () => { setAddExpenseError(null); setShowAdd(true); } }
           }
         />
@@ -355,6 +403,7 @@ export default function ExpensesTab({
               const exp = filteredExpenses[virtualRow.index]!;
               const isLastExpense = exp.id === (expenses.length > 0 ? Math.max(...expenses.map(e => e.id)) : -1);
               const canCancel = isLastExpense && exp.payer === walletAddress && !cancelling;
+              const isSelected = selectedIds.has(exp.id);
               return (
                 <div
                   key={exp.id}
@@ -367,11 +416,19 @@ export default function ExpensesTab({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                   className="py-1.5"
+                  onClick={bulkMode ? () => toggleSelect(exp.id) : undefined}
                 >
-                  <div className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-secondary/30 backdrop-blur-sm border border-white/5 rounded-3xl hover:border-white/10 transition-all hover:bg-secondary/40 gap-4">
+                  <div className={`group flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 backdrop-blur-sm border rounded-3xl transition-all gap-4 ${
+                    isSelected ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-secondary/30 border-white/5 hover:border-white/10 hover:bg-secondary/40'
+                  }`}>
                     <div className="flex items-center gap-4 w-full sm:w-auto">
-                      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors shrink-0">
-                        <Receipt className="w-6 h-6 text-indigo-400" />
+                      {bulkMode && (
+                        <div className="shrink-0 text-indigo-400">
+                          {isSelected ? <CheckSquare size={18} /> : <Square size={18} className="text-white/30" />}
+                        </div>
+                      )}
+                      <div className={`w-12 h-12 rounded-2xl ${getExpIcon(exp.category).bg} flex items-center justify-center shrink-0 text-xl`}>
+                        {getExpIcon(exp.category).emoji}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div data-testid="expense-title" className="font-black text-sm tracking-tight truncate">{exp.description}</div>
@@ -380,7 +437,7 @@ export default function ExpensesTab({
                           {exp.category && (
                             <>
                               <span className="w-1 h-1 bg-white/20 rounded-full shrink-0" />
-                              <span className="px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground whitespace-nowrap">{CATEGORY_LABELS[exp.category] || exp.category}</span>
+                              <span className="px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground whitespace-nowrap">{getCategoryLabel(exp.category)}</span>
                             </>
                           )}
                         </div>
@@ -399,6 +456,18 @@ export default function ExpensesTab({
                           </button>
                         )}
                       </div>
+                      {!bulkMode && (
+                    <div className="flex items-center gap-1.5">
+                      {onDispute && (
+                        <button
+                          type="button"
+                          onClick={() => onDispute(exp)}
+                          className="p-2 rounded-xl text-amber-400/70 hover:text-amber-400 hover:bg-amber-500/10 border border-amber-500/20 transition-all shrink-0 opacity-0 group-hover:opacity-100"
+                          title={t('group.dispute_btn')}
+                        >
+                          <AlertTriangle size={15} />
+                        </button>
+                      )}
                       {canCancel ? (
                         <button
                           type="button"
@@ -413,6 +482,8 @@ export default function ExpensesTab({
                         <ChevronRight size={16} className="text-white/10 group-hover:text-white/40 transition-colors shrink-0" />
                       )}
                     </div>
+                  )}
+                    </div>
                   </div>
                 </div>
               );
@@ -424,16 +495,27 @@ export default function ExpensesTab({
           {filteredExpenses.map((exp: Expense) => {
             const isLastExpense = exp.id === (expenses.length > 0 ? Math.max(...expenses.map(e => e.id)) : -1);
             const canCancel = isLastExpense && exp.payer === walletAddress && !cancelling;
+            const isSelected = selectedIds.has(exp.id);
             return (
               <motion.div
                 key={exp.id}
                 data-testid="expense-row"
                 variants={itemVars}
-                className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-secondary/30 backdrop-blur-sm border border-white/5 rounded-3xl hover:border-white/10 transition-all hover:bg-secondary/40 gap-4"
+                className={`group flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 backdrop-blur-sm border rounded-3xl transition-all gap-4 ${
+                  isSelected
+                    ? 'bg-indigo-500/10 border-indigo-500/30'
+                    : 'bg-secondary/30 border-white/5 hover:border-white/10 hover:bg-secondary/40'
+                }`}
+                onClick={bulkMode ? () => toggleSelect(exp.id) : undefined}
               >
                 <div className="flex items-center gap-4 w-full sm:w-auto">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors shrink-0">
-                    <Receipt className="w-6 h-6 text-indigo-400" />
+                  {bulkMode && (
+                    <div className="shrink-0 text-indigo-400">
+                      {isSelected ? <CheckSquare size={18} /> : <Square size={18} className="text-white/30" />}
+                    </div>
+                  )}
+                  <div className={`w-12 h-12 rounded-2xl ${getExpIcon(exp.category).bg} flex items-center justify-center shrink-0 text-xl`}>
+                    {getExpIcon(exp.category).emoji}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div data-testid="expense-title" className="font-black text-sm tracking-tight truncate">{exp.description}</div>
@@ -442,7 +524,7 @@ export default function ExpensesTab({
                       {exp.category && (
                         <>
                           <span className="w-1 h-1 bg-white/20 rounded-full shrink-0" />
-                          <span className="px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground whitespace-nowrap">{CATEGORY_LABELS[exp.category] || exp.category}</span>
+                          <span className="px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground whitespace-nowrap">{getCategoryLabel(exp.category)}</span>
                         </>
                       )}
                     </div>
@@ -461,18 +543,32 @@ export default function ExpensesTab({
                       </button>
                     )}
                   </div>
-                  {canCancel ? (
-                    <button
-                      type="button"
-                      onClick={handleCancelLastExpense}
-                      disabled={cancelling}
-                      className="p-2 rounded-xl text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all disabled:opacity-50 shrink-0"
-                      title={t('group.cancel_expense')}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  ) : (
-                    <ChevronRight size={16} className="text-white/10 group-hover:text-white/40 transition-colors shrink-0" />
+                  {!bulkMode && (
+                    <div className="flex items-center gap-1.5">
+                      {onDispute && (
+                        <button
+                          type="button"
+                          onClick={() => onDispute(exp)}
+                          className="p-2 rounded-xl text-amber-400/70 hover:text-amber-400 hover:bg-amber-500/10 border border-amber-500/20 transition-all shrink-0 opacity-0 group-hover:opacity-100"
+                          title={t('group.dispute_btn')}
+                        >
+                          <AlertTriangle size={15} />
+                        </button>
+                      )}
+                      {canCancel ? (
+                        <button
+                          type="button"
+                          onClick={handleCancelLastExpense}
+                          disabled={cancelling}
+                          className="p-2 rounded-xl text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all disabled:opacity-50 shrink-0"
+                          title={t('group.cancel_expense')}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <ChevronRight size={16} className="text-white/10 group-hover:text-white/40 transition-colors shrink-0" />
+                      )}
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -481,7 +577,46 @@ export default function ExpensesTab({
         </motion.div>
       )}
 
-      {expenses.length > 0 && (
+      {/* Bulk mode bottom action bar */}
+      <AnimatePresence>
+        {bulkMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="sticky bottom-4 z-10 flex items-center gap-2 p-3 bg-background/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={exitBulkMode}
+              className="p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-white/10 transition-all shrink-0"
+              title={t('settings.leave_cancel')}
+            >
+              <XIcon size={16} />
+            </button>
+            <span className="text-xs font-black text-muted-foreground flex-1">
+              {selectedIds.size > 0 ? `${selectedIds.size} ${t('group.selected_count')}` : t('group.no_selection')}
+            </span>
+            <button
+              type="button"
+              onClick={selectedIds.size === filteredExpenses.length ? clearSelection : selectAll}
+              className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all"
+            >
+              {selectedIds.size === filteredExpenses.length ? t('group.deselect_all') : t('group.select_all')}
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkExportCSV}
+              disabled={selectedIds.size === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-black hover:bg-indigo-500/30 transition-all disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <Download size={13} /> {t('group.bulk_export_csv')}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!bulkMode && expenses.length > 0 && (
         <button
           data-testid="add-expense-btn"
           onClick={() => { setAddExpenseError(null); setShowAdd(true); }}
@@ -492,4 +627,4 @@ export default function ExpensesTab({
       )}
     </div>
   );
-}
+});

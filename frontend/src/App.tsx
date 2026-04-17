@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { isFreighterInstalled, connectFreighter, getFreighterAddress, isTestnet } from './lib/stellar';
 import { signInWithStellar, signOut } from './lib/siws';
+import { setAccessToken, usersApi } from './lib/api';
 import { maskAddress } from './lib/format';
 import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
@@ -223,10 +224,29 @@ function AppContent() {
           !!(window as unknown as { __PLAYWRIGHT_E2E_WALLET__?: string }).__PLAYWRIGHT_E2E_WALLET__;
         if (!isE2E) {
           try {
-            const { user } = await signInWithStellar(addr);
-            useAppStore.getState().setBackendUser(user);
+            // 1. Try silent refresh first (uses HttpOnly refresh cookie — no Freighter popup)
+            const refreshRes = await authApi.refresh();
+            const newToken = refreshRes?.data?.accessToken;
+            if (newToken) {
+              setAccessToken(newToken);
+              // Fetch user profile with the new token
+              try {
+                const meRes = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3001'}/users/me`, {
+                  headers: { Authorization: `Bearer ${newToken}` },
+                  credentials: 'include',
+                });
+                if (meRes.ok) {
+                  const meBody = await meRes.json() as { data: { id: string; walletAddress: string; reputationScore: number } };
+                  useAppStore.getState().setBackendUser(meBody.data ?? null);
+                }
+              } catch { /* profile fetch failed — token still valid */ }
+            } else {
+              // 2. Silent refresh failed (first time or cookie expired) → full SIWS
+              const { user } = await signInWithStellar(addr);
+              useAppStore.getState().setBackendUser(user);
+            }
           } catch {
-            // Backend unreachable or user cancelled — continue without JWT
+            // Backend unreachable — continue without JWT (offline / demo mode)
           }
         }
         // Navigation is deferred to the effect below so walletAddress state
@@ -365,163 +385,159 @@ function AppContent() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300 overflow-x-hidden bg-wallet-grid">
+      {/* ── Ambient background glow orbs ── */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full bg-indigo-600/5 blur-[120px]" />
+        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-purple-600/5 blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-blue-500/3 blur-[80px]" />
+      </div>
       {/* ── Sticky top: offline banner + header ── */}
       <div className="sticky top-0 z-50 flex flex-col">
         {isOffline && (
-          <div className="flex items-center justify-center gap-2 py-2 px-4 bg-amber-500/20 border-b border-amber-500/30 text-amber-400 text-sm font-bold">
+          <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 py-2 px-4 bg-amber-500/20 border-b border-amber-500/30 text-amber-400 text-sm font-bold">
             <WifiOff size={18} />
             {t('network.offline_banner')}
           </div>
         )}
-        <header className="flex items-center justify-between px-6 py-4 bg-card/80 backdrop-blur-xl border-b border-white/5">
-        {/* Logo */}
-        <div
-          className="flex items-center gap-2.5 text-xl font-bold cursor-pointer shrink-0 transition-transform active:scale-[0.98] hover:opacity-90"
-          onClick={goHome}
-        >
-          <Logo size={36} className="rounded-xl" />
-          <span className="bg-gradient-to-r from-indigo-400 via-white to-purple-400 bg-[length:200%_auto] animate-glimmer bg-clip-text text-transparent tracking-tight">StellarSplit</span>
-        </div>
+        <header className="flex items-center justify-between px-5 md:px-7 h-14 bg-background/90 backdrop-blur-2xl border-b border-white/[0.06]">
+          {/* ── Logo ── */}
+          <button
+            type="button"
+            onClick={goHome}
+            className="flex items-center gap-2 shrink-0 group"
+          >
+            <Logo size={30} className="rounded-xl group-hover:opacity-90 transition-opacity" />
+            <span className="hidden sm:block bg-gradient-to-r from-indigo-400 via-white/90 to-purple-400 bg-[length:200%_auto] animate-glimmer bg-clip-text text-transparent font-black text-base tracking-tight">
+              StellarSplit
+            </span>
+          </button>
 
-        {/* Right area */}
-        <div className="flex items-center gap-3 flex-wrap justify-end">
-          {/* XLM Price */}
-          {price !== null && (
-            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 bg-secondary/50 border border-white/5 rounded-full text-[11px] font-bold">
-              <span className="text-muted-foreground">XLM</span>
-              <span className="font-mono text-foreground">${price.toFixed(4)}</span>
-              {change !== null && (
-                <span className={`inline-flex items-center gap-1 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {change >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                  {Math.abs(change).toFixed(2)}%
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Testnet/Demo indicators */}
-          {!demoMode ? (
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-400/10 px-3 py-1.5 rounded-full border border-rose-400/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-              {t('header.testnet')}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/20">
-              <Shield size={10} />
-              {t('header.demo_mode')}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 bg-secondary/50 border border-white/5 p-1 rounded-2xl">
-            <button
-              onClick={toggleDemoMode}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
-                demoMode
-                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                  : 'text-muted-foreground hover:bg-white/5'
-              }`}
-              title={demoMode ? t('header.switch_testnet') : t('header.switch_demo')}
-            >
-              {demoMode ? <Shield size={18} /> : <Globe size={18} />}
-            </button>
-
-            <button
-              onClick={() => setLang(lang === 'tr' ? 'en' : lang === 'en' ? 'de' : lang === 'de' ? 'es' : 'tr')}
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-white/5 transition-all text-[11px] font-black"
-              title={lang === 'tr' ? 'English' : lang === 'en' ? 'Deutsch' : lang === 'de' ? 'Español' : 'Türkçe'}
-            >
-              {lang.toUpperCase()}
-            </button>
-
-            <button
-              onClick={toggleTheme}
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-white/5 transition-all"
-            >
-              {dark ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-
-            {walletAddress && (
-              <button
-                onClick={() => navigate('/settings')}
-                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
-                  isSettings
-                    ? 'bg-white/10 text-foreground'
-                    : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
-                }`}
-                title="Settings (S)"
-              >
-                <Settings size={18} />
-              </button>
+          {/* ── Right cluster ── */}
+          <div className="flex items-center gap-2">
+            {/* XLM price chip */}
+            {price !== null && (
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.04] border border-white/[0.07] rounded-xl text-[11px] font-bold">
+                <span className="text-white/40">XLM</span>
+                <span className="font-mono text-white/80">${price.toFixed(4)}</span>
+                {change !== null && (
+                  <span className={`flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {change >= 0 ? <ArrowUpRight size={9} /> : <ArrowDownRight size={9} />}
+                    {Math.abs(change).toFixed(2)}%
+                  </span>
+                )}
+              </div>
             )}
-          </div>
 
-          {/* Notifications */}
-          {walletAddress && <NotificationCenter />}
+            {/* Network / demo badge */}
+            {!demoMode ? (
+              <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-rose-400/80 bg-rose-500/8 px-2.5 py-1 rounded-lg border border-rose-500/15">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                {t('header.testnet')}
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/8 px-2.5 py-1 rounded-lg border border-indigo-500/15">
+                <Shield size={9} />
+                {t('header.demo_mode')}
+              </div>
+            )}
 
-          {/* Wallet */}
-          {walletAddress ? (
-            <div className="flex items-center gap-2">
-              {isTestnet() && (
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                  Testnet
-                </span>
+            {/* Icon button cluster */}
+            <div className="flex items-center gap-0.5 bg-white/[0.04] border border-white/[0.07] rounded-xl p-1">
+              <button
+                onClick={toggleDemoMode}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all text-sm ${
+                  demoMode ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-white/40 hover:text-white/80 hover:bg-white/[0.06]'
+                }`}
+                title={demoMode ? t('header.switch_testnet') : t('header.switch_demo')}
+              >
+                {demoMode ? <Shield size={15} /> : <Globe size={15} />}
+              </button>
+
+              <button
+                onClick={() => setLang(lang === 'tr' ? 'en' : lang === 'en' ? 'de' : lang === 'de' ? 'es' : 'tr')}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all text-[10px] font-black"
+                title={lang === 'tr' ? 'English' : lang === 'en' ? 'Deutsch' : lang === 'de' ? 'Español' : 'Türkçe'}
+              >
+                {lang.toUpperCase()}
+              </button>
+
+              <button
+                onClick={toggleTheme}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-all"
+              >
+                {dark ? <Sun size={15} /> : <Moon size={15} />}
+              </button>
+
+              {walletAddress && (
+                <button
+                  onClick={() => navigate('/settings')}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                    isSettings ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80 hover:bg-white/[0.06]'
+                  }`}
+                  title="Settings (S)"
+                >
+                  <Settings size={15} />
+                </button>
               )}
-              {!isTestnet() && (
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary border border-primary/30">
-                  Mainnet
-                </span>
-              )}
-              <div className="hidden sm:flex items-center px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-100 text-xs font-bold gap-3 shadow-sm">
-                <div className="flex items-center gap-1.5">
-                  <Zap size={14} className="text-amber-400" />
-                  <span className="font-mono tracking-tight">
+            </div>
+
+            {/* Notifications */}
+            {walletAddress && <NotificationCenter />}
+
+            {/* Wallet section */}
+            {walletAddress ? (
+              <div className="flex items-center gap-2">
+                {/* Balance pill */}
+                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-white/[0.04] border border-white/[0.07] rounded-xl text-xs font-bold">
+                  <Zap size={12} className="text-amber-400 shrink-0" />
+                  <span className="font-mono text-white/75">
                     <BalanceMetric value={walletBalance != null ? parseFloat(walletBalance) : null} suffix="XLM" />
                   </span>
-                </div>
-                <div className="w-px h-3 bg-white/10" />
-                <div className="flex items-center gap-1.5 text-purple-400">
-                  <Shield size={14} />
-                  <span className="font-mono tracking-tight text-white">
+                  <span className="w-px h-3 bg-white/10" />
+                  <Shield size={12} className="text-purple-400 shrink-0" />
+                  <span className="font-mono text-white/75">
                     <BalanceMetric value={spltBalance} suffix="SPLT" />
                   </span>
                 </div>
+
+                <CopyButton text={walletAddress} onCopy={() => addToast(t('common.copied') || 'Copied')} />
+
+                <button
+                  type="button"
+                  onClick={() => setShowReceivePanel(true)}
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/[0.08] text-white/45 hover:text-white/75 hover:border-white/15 text-[11px] font-bold transition-all"
+                >
+                  <QrCode size={13} />
+                  <span className="hidden md:inline">{t('receive.title') || 'Receive'}</span>
+                </button>
+
+                {/* Address / disconnect */}
+                <button
+                  className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-white/[0.04] border border-white/[0.07] rounded-xl text-white/60 hover:text-white/90 font-bold text-[11px] transition-all group"
+                  onClick={handleDisconnect}
+                >
+                  <span className="font-mono">{maskAddress(walletAddress)}</span>
+                  <LinkIcon size={11} className="group-hover:rotate-45 transition-transform" />
+                </button>
               </div>
-              <CopyButton text={walletAddress} onCopy={() => addToast(t('common.copied') || 'Copied')} />
+            ) : (
               <button
-                type="button"
-                onClick={() => setShowReceivePanel(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-muted-foreground hover:text-foreground hover:border-primary/30 text-xs font-bold transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm rounded-xl shadow-[0_0_16px_rgba(99,102,241,0.35)] hover:shadow-[0_0_24px_rgba(99,102,241,0.5)] hover:-translate-y-px transition-all disabled:opacity-50"
+                onClick={handleConnect}
+                disabled={!freighterAvailable || connecting}
               >
-                <QrCode size={14} />
-                {t('receive.title') || 'Receive'}
+                {connecting ? (
+                  <Zap size={15} className="animate-spin" />
+                ) : freighterAvailable ? (
+                  <><LinkIcon size={15} /> {t('header.connect_wallet')}</>
+                ) : (
+                  <><AlertTriangle size={15} /> {t('header.install_freighter')}</>
+                )}
               </button>
-              <button
-                className="flex items-center gap-2 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 font-bold text-xs hover:bg-indigo-500/20 transition-all group"
-                onClick={handleDisconnect}
-              >
-                <LinkIcon size={14} className="group-hover:rotate-45 transition-transform" />
-                <span className="font-mono">{maskAddress(walletAddress)}</span>
-              </button>
-            </div>
-          ) : (
-            <button
-              className="flex items-center gap-2 px-5 py-2 bg-indigo-600 border border-indigo-500 rounded-xl text-white font-bold text-sm hover:bg-indigo-500 transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] disabled:opacity-50"
-              onClick={handleConnect}
-              disabled={!freighterAvailable || connecting}
-            >
-              {connecting ? (
-                <Zap size={16} className="animate-spin" />
-              ) : freighterAvailable ? (
-                <><LinkIcon size={16} /> {t('header.connect_wallet')}</>
-              ) : (
-                <><AlertTriangle size={16} /> {t('header.install_freighter')}</>
-              )}
-            </button>
-          )}
-        </div>
-      </header>
+            )}
+          </div>
+        </header>
       </div>
 
       {/* ── Demo Bar ── */}
@@ -534,7 +550,7 @@ function AppContent() {
       )}
 
       {/* ── Main Content (page transition: fade + 8px depth) ── */}
-      <main className="flex-1 p-6 md:p-8 max-w-[1200px] w-full mx-auto overflow-hidden">
+      <main className="flex-1 p-6 md:p-8 max-w-[1200px] w-full mx-auto overflow-hidden relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}

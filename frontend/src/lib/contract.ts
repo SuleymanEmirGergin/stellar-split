@@ -997,6 +997,166 @@ export async function awardBadge(
 //  REWARD TOKEN (SPLT)
 // ─────────────────────────────────────────────
 
+// ─── Savings Pool (Kumbara) ─────────────────────────────────────────────────
+
+export interface SavingsPoolContractData {
+  group_id: number;
+  goal_amount: number;   // stroops
+  current_amount: number;
+  deadline: number;      // unix timestamp seconds; 0 = no deadline
+  status: number;        // 0=Active, 1=Completed, 2=Cancelled
+  creator: string;       // wallet address
+}
+
+/**
+ * Creates a new savings pool on-chain.
+ * goalAmountXlm in XLM (converted to stroops internally).
+ * deadlineMs: JS Date timestamp in ms (converted to seconds); 0 for no deadline.
+ */
+export async function createSavingsPool(
+  walletAddress: string,
+  groupId: number,
+  goalAmountXlm: number,
+  deadlineMs: number,
+): Promise<SavingsPoolContractData> {
+  if (isDemoMode()) {
+    await demoDelay(1000);
+    return {
+      group_id: groupId,
+      goal_amount: Math.round(goalAmountXlm * 10_000_000),
+      current_amount: 0,
+      deadline: deadlineMs > 0 ? Math.floor(deadlineMs / 1000) : 0,
+      status: 0,
+      creator: walletAddress,
+    };
+  }
+
+  const goalStroops = Math.round(goalAmountXlm * 10_000_000);
+  const deadlineSecs = deadlineMs > 0 ? Math.floor(deadlineMs / 1000) : 0;
+
+  const tx = await buildTx(
+    walletAddress,
+    'create_savings_pool',
+    StellarSdk.nativeToScVal(groupId, { type: 'u64' }),
+    StellarSdk.Address.fromString(walletAddress).toScVal(),
+    StellarSdk.nativeToScVal(goalStroops, { type: 'i128' }),
+    StellarSdk.nativeToScVal(deadlineSecs, { type: 'u64' }),
+  );
+  const result = await signAndSubmit(tx);
+  const returnVal = result.returnValue;
+  if (!returnVal) throw new Error('No return value from create_savings_pool');
+  const native = StellarSdk.scValToNative(returnVal) as Record<string, unknown>;
+  return {
+    group_id: Number(native.group_id),
+    goal_amount: Number(native.goal_amount),
+    current_amount: Number(native.current_amount),
+    deadline: Number(native.deadline),
+    status: Number(native.status),
+    creator: String(native.creator),
+  };
+}
+
+/**
+ * Contribute to a savings pool.
+ * amountXlm in XLM (converted to stroops internally).
+ */
+export async function contributeToPool(
+  walletAddress: string,
+  groupId: number,
+  amountXlm: number,
+): Promise<SavingsPoolContractData> {
+  if (isDemoMode()) {
+    await demoDelay(800);
+    return {
+      group_id: groupId,
+      goal_amount: 0,
+      current_amount: Math.round(amountXlm * 10_000_000),
+      deadline: 0,
+      status: 0,
+      creator: walletAddress,
+    };
+  }
+
+  const amountStroops = Math.round(amountXlm * 10_000_000);
+
+  const tx = await buildTx(
+    walletAddress,
+    'contribute_pool',
+    StellarSdk.nativeToScVal(groupId, { type: 'u64' }),
+    StellarSdk.Address.fromString(walletAddress).toScVal(),
+    StellarSdk.nativeToScVal(amountStroops, { type: 'i128' }),
+  );
+  const result = await signAndSubmit(tx);
+  const returnVal = result.returnValue;
+  if (!returnVal) throw new Error('No return value from contribute_pool');
+  const native = StellarSdk.scValToNative(returnVal) as Record<string, unknown>;
+  return {
+    group_id: Number(native.group_id),
+    goal_amount: Number(native.goal_amount),
+    current_amount: Number(native.current_amount),
+    deadline: Number(native.deadline),
+    status: Number(native.status),
+    creator: String(native.creator),
+  };
+}
+
+/**
+ * Release a savings pool, distributing funds equally to all members.
+ * Returns the number of members that received funds.
+ */
+export async function releaseSavingsPool(
+  walletAddress: string,
+  groupId: number,
+): Promise<number> {
+  if (isDemoMode()) {
+    await demoDelay(1200);
+    return 0;
+  }
+
+  const tx = await buildTx(
+    walletAddress,
+    'release_pool',
+    StellarSdk.nativeToScVal(groupId, { type: 'u64' }),
+    StellarSdk.Address.fromString(walletAddress).toScVal(),
+  );
+  const result = await signAndSubmit(tx);
+  const returnVal = result.returnValue;
+  if (!returnVal) return 0;
+  return Number(StellarSdk.scValToNative(returnVal));
+}
+
+/**
+ * Get on-chain savings pool data for a group.
+ * Returns null if the pool does not exist or the contract function is unavailable.
+ */
+export async function getSavingsPool(
+  walletAddress: string,
+  groupId: number,
+): Promise<SavingsPoolContractData | null> {
+  if (isDemoMode()) return null;
+
+  try {
+    const result = await readOnly(
+      walletAddress,
+      'get_savings_pool',
+      StellarSdk.nativeToScVal(groupId, { type: 'u64' }),
+    );
+    const native = StellarSdk.scValToNative(result) as Record<string, unknown>;
+    if (!native) return null;
+    return {
+      group_id: Number(native.group_id),
+      goal_amount: Number(native.goal_amount),
+      current_amount: Number(native.current_amount),
+      deadline: Number(native.deadline),
+      status: Number(native.status),
+      creator: String(native.creator),
+    };
+  } catch (err) {
+    if (!isNonExistentFunctionError(err)) console.warn('getSavingsPool failed:', err);
+    return null;
+  }
+}
+
 /** Fetch SPLT (StellarSplit Reward Token) balance for a user. */
 export async function getSPLTBalance(userAddress: string): Promise<number> {
   if (isDemoMode()) return 1200; // Mock SPLT

@@ -20,6 +20,7 @@ import {
   Link,
   Target,
   Clock,
+  Settings,
 } from 'lucide-react';
 import { estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
 import ErrorBoundary from './ErrorBoundary';
@@ -61,7 +62,9 @@ import SocialTab from './tabs/SocialTab';
 import GovernanceTab from './tabs/GovernanceTab';
 import SecurityTab from './tabs/SecurityTab';
 import AuditTab from './tabs/AuditTab';
+import SettingsTab from './tabs/SettingsTab';
 import { SocialSavings } from './SocialSavings';
+import SavingsPool from './SavingsPool';
 
 import { sendWebhookNotification, sendSettlementReadyNotification, sendLocalNotification, requestNotificationPermission } from '../lib/notifications';
 import { useNotificationStore } from '../store/useNotificationStore';
@@ -86,7 +89,7 @@ interface Props {
   isOffline?: boolean;
 }
 
-type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'savings' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery' | 'audit';
+type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'savings' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery' | 'audit' | 'settings';
 
 export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, isOffline }: Props) {
   const { t, lang } = useI18n();
@@ -120,7 +123,9 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     : balances;
 
   // SSE: invalidate backend + Soroban caches on live events
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   useGroupEvents(isDemo ? null : groupIdStr, (event) => {
+    setRealtimeConnected(true);
     queryClient.invalidateQueries({ queryKey: backendGroupKeys.expenses(groupIdStr) });
     queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
     queryClient.invalidateQueries({ queryKey: backendGroupKeys.detail(groupIdStr) });
@@ -433,6 +438,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     { key: 'security', label: 'Safety', icon: Shield },
     { key: 'gallery', label: t('group.tab_gallery'), icon: ImageIcon },
     { key: 'audit', label: t('group.tab_audit'), icon: Clock },
+    { key: 'settings', label: t('group.tab_settings'), icon: Settings },
   ];
 
   return (
@@ -453,7 +459,15 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-2xl font-black tracking-tighter">{group.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-black tracking-tighter">{group.name}</h2>
+              {realtimeConnected && (
+                <span className="flex items-center gap-1 text-[9px] font-black text-emerald-400 uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  live
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-muted-foreground">{currencyLabel}</span>
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold">
@@ -735,10 +749,18 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         )}
 
         {tab === 'savings' && (
-          <SocialSavings 
-            groupId={groupId} 
-            walletAddress={walletAddress} 
-          />
+          hasJwt ? (
+            <SavingsPool
+              groupId={groupIdStr}
+              walletAddress={walletAddress}
+              currencyLabel={currencyLabel}
+            />
+          ) : (
+            <SocialSavings
+              groupId={groupId}
+              walletAddress={walletAddress}
+            />
+          )
         )}
 
         {tab === 'governance' && (
@@ -771,6 +793,19 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             entries={auditData?.data?.items ?? []}
             isLoading={auditLoading}
             hasJwt={hasJwt}
+          />
+        )}
+        {tab === 'settings' && (
+          <SettingsTab
+            groupIdStr={groupIdStr}
+            groupName={group?.name ?? ''}
+            hasJwt={hasJwt}
+            inviteCode={undefined}
+            t={t}
+            addToast={addToast}
+            onLeaveGroup={onBack}
+            expenses={activeExpenses}
+            group={group}
           />
         )}
       </motion.div>

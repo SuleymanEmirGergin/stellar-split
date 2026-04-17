@@ -67,9 +67,22 @@ pub struct Vault {
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct UserBadges {
-    // Rozetleri u32 ID olarak tutabiliriz. 
+    // Rozetleri u32 ID olarak tutabiliriz.
     // Örn: 1 -> Hızlı Ödeyici, 2 -> Makbuz Avcısı, 3 -> Balina Staker
     pub badges: Vec<u32>,
+}
+
+/// Grup Kumbara Havuzu (Savings Pool)
+/// status: 0 = Active, 1 = Completed, 2 = Cancelled
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct SavingsPool {
+    pub group_id: u64,
+    pub goal_amount: i128,      // Hedef tutar (stroops)
+    pub current_amount: i128,   // Biriken tutar
+    pub deadline: u64,          // Unix timestamp; 0 = süresiz
+    pub status: u32,            // 0=Active, 1=Completed, 2=Cancelled
+    pub creator: Address,
 }
 
 /// Storage key'leri için enum.
@@ -86,4 +99,5 @@ pub enum DataKey {
     Recovery(Address),      // Kullanıcının aktif kurtarma talebi
     GroupVault(u64),        // Sadece bir gruba ait Vault
     UserBadges(Address),    // Kullanıcının rozetleri
+    SavingsPool(u64),       // group_id -> SavingsPool
 }

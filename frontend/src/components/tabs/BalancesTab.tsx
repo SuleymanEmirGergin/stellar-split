@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Receipt, Cpu, UserMinus, UserPlus, ArrowRight, Zap } from 'lucide-react';
+import { BarChart3, Receipt, Cpu, UserMinus, UserPlus, ArrowRight, Zap, HandCoins } from 'lucide-react';
 import { type Group, type Settlement, type Expense } from '../../lib/contract';
 import { truncateAddress } from '../../lib/stellar';
 import { calculateKarma } from '../../lib/karma';
@@ -33,6 +33,7 @@ interface BalancesTabProps {
   contacts: Record<string, string>;
   settlementPlan?: SettlementPlan;
   t: (key: TranslationKey) => string;
+  onRequestPayment?: (memberAddress: string) => void;
 }
 
 const itemVars = {
@@ -57,7 +58,8 @@ const BalancesTab = memo(function BalancesTab({
   handleAddMember,
   contacts,
   settlementPlan,
-  t
+  t,
+  onRequestPayment,
 }: BalancesTabProps) {
   const memberData = useMemo(
     () => group.members.map((member: string) => ({
@@ -76,7 +78,7 @@ const BalancesTab = memo(function BalancesTab({
         </h3>
         <button 
           onClick={()=>setShowVisualGraph(!showVisualGraph)} 
-          className="text-[10px] font-black uppercase tracking-widest bg-secondary px-4 py-2 rounded-xl border border-white/5 hover:border-white/10 transition-all flex items-center gap-2"
+          className="text-[10px] font-black uppercase tracking-widest bg-white/[0.04] px-4 py-2 rounded-xl border border-white/[0.07] hover:bg-white/[0.07] transition-all flex items-center gap-2"
         >
           {showVisualGraph ? <Receipt size={14} /> : <BarChart3 size={14} />}
           {showVisualGraph ? t('group.view_list') : t('group.visual_graph')}
@@ -92,19 +94,19 @@ const BalancesTab = memo(function BalancesTab({
             />
           </motion.div>
         ) : (
-          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass-panel rounded-[32px] overflow-hidden divide-y divide-white/5">
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white/[0.025] border border-white/[0.07] rounded-2xl overflow-hidden divide-y divide-white/[0.05]">
             {memberData.map(({ member, badges: bEarned, karma }) => {
               const balance = balances.get(member) || 0;
               const canRemove = group.members.length > 2;
               const isRemoving = removingMember === member;
               return (
-                <div key={member} className="flex justify-between items-center p-6 hover:bg-white/5 transition-colors">
+                <div key={member} className="flex justify-between items-center px-5 py-4 hover:bg-white/[0.04] transition-all">
                   <div className="flex items-center gap-3">
                     <Avatar address={member} size={32} />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black tracking-tight">{truncateAddress(member)}</span>
-                        <div className="flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                        <div className="flex items-center gap-1 bg-white/[0.06] px-2 py-0.5 rounded-full border border-white/[0.08]">
                           <span className="text-[10px]">{karma.icon}</span>
                           <span className={`text-[8px] font-black uppercase tracking-tighter ${karma.color}`}>{karma.level}</span>
                         </div>
@@ -114,13 +116,29 @@ const BalancesTab = memo(function BalancesTab({
                           <span key={badge.id} title={badge.name} className="text-[10px] filter drop-shadow-sm cursor-help">{badge.icon}</span>
                         ))}
                       </div>
-                      {member === walletAddress && <span className="inline-block mt-1 text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded uppercase font-black">You</span>}
+                      {member === walletAddress && <span className="inline-block mt-1 text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded uppercase font-black">{t('group.insights_you_badge')}</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className={`font-mono font-black text-base tabular-nums ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {balance > 0 ? '+' : ''}{balance} <span className="text-[10px] opacity-40 ml-1">{currencyLabel}</span>
+                  <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono font-black text-sm tabular-nums ${
+                      balance > 0
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                        : balance < 0
+                        ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                        : 'bg-white/[0.04] border border-white/[0.07] text-muted-foreground'
+                    }`}>
+                      {balance > 0 ? '+' : ''}{balance} <span className="text-[9px] opacity-50">{currencyLabel}</span>
                     </div>
+                    {member !== walletAddress && onRequestPayment && (
+                      <button
+                        type="button"
+                        onClick={() => onRequestPayment(member)}
+                        className="p-2 rounded-xl text-indigo-400/80 hover:text-indigo-400 hover:bg-indigo-500/10 border border-indigo-500/20 transition-all"
+                        title={t('pay_req.request_btn')}
+                      >
+                        <HandCoins size={16} />
+                      </button>
+                    )}
                     {canRemove && (
                       <button
                         type="button"
@@ -143,7 +161,7 @@ const BalancesTab = memo(function BalancesTab({
                   placeholder={t('group.new_member_placeholder')}
                   value={newMemberInput}
                   onChange={e => setNewMemberInput(e.target.value)}
-                  className="w-full bg-secondary/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono outline-none focus:border-indigo-500/50"
+                  className="w-full bg-white/[0.04] border border-white/[0.09] rounded-xl px-4 py-2.5 text-sm font-mono outline-none focus:border-indigo-500/40"
                 />
                 {newMemberInput.trim().length > 0 && 
                   Object.entries(contacts).filter(([addr, name]) => 
@@ -195,14 +213,14 @@ const BalancesTab = memo(function BalancesTab({
           <h4 className="font-black tracking-tight">{t('group.explain_title')}</h4>
           {settlementPlan && settlementPlan.savedTransfers > 0 && (
             <span className="ml-auto flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-              <Zap size={10} /> Saved {settlementPlan.savedTransfers} transfers
+              <Zap size={10} /> {t('group.saved_transfers').replace('{{n}}', String(settlementPlan.savedTransfers))}
             </span>
           )}
         </div>
         {settlementPlan && settlementPlan.transfers.length > 0 ? (
           <div className="space-y-2">
             {settlementPlan.transfers.map((tx, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs font-mono bg-white/5 border border-white/5 rounded-xl px-4 py-2.5">
+              <div key={i} className="flex items-center gap-3 text-xs font-mono bg-white/[0.04] border border-white/[0.07] rounded-xl px-4 py-2.5">
                 <span className="text-rose-400 font-black truncate max-w-[120px]" title={tx.fromUserId}>{truncateAddress(tx.fromUserId)}</span>
                 <ArrowRight size={12} className="text-muted-foreground flex-shrink-0" />
                 <span className="text-emerald-400 font-black truncate max-w-[120px]" title={tx.toUserId}>{truncateAddress(tx.toUserId)}</span>
@@ -211,10 +229,10 @@ const BalancesTab = memo(function BalancesTab({
             ))}
           </div>
         ) : settlementPlan && settlementPlan.transfers.length === 0 ? (
-          <p className="text-xs text-emerald-400 font-bold">All balances are settled — no transfers needed.</p>
+          <p className="text-xs text-emerald-400 font-bold">{t('group.balances_all_settled')}</p>
         ) : (
           <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-[400px]">
-            The settlement algorithm has compressed potential debt flows to <span className="text-indigo-400 font-bold">{settlements.length} {settlements.length === 1 ? 'transaction' : 'transactions'}</span> through graph optimization.
+            {t('group.algo_flow_hint')}
           </p>
         )}
       </motion.div>
