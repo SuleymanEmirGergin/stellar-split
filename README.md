@@ -10,7 +10,7 @@ StellarSplit leverages Soroban smart contracts to solve the "who owes whom" prob
 
 ## 🔗 Quick Links
 
-- **Canlı Demo:** [stellar-split.vercel.app](https://stellar-split.vercel.app) _(Henüz yayında değilse burayı güncelleyin)_
+- **Canlı Demo:** [stellar-split.vercel.app](https://stellar-split.vercel.app)
 - **Demo Videosu (1 dk):** [YouTube Linki](https://youtube.com/...) _(Lütfen videoyu çektikten sonra burayı güncelleyin)_
 - **GitHub Repo:** [SuleymanEmirGergin/stellar-split](https://github.com/SuleymanEmirGergin/stellar-split)
 - **Submission one-pager:** [docs/ONEPAGER.md](docs/ONEPAGER.md)
