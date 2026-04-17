@@ -1,9 +1,11 @@
 import { Controller, Get, Delete, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { UsersService } from './users.service';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 @ApiTags('users')
 @ApiBearerAuth()
 @Controller('users')
@@ -15,6 +17,7 @@ export class UsersController {
    * Returns all personal data associated with the authenticated user as JSON.
    */
   @Get('me/export')
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @ApiOperation({ summary: 'Export all personal data (GDPR Art. 20)' })
   @ApiResponse({ status: 200, description: 'JSON export of all user data' })
   async exportData(

@@ -50,7 +50,7 @@ describe('validateEnv()', () => {
   });
 
   it('throws when SOROBAN_CONTRACT_ID is the placeholder value', () => {
-    const env = { ...VALID_ENV, SOROBAN_CONTRACT_ID: 'CHANGE_ME_CONTRACT_ADDRESS' };
+    const env = { ...VALID_ENV, NODE_ENV: 'production', SOROBAN_CONTRACT_ID: 'CHANGE_ME_CONTRACT_ADDRESS' };
     expect(() => validateEnv(env)).toThrow('SOROBAN_CONTRACT_ID');
   });
 

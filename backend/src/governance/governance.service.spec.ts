@@ -28,6 +28,12 @@ function makeMockPrisma() {
     dispute: {
       findMany: jest.fn(),
       create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    disputeVote: {
+      upsert: jest.fn(),
+      findMany: jest.fn(),
     },
   };
 }
@@ -80,7 +86,7 @@ describe('GovernanceService', () => {
       expect(prisma.proposal.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { groupId: GROUP_ID } }),
       );
-      expect(result).toEqual(proposals);
+      expect(result).toEqual({ items: proposals, nextCursor: undefined, hasMore: false });
     });
 
     it('throws ForbiddenException when user is not a group member', async () => {
@@ -262,7 +268,7 @@ describe('GovernanceService', () => {
       expect(prisma.dispute.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { groupId: GROUP_ID } }),
       );
-      expect(result).toEqual(disputes);
+      expect(result).toEqual({ items: disputes, nextCursor: undefined, hasMore: false });
     });
 
     it('throws ForbiddenException when user is not a group member', async () => {
@@ -310,6 +316,128 @@ describe('GovernanceService', () => {
 
       await expect(service.createDispute(USER_ID, dto)).rejects.toThrow(ForbiddenException);
       expect(prisma.dispute.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── castDisputeVote() ───────────────────────────────────────────────────────
+
+  describe('castDisputeVote()', () => {
+    const voteDto = { option: 'uphold' as const };
+    const openDispute = {
+      id: DISPUTE_ID,
+      groupId: GROUP_ID,
+      status: 'OPEN',
+    };
+
+    it('creates a vote via upsert for an open dispute', async () => {
+      const voteRecord = { id: 'dv-1', disputeId: DISPUTE_ID, voterId: USER_ID, option: 'uphold' };
+      prisma.dispute.findUnique.mockResolvedValue(openDispute);
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.disputeVote.upsert.mockResolvedValue(voteRecord);
+      prisma.groupMember.count.mockResolvedValue(3);
+      prisma.disputeVote.findMany.mockResolvedValue([voteRecord]);
+
+      const result = await service.castDisputeVote(DISPUTE_ID, USER_ID, voteDto);
+
+      expect(prisma.disputeVote.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { disputeId_voterId: { disputeId: DISPUTE_ID, voterId: USER_ID } },
+          create: expect.objectContaining({ option: 'uphold' }),
+        }),
+      );
+      expect(result).toEqual(voteRecord);
+    });
+
+    it('allows changing vote (upsert updates existing vote)', async () => {
+      const voteRecord = { id: 'dv-1', disputeId: DISPUTE_ID, voterId: USER_ID, option: 'dismiss' };
+      prisma.dispute.findUnique.mockResolvedValue(openDispute);
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.disputeVote.upsert.mockResolvedValue(voteRecord);
+      prisma.groupMember.count.mockResolvedValue(3);
+      prisma.disputeVote.findMany.mockResolvedValue([voteRecord]);
+
+      const result = await service.castDisputeVote(DISPUTE_ID, USER_ID, { option: 'dismiss' });
+
+      expect(prisma.disputeVote.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: { option: 'dismiss' },
+        }),
+      );
+      expect(result.option).toBe('dismiss');
+    });
+
+    it('throws NotFoundException when dispute does not exist', async () => {
+      prisma.dispute.findUnique.mockResolvedValue(null);
+
+      await expect(service.castDisputeVote(DISPUTE_ID, USER_ID, voteDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('throws ForbiddenException when dispute is RESOLVED', async () => {
+      prisma.dispute.findUnique.mockResolvedValue({ ...openDispute, status: 'RESOLVED' });
+
+      await expect(service.castDisputeVote(DISPUTE_ID, USER_ID, voteDto)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('throws ForbiddenException when user is not a group member', async () => {
+      prisma.dispute.findUnique.mockResolvedValue(openDispute);
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.castDisputeVote(DISPUTE_ID, USER_ID, voteDto)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('updates dispute to RESOLVED when uphold votes reach majority', async () => {
+      // 2 uphold out of 3 members = majority
+      prisma.dispute.findUnique.mockResolvedValue(openDispute);
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.disputeVote.upsert.mockResolvedValue({ id: 'dv-1', option: 'uphold' });
+      prisma.groupMember.count.mockResolvedValue(3);
+      prisma.disputeVote.findMany.mockResolvedValue([
+        { option: 'uphold' },
+        { option: 'uphold' },
+      ]);
+
+      await service.castDisputeVote(DISPUTE_ID, USER_ID, voteDto);
+
+      expect(prisma.dispute.update).toHaveBeenCalledWith({
+        where: { id: DISPUTE_ID },
+        data: { status: 'RESOLVED' },
+      });
+    });
+
+    it('updates dispute to DISMISSED when dismiss votes reach majority', async () => {
+      prisma.dispute.findUnique.mockResolvedValue(openDispute);
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.disputeVote.upsert.mockResolvedValue({ id: 'dv-1', option: 'dismiss' });
+      prisma.groupMember.count.mockResolvedValue(3);
+      prisma.disputeVote.findMany.mockResolvedValue([
+        { option: 'dismiss' },
+        { option: 'dismiss' },
+      ]);
+
+      await service.castDisputeVote(DISPUTE_ID, USER_ID, { option: 'dismiss' });
+
+      expect(prisma.dispute.update).toHaveBeenCalledWith({
+        where: { id: DISPUTE_ID },
+        data: { status: 'DISMISSED' },
+      });
+    });
+
+    it('does not update status when neither side has majority', async () => {
+      prisma.dispute.findUnique.mockResolvedValue(openDispute);
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.disputeVote.upsert.mockResolvedValue({ id: 'dv-1', option: 'uphold' });
+      prisma.groupMember.count.mockResolvedValue(5);
+      prisma.disputeVote.findMany.mockResolvedValue([{ option: 'uphold' }]); // 1 out of 5 (need 3)
+
+      await service.castDisputeVote(DISPUTE_ID, USER_ID, voteDto);
+
+      expect(prisma.dispute.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -17,6 +17,7 @@ describe('GroupsController', () => {
     getBalances: jest.fn(),
     getSettlementPlan: jest.fn(),
     getInviteLink: jest.fn(),
+    getAnalytics: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -89,5 +90,35 @@ describe('GroupsController', () => {
     mockService.getInviteLink.mockResolvedValue({ url: 'https://invite.link/g1' });
     await expect(controller.getInvite('g1', USER)).resolves.toMatchObject({ url: expect.stringContaining('g1') });
     expect(mockService.getInviteLink).toHaveBeenCalledWith('g1', USER.sub);
+  });
+
+  it('getAnalytics() returns analytics data', async () => {
+    const analyticsResult = {
+      totalExpenses: 3,
+      totalAmount: 150,
+      categoryBreakdown: [{ name: 'XLM', total: 150, count: 3 }],
+      memberSpending: [{ userId: 'u1', total: 150 }],
+      timeline: [{ date: '2026-01-01', cumulative: 150 }],
+    };
+    mockService.getAnalytics.mockResolvedValue(analyticsResult);
+    await expect(controller.getAnalytics('g1', USER)).resolves.toMatchObject({
+      totalExpenses: 3,
+      totalAmount: 150,
+    });
+    expect(mockService.getAnalytics).toHaveBeenCalledWith('g1', USER.sub);
+  });
+
+  it('getAnalytics() returns zero values for empty group', async () => {
+    mockService.getAnalytics.mockResolvedValue({
+      totalExpenses: 0,
+      totalAmount: 0,
+      categoryBreakdown: [],
+      memberSpending: [],
+      timeline: [],
+    });
+    const result = await controller.getAnalytics('g-empty', USER);
+    expect(result.totalExpenses).toBe(0);
+    expect(result.totalAmount).toBe(0);
+    expect(result.categoryBreakdown).toHaveLength(0);
   });
 });

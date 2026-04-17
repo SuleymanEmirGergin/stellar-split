@@ -10,6 +10,7 @@ import {
   MaxLength,
   Matches,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum RecurringFrequency {
@@ -25,6 +26,7 @@ export class CreateRecurringDto {
   groupId: string;
 
   @ApiProperty({ minLength: 1, maxLength: 200 })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/<[^>]*>/g, '') : value))
   @IsString()
   @MinLength(1)
   @MaxLength(200)

@@ -24,10 +24,11 @@ describe('SettlementsController', () => {
     expect(mockService.findByGroup).toHaveBeenCalledWith('grp-1', USER.sub, undefined, undefined);
   });
 
-  it('create() delegates to service', async () => {
-    const dto = { groupId: 'grp-1', txHash: 'abc123', amount: 100 } as any;
+  it('create() injects groupId from URL param and delegates to service', async () => {
+    const dto = { txHash: 'abc123', amount: 100 } as any;
     mockService.create.mockResolvedValue({ id: 's1' });
-    await expect(controller.create(USER, dto)).resolves.toMatchObject({ id: 's1' });
+    await expect(controller.create('grp-1', USER, dto)).resolves.toMatchObject({ id: 's1' });
+    expect(dto.groupId).toBe('grp-1');
     expect(mockService.create).toHaveBeenCalledWith(USER.sub, dto);
   });
 });

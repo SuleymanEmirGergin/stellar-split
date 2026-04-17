@@ -1,4 +1,5 @@
 import { IsString, IsEnum, IsOptional, IsArray, Matches, MinLength, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum GroupCurrency {
@@ -8,6 +9,7 @@ export enum GroupCurrency {
 
 export class CreateGroupDto {
   @ApiProperty({ description: 'Group name', minLength: 2, maxLength: 80 })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/<[^>]*>/g, '') : value))
   @IsString()
   @MinLength(2)
   @MaxLength(80)

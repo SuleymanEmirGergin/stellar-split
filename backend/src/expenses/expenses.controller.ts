@@ -10,12 +10,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 
+@Throttle({ default: { limit: 30, ttl: 60000 } })
 @ApiTags('expenses')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -34,16 +36,21 @@ export class ExpensesController {
     return this.expensesService.findByGroup(groupId, user.sub, cursor, limit);
   }
 
-  @Post('expenses')
+  @Post('groups/:groupId/expenses')
   @ApiOperation({ summary: 'Add an expense to a group' })
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateExpenseDto) {
+  create(
+    @Param('groupId') groupId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateExpenseDto,
+  ) {
+    dto.groupId = groupId;
     return this.expensesService.create(user.sub, dto);
   }
 
-  @Patch('expenses/:id/cancel')
+  @Patch('groups/:groupId/expenses/:expenseId/cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancel an expense' })
-  cancel(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+  cancel(@Param('expenseId') id: string, @CurrentUser() user: JwtPayload) {
     return this.expensesService.cancel(id, user.sub);
   }
 }

@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { initSentry } from './common/observability/sentry';
@@ -75,8 +76,8 @@ async function bootstrap() {
     }),
   );
 
-  // Global exception filter (consistent error shape)
-  app.useGlobalFilters(new HttpExceptionFilter());
+  // Global exception filters — Prisma errors FIRST (specific), then HTTP catch-all
+  app.useGlobalFilters(new PrismaExceptionFilter(), new HttpExceptionFilter());
 
   // Global response interceptor (consistent success shape)
   app.useGlobalInterceptors(new ResponseInterceptor());

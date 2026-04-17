@@ -12,6 +12,7 @@ describe('GovernanceController', () => {
     castVote: jest.fn(),
     findDisputes: jest.fn(),
     createDispute: jest.fn(),
+    castDisputeVote: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -26,8 +27,8 @@ describe('GovernanceController', () => {
 
   it('findProposals() delegates to service', async () => {
     mockService.findProposals.mockResolvedValue([]);
-    await expect(controller.findProposals(USER, 'grp-1')).resolves.toEqual([]);
-    expect(mockService.findProposals).toHaveBeenCalledWith('grp-1', USER.sub);
+    await expect(controller.findProposals(USER, 'grp-1', undefined, undefined)).resolves.toEqual([]);
+    expect(mockService.findProposals).toHaveBeenCalledWith('grp-1', USER.sub, undefined, undefined);
   });
 
   it('createProposal() delegates to service', async () => {
@@ -46,8 +47,8 @@ describe('GovernanceController', () => {
 
   it('findDisputes() delegates to service', async () => {
     mockService.findDisputes.mockResolvedValue([]);
-    await expect(controller.findDisputes(USER, 'grp-1')).resolves.toEqual([]);
-    expect(mockService.findDisputes).toHaveBeenCalledWith('grp-1', USER.sub);
+    await expect(controller.findDisputes(USER, 'grp-1', undefined, undefined)).resolves.toEqual([]);
+    expect(mockService.findDisputes).toHaveBeenCalledWith('grp-1', USER.sub, undefined, undefined);
   });
 
   it('createDispute() delegates to service', async () => {
@@ -55,5 +56,12 @@ describe('GovernanceController', () => {
     mockService.createDispute.mockResolvedValue({ id: 'd1' });
     await expect(controller.createDispute(USER, dto)).resolves.toMatchObject({ id: 'd1' });
     expect(mockService.createDispute).toHaveBeenCalledWith(USER.sub, dto);
+  });
+
+  it('castDisputeVote() delegates to service', async () => {
+    const dto = { option: 'uphold' } as any;
+    mockService.castDisputeVote.mockResolvedValue({ id: 'dv1', option: 'uphold' });
+    await expect(controller.castDisputeVote('d-1', USER, dto)).resolves.toMatchObject({ option: 'uphold' });
+    expect(mockService.castDisputeVote).toHaveBeenCalledWith('d-1', USER.sub, dto);
   });
 });

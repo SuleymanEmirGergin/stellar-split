@@ -6,6 +6,8 @@ jest.mock('@nestjs/bullmq', () => ({
 
 import { RecurringExpenseWorker } from './recurring-expense.worker';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { EventsService } from '../events/events.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const TEMPLATE_ID = 'tmpl-uuid';
 const GROUP_ID = 'grp-uuid';
@@ -35,7 +37,9 @@ function makeTemplate(overrides = {}) {
 
 function makeWorker(prisma: ReturnType<typeof makeMockPrisma>) {
   const queue = { add: jest.fn() } as any;
-  return new RecurringExpenseWorker(prisma as unknown as PrismaService, queue);
+  const events = { publish: jest.fn() } as unknown as EventsService;
+  const notifications = { dispatch: jest.fn().mockResolvedValue(undefined) } as unknown as NotificationsService;
+  return new RecurringExpenseWorker(prisma as unknown as PrismaService, queue, events, notifications);
 }
 
 function makeJob(templateId = TEMPLATE_ID) {
@@ -97,7 +101,9 @@ describe('RecurringExpenseWorker', () => {
     prisma.recurringTemplate.update.mockResolvedValue({});
 
     const queue = { add: jest.fn() };
-    const worker = new RecurringExpenseWorker(prisma as unknown as PrismaService, queue as any);
+    const events = { publish: jest.fn() } as unknown as EventsService;
+    const notifications = { dispatch: jest.fn().mockResolvedValue(undefined) } as unknown as NotificationsService;
+    const worker = new RecurringExpenseWorker(prisma as unknown as PrismaService, queue as any, events, notifications);
 
     await expect(worker.process(makeJob())).resolves.toBeUndefined();
 
@@ -128,7 +134,9 @@ describe('RecurringExpenseWorker', () => {
     prisma.recurringTemplate.update.mockResolvedValue({});
 
     const queue = { add: jest.fn() };
-    const worker = new RecurringExpenseWorker(prisma as unknown as PrismaService, queue as any);
+    const events = { publish: jest.fn() } as unknown as EventsService;
+    const notifications = { dispatch: jest.fn().mockResolvedValue(undefined) } as unknown as NotificationsService;
+    const worker = new RecurringExpenseWorker(prisma as unknown as PrismaService, queue as any, events, notifications);
     await worker.process(makeJob());
 
     // findMany should NOT be called — members come from template

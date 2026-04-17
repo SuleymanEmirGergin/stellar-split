@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Patch, Param, Query, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
@@ -6,6 +7,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { NotificationsService } from './notifications.service';
 import { PushSubscriptionDto } from './dto/push-subscription.dto';
 
+@Throttle({ default: { limit: 30, ttl: 60000 } })
 @ApiTags('notifications')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { GuardiansService } from './guardians.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { CreateRecoveryRequestDto } from './dto/create-recovery-request.dto';
 
 const GROUP_ID = 'group-uuid';
 const USER_ID = 'user-uuid';
@@ -20,8 +21,15 @@ function makeMockPrisma() {
     guardian: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+    },
+    recoveryRequest: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
     },
   };
 }
@@ -141,6 +149,153 @@ describe('GuardiansService', () => {
 
       await expect(service.remove(GUARDIAN_ID, USER_ID)).rejects.toThrow(ForbiddenException);
       expect(prisma.guardian.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── createRecoveryRequest ───────────────────────────────────────────────────
+
+  describe('createRecoveryRequest()', () => {
+    const dto: CreateRecoveryRequestDto = { groupId: GROUP_ID };
+    const mockRequest = {
+      id: 'req-1',
+      userId: USER_ID,
+      groupId: GROUP_ID,
+      status: 'PENDING',
+      requestedAt: new Date(),
+    };
+
+    it('creates a recovery request for a group member', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.recoveryRequest.create.mockResolvedValue(mockRequest);
+
+      const result = await service.createRecoveryRequest(USER_ID, dto);
+
+      expect(prisma.recoveryRequest.create).toHaveBeenCalledWith({
+        data: { userId: USER_ID, groupId: GROUP_ID },
+      });
+      expect(result.id).toBe('req-1');
+    });
+
+    it('throws ForbiddenException when user is not a group member', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.createRecoveryRequest(USER_ID, dto)).rejects.toThrow(ForbiddenException);
+      expect(prisma.recoveryRequest.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── findPendingRecoveryRequests ─────────────────────────────────────────────
+
+  describe('findPendingRecoveryRequests()', () => {
+    it('returns pending requests for users the caller is a guardian for', async () => {
+      prisma.guardian.findMany.mockResolvedValue([
+        { userId: 'protected-user-1' },
+        { userId: 'protected-user-2' },
+      ]);
+      prisma.recoveryRequest.findMany.mockResolvedValue([
+        {
+          id: 'req-1',
+          userId: 'protected-user-1',
+          status: 'PENDING',
+          user: { id: 'protected-user-1', walletAddress: 'GABC...' },
+        },
+      ]);
+
+      const result = await service.findPendingRecoveryRequests(USER_ID);
+
+      expect(prisma.guardian.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { guardianUserId: USER_ID } }),
+      );
+      expect(result).toHaveLength(1);
+    });
+
+    it('returns empty array when user is not a guardian for anyone', async () => {
+      prisma.guardian.findMany.mockResolvedValue([]);
+      prisma.recoveryRequest.findMany.mockResolvedValue([]);
+
+      const result = await service.findPendingRecoveryRequests(USER_ID);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ─── approveRecoveryRequest ──────────────────────────────────────────────────
+
+  describe('approveRecoveryRequest()', () => {
+    const REQUEST_ID = 'req-uuid';
+    const mockRequest = {
+      id: REQUEST_ID,
+      userId: 'protected-user',
+      groupId: GROUP_ID,
+      status: 'PENDING',
+    };
+
+    it('approves a pending request when the caller is a guardian', async () => {
+      prisma.recoveryRequest.findUnique.mockResolvedValue(mockRequest);
+      prisma.guardian.findFirst.mockResolvedValue({
+        id: GUARDIAN_ID,
+        userId: 'protected-user',
+        guardianUserId: GUARDIAN_USER_ID,
+      });
+      prisma.recoveryRequest.update.mockResolvedValue({ ...mockRequest, status: 'APPROVED' });
+
+      const result = await service.approveRecoveryRequest(REQUEST_ID, GUARDIAN_USER_ID);
+
+      expect(prisma.recoveryRequest.update).toHaveBeenCalledWith({
+        where: { id: REQUEST_ID },
+        data: { status: 'APPROVED' },
+      });
+      expect(result.status).toBe('APPROVED');
+    });
+
+    it('throws ForbiddenException when caller is not a guardian for the requester', async () => {
+      prisma.recoveryRequest.findUnique.mockResolvedValue(mockRequest);
+      prisma.guardian.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.approveRecoveryRequest(REQUEST_ID, 'non-guardian'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.recoveryRequest.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── rejectRecoveryRequest ───────────────────────────────────────────────────
+
+  describe('rejectRecoveryRequest()', () => {
+    const REQUEST_ID = 'req-uuid';
+    const mockRequest = {
+      id: REQUEST_ID,
+      userId: 'protected-user',
+      groupId: GROUP_ID,
+      status: 'PENDING',
+    };
+
+    it('rejects a pending request when the caller is a guardian', async () => {
+      prisma.recoveryRequest.findUnique.mockResolvedValue(mockRequest);
+      prisma.guardian.findFirst.mockResolvedValue({
+        id: GUARDIAN_ID,
+        userId: 'protected-user',
+        guardianUserId: GUARDIAN_USER_ID,
+      });
+      prisma.recoveryRequest.update.mockResolvedValue({ ...mockRequest, status: 'REJECTED' });
+
+      const result = await service.rejectRecoveryRequest(REQUEST_ID, GUARDIAN_USER_ID);
+
+      expect(prisma.recoveryRequest.update).toHaveBeenCalledWith({
+        where: { id: REQUEST_ID },
+        data: { status: 'REJECTED' },
+      });
+      expect(result.status).toBe('REJECTED');
+    });
+
+    it('throws ForbiddenException when caller is not a guardian for the requester', async () => {
+      prisma.recoveryRequest.findUnique.mockResolvedValue(mockRequest);
+      prisma.guardian.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.rejectRecoveryRequest(REQUEST_ID, 'non-guardian'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.recoveryRequest.update).not.toHaveBeenCalled();
     });
   });
 });

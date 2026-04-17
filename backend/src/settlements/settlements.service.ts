@@ -1,6 +1,7 @@
 import {
   Injectable,
   ForbiddenException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -8,6 +9,7 @@ import { Queue } from 'bullmq';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateSettlementDto } from './dto/create-settlement.dto';
+import { UpdateSettlementStatusDto } from './dto/update-settlement-status.dto';
 
 @Injectable()
 export class SettlementsService {
@@ -55,16 +57,22 @@ export class SettlementsService {
     });
 
     // Enqueue Stellar Horizon monitoring job
-    await this.stellarQueue.add(
-      'monitor-tx',
-      { settlementId: settlement.id, txHash: dto.txHash },
-      { attempts: 10, backoff: { type: 'exponential', delay: 3000 } },
-    );
-
-    this.logger.log(
-      { settlementId: settlement.id, txHash: dto.txHash, groupId: dto.groupId },
-      'Settlement created; monitoring job enqueued',
-    );
+    try {
+      await this.stellarQueue.add(
+        'monitor-tx',
+        { settlementId: settlement.id, txHash: dto.txHash },
+        { attempts: 10, backoff: { type: 'exponential', delay: 3000 } },
+      );
+      this.logger.log(
+        { settlementId: settlement.id, txHash: dto.txHash, groupId: dto.groupId },
+        'Settlement created; monitoring job enqueued',
+      );
+    } catch (err) {
+      this.logger.error(
+        { err, settlementId: settlement.id, txHash: dto.txHash },
+        'Settlement monitoring job enqueue failed — settlement recorded but will not be auto-confirmed',
+      );
+    }
 
     this.audit.log(
       { actorType: 'user', actorId: userId, groupId: dto.groupId },
@@ -73,6 +81,28 @@ export class SettlementsService {
     );
 
     return settlement;
+  }
+
+  async updateStatus(settlementId: string, userId: string, dto: UpdateSettlementStatusDto) {
+    const settlement = await this.prisma.settlement.findUnique({ where: { id: settlementId } });
+    if (!settlement) throw new NotFoundException('Settlement not found');
+    await this.assertMember(settlement.groupId, userId);
+
+    const updated = await this.prisma.settlement.update({
+      where: { id: settlementId },
+      data: {
+        status: dto.status,
+        ...(dto.txHash ? { txHash: dto.txHash } : {}),
+      },
+    });
+
+    this.logger.log({ settlementId, status: dto.status, updatedBy: userId }, 'Settlement status updated');
+    this.audit.log(
+      { actorType: 'user', actorId: userId, groupId: settlement.groupId },
+      { entityType: 'settlement', entityId: settlementId, action: `settlement.${dto.status.toLowerCase()}`,
+        afterState: { status: dto.status } },
+    );
+    return updated;
   }
 
   private async assertMember(groupId: string, userId: string) {

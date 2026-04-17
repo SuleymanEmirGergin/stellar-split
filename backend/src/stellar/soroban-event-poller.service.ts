@@ -71,7 +71,8 @@ export class SorobanEventPollerService {
         let topicStr: string;
         try {
           topicStr = StellarSdk.scValToNative(topic0) as string;
-        } catch {
+        } catch (err) {
+          this.logger.warn({ ledger, txHash: event.txHash, err: String(err) }, 'Soroban: failed to decode topic[0] — skipping event');
           continue;
         }
 
@@ -84,13 +85,17 @@ export class SorobanEventPollerService {
           try {
             const t1 = StellarSdk.scValToNative(event.topic[1]);
             if (typeof t1 === 'string') groupId = t1;
-          } catch { /* ignore */ }
+          } catch (err) {
+            this.logger.warn({ ledger, txHash: event.txHash, err: String(err) }, 'Soroban: failed to decode topic[1] — using contractId as groupId');
+          }
         }
 
         let payload: Record<string, unknown> = {};
         try {
           payload = StellarSdk.scValToNative(event.value) as Record<string, unknown>;
-        } catch { /* ignore */ }
+        } catch (err) {
+          this.logger.warn({ ledger, txHash: event.txHash, eventType, err: String(err) }, 'Soroban: failed to decode event value — publishing with empty payload');
+        }
 
         await this.eventsService.publish({
           type: eventType as import('../events/events.service').GroupEvent['type'],

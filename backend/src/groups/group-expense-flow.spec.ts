@@ -8,6 +8,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { GroupsService } from './groups.service';
 import { ExpensesService } from '../expenses/expenses.service';
 import { SettlementsService } from '../settlements/settlements.service';
@@ -192,6 +193,7 @@ describe('Group → Expense → Settlement integration flow', () => {
   const mockEvents = { publish: jest.fn().mockResolvedValue(undefined) };
   const mockAudit = { log: jest.fn() };
   const mockQueue = { add: jest.fn().mockResolvedValue({ id: 'job-1' }) };
+  const mockCache = { get: jest.fn().mockResolvedValue(null), set: jest.fn().mockResolvedValue(undefined), del: jest.fn().mockResolvedValue(undefined) };
 
   beforeEach(async () => {
     prisma = makeStatefulPrisma();
@@ -205,6 +207,7 @@ describe('Group → Expense → Settlement integration flow', () => {
         { provide: EventsService, useValue: mockEvents },
         { provide: AuditService, useValue: mockAudit },
         { provide: getQueueToken('stellar-tx-monitor'), useValue: mockQueue },
+        { provide: CACHE_MANAGER, useValue: mockCache },
       ],
     }).compile();
 

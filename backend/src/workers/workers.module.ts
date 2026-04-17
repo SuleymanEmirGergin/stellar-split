@@ -5,6 +5,7 @@ import { RecurringExpenseWorker } from './recurring-expense.worker';
 import { StellarModule } from '../stellar/stellar.module';
 import { ReputationModule } from '../reputation/reputation.module';
 import { EventsModule } from '../events/events.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { EventsModule } from '../events/events.module';
     StellarModule,
     ReputationModule,
     EventsModule,
+    NotificationsModule,
   ],
   providers: [StellarTxMonitorWorker, RecurringExpenseWorker],
 })

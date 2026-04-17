@@ -12,13 +12,16 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 import { ApiAuth, ApiGroupErrors, ApiNotFoundResponse, ApiForbiddenResponse, ApiConflictResponse } from '../common/swagger/decorators';
 
+@Throttle({ default: { limit: 30, ttl: 60000 } })
 @ApiTags('groups')
 @UseGuards(JwtAuthGuard)
 @Controller('groups')
@@ -94,7 +97,7 @@ export class GroupsController {
     return this.groupsService.join(id, user.sub, inviteCode);
   }
 
-  @Post(':id/leave')
+  @Delete(':id/leave')
   @HttpCode(HttpStatus.OK)
   @ApiGroupErrors()
   @ApiOperation({ summary: 'Leave a group' })
@@ -125,5 +128,29 @@ export class GroupsController {
   @ApiResponse({ status: 200, description: 'Invite link with one-time code' })
   getInvite(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.groupsService.getInviteLink(id, user.sub);
+  }
+
+  @Get(':id/analytics')
+  @ApiGroupErrors()
+  @ApiOperation({ summary: 'Get spending analytics for a group' })
+  @ApiResponse({
+    status: 200,
+    description: 'Category breakdown, per-member spending, and daily timeline',
+  })
+  getAnalytics(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.groupsService.getAnalytics(id, user.sub);
+  }
+
+  @Patch(':id/transfer-ownership')
+  @ApiGroupErrors()
+  @ApiForbiddenResponse('Only the group creator can transfer ownership')
+  @ApiOperation({ summary: 'Transfer group ownership to another member (creator only)' })
+  @ApiResponse({ status: 200, description: 'Ownership transferred' })
+  transferOwnership(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: TransferOwnershipDto,
+  ) {
+    return this.groupsService.transferOwnership(id, user.sub, dto);
   }
 }

@@ -1,8 +1,9 @@
-import { IsString, IsNumber, IsPositive, Matches } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNumber, IsPositive, IsOptional, Matches } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSettlementDto {
-  @ApiProperty({ description: 'Group ID to settle' })
+  @ApiPropertyOptional({ description: 'Group ID to settle (set from URL param)' })
+  @IsOptional()
   @IsString()
   groupId: string;
 

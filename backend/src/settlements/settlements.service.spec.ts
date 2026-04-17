@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { SettlementsService } from './settlements.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateSettlementDto } from './dto/create-settlement.dto';
+import { UpdateSettlementStatusDto } from './dto/update-settlement-status.dto';
 
 const USER_ID = 'user-uuid-1';
 const GROUP_ID = 'group-uuid-1';
@@ -19,6 +20,7 @@ function makeMockPrisma() {
       findUnique: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     },
   };
 }
@@ -211,6 +213,71 @@ describe('SettlementsService', () => {
           where: { groupId: GROUP_ID },
         }),
       );
+    });
+  });
+
+  // ─── updateStatus ────────────────────────────────────────────────────────────
+
+  describe('updateStatus()', () => {
+    const SETTLEMENT_ID = 'settlement-uuid-1';
+    const mockSettlement = {
+      id: SETTLEMENT_ID,
+      groupId: GROUP_ID,
+      settledById: USER_ID,
+      txHash: TX_HASH,
+      amount: 50.5,
+      status: 'PENDING',
+    };
+
+    it('updates status to CONFIRMED with txHash', async () => {
+      const dto: UpdateSettlementStatusDto = { status: 'CONFIRMED', txHash: TX_HASH };
+      const updated = { ...mockSettlement, status: 'CONFIRMED' };
+
+      prisma.settlement.findUnique.mockResolvedValue(mockSettlement);
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.settlement.update.mockResolvedValue(updated);
+
+      const result = await service.updateStatus(SETTLEMENT_ID, USER_ID, dto);
+
+      expect(prisma.settlement.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: SETTLEMENT_ID },
+          data: expect.objectContaining({ status: 'CONFIRMED' }),
+        }),
+      );
+      expect(result.status).toBe('CONFIRMED');
+    });
+
+    it('updates status to FAILED without providing a txHash', async () => {
+      const dto: UpdateSettlementStatusDto = { status: 'FAILED' };
+      const updated = { ...mockSettlement, status: 'FAILED' };
+
+      prisma.settlement.findUnique.mockResolvedValue(mockSettlement);
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.settlement.update.mockResolvedValue(updated);
+
+      const result = await service.updateStatus(SETTLEMENT_ID, USER_ID, dto);
+
+      expect(result.status).toBe('FAILED');
+    });
+
+    it('throws NotFoundException when settlement does not exist', async () => {
+      prisma.settlement.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateStatus(SETTLEMENT_ID, USER_ID, { status: 'CONFIRMED' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.settlement.update).not.toHaveBeenCalled();
+    });
+
+    it('throws ForbiddenException when caller is not a group member', async () => {
+      prisma.settlement.findUnique.mockResolvedValue(mockSettlement);
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateStatus(SETTLEMENT_ID, USER_ID, { status: 'CONFIRMED' }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.settlement.update).not.toHaveBeenCalled();
     });
   });
 });

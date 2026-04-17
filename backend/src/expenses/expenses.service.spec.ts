@@ -372,4 +372,143 @@ describe('ExpensesService', () => {
       expect(total).toBe(100);
     });
   });
+
+  // ─── Edge cases & boundary values ────────────────────────────────────────────
+
+  describe('create() — edge cases', () => {
+    const singleMember = [
+      { userId: USER_A_ID, user: { id: USER_A_ID, walletAddress: VALID_WALLET_A } },
+    ];
+
+    it('EQUAL split with 1 member assigns full amount to that member', async () => {
+      const dto: CreateExpenseDto = {
+        groupId: GROUP_ID,
+        description: 'Solo expense',
+        amount: 75,
+        currency: ExpenseCurrency.XLM,
+        paidBy: VALID_WALLET_A,
+        splitType: SplitType.EQUAL,
+      };
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.user.findUnique.mockResolvedValue({ id: USER_A_ID });
+      prisma.groupMember.findMany.mockResolvedValue(singleMember);
+      prisma.expense.create.mockResolvedValue({ id: 'exp-solo', splits: [] });
+
+      await service.create(USER_A_ID, dto);
+
+      const splits: Array<{ amount: number }> = prisma.expense.create.mock.calls[0][0].data.splits.create;
+      expect(splits).toHaveLength(1);
+      expect(splits[0].amount).toBe(75);
+    });
+
+    it('stores the receiptUrl when provided', async () => {
+      const dto: CreateExpenseDto = {
+        groupId: GROUP_ID,
+        description: 'Receipt expense',
+        amount: 50,
+        currency: ExpenseCurrency.XLM,
+        paidBy: VALID_WALLET_A,
+        splitType: SplitType.EQUAL,
+        receiptUrl: 'https://cdn.example.com/receipts/receipt.jpg',
+      };
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.user.findUnique.mockResolvedValue({ id: USER_A_ID });
+      prisma.groupMember.findMany.mockResolvedValue(singleMember);
+      prisma.expense.create.mockResolvedValue({ id: 'exp-rcpt', splits: [] });
+
+      await service.create(USER_A_ID, dto);
+
+      const createData = prisma.expense.create.mock.calls[0][0].data;
+      expect(createData.receiptUrl).toBe('https://cdn.example.com/receipts/receipt.jpg');
+    });
+
+    it('stores null receiptUrl when not provided', async () => {
+      const dto: CreateExpenseDto = {
+        groupId: GROUP_ID,
+        description: 'No receipt',
+        amount: 20,
+        currency: ExpenseCurrency.XLM,
+        paidBy: VALID_WALLET_A,
+        splitType: SplitType.EQUAL,
+      };
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.user.findUnique.mockResolvedValue({ id: USER_A_ID });
+      prisma.groupMember.findMany.mockResolvedValue(singleMember);
+      prisma.expense.create.mockResolvedValue({ id: 'exp-norcpt', splits: [] });
+
+      await service.create(USER_A_ID, dto);
+
+      const createData = prisma.expense.create.mock.calls[0][0].data;
+      expect(createData.receiptUrl).toBeUndefined();
+    });
+
+    it('CUSTOM split with a non-group-member wallet throws 400', async () => {
+      const outsiderWallet = 'GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGFM2O'; // not in group
+      const dto: CreateExpenseDto = {
+        groupId: GROUP_ID,
+        description: 'Outsider split',
+        amount: 100,
+        currency: ExpenseCurrency.XLM,
+        paidBy: VALID_WALLET_A,
+        splitType: SplitType.CUSTOM,
+        splits: [
+          { walletAddress: VALID_WALLET_A, amount: 60 },
+          { walletAddress: outsiderWallet, amount: 40 },
+        ],
+      };
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.user.findUnique.mockResolvedValue({ id: USER_A_ID });
+      prisma.groupMember.findMany.mockResolvedValue([
+        { userId: USER_A_ID, user: { id: USER_A_ID, walletAddress: VALID_WALLET_A } },
+      ]);
+
+      await expect(service.create(USER_A_ID, dto)).rejects.toThrow(BadRequestException);
+      expect(prisma.expense.create).not.toHaveBeenCalled();
+    });
+
+    it('PERCENTAGE split with empty splits array throws 400', async () => {
+      const dto: CreateExpenseDto = {
+        groupId: GROUP_ID,
+        description: 'Empty splits',
+        amount: 100,
+        currency: ExpenseCurrency.XLM,
+        paidBy: VALID_WALLET_A,
+        splitType: SplitType.PERCENTAGE,
+        splits: [],
+      };
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.user.findUnique.mockResolvedValue({ id: USER_A_ID });
+      prisma.groupMember.findMany.mockResolvedValue(singleMember);
+
+      await expect(service.create(USER_A_ID, dto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ─── Audit trail ─────────────────────────────────────────────────────────────
+
+  describe('create() — audit trail', () => {
+    it('expense persists groupId, paidById, splitType in DB call', async () => {
+      const dto: CreateExpenseDto = {
+        groupId: GROUP_ID,
+        description: 'Audit test',
+        amount: 80,
+        currency: ExpenseCurrency.XLM,
+        paidBy: VALID_WALLET_A,
+        splitType: SplitType.EQUAL,
+      };
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1' });
+      prisma.user.findUnique.mockResolvedValue({ id: USER_A_ID, walletAddress: VALID_WALLET_A });
+      prisma.groupMember.findMany.mockResolvedValue([
+        { userId: USER_A_ID, user: { id: USER_A_ID, walletAddress: VALID_WALLET_A } },
+      ]);
+      prisma.expense.create.mockResolvedValue({ id: 'exp-audit', splits: [] });
+
+      await service.create(USER_A_ID, dto);
+
+      const createData = prisma.expense.create.mock.calls[0][0].data;
+      expect(createData.groupId).toBe(GROUP_ID);
+      expect(createData.paidById).toBe(USER_A_ID);
+      expect(createData.splitType).toBe(SplitType.EQUAL);
+    });
+  });
 });

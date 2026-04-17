@@ -4,12 +4,21 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { GroupsService } from './groups.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EventsService } from '../events/events.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateGroupDto, GroupCurrency } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+
+function makeMockCache() {
+  return {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+  };
+}
 
 const VALID_WALLET_A = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN';
 const VALID_WALLET_B = 'GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGOZ3GGMFAHJ3IRCKLR2TONBQ';
@@ -28,7 +37,9 @@ function makeMockPrisma() {
       findMany: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      update: jest.fn(),
     },
+    $transaction: jest.fn(),
     user: {
       findMany: jest.fn(),
     },
@@ -41,9 +52,11 @@ function makeMockPrisma() {
 describe('GroupsService', () => {
   let service: GroupsService;
   let prisma: ReturnType<typeof makeMockPrisma>;
+  let cache: ReturnType<typeof makeMockCache>;
 
   beforeEach(async () => {
     prisma = makeMockPrisma();
+    cache = makeMockCache();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,6 +64,7 @@ describe('GroupsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: EventsService, useValue: { publish: jest.fn() } },
         { provide: AuditService, useValue: { log: jest.fn() } },
+        { provide: CACHE_MANAGER, useValue: cache },
       ],
     }).compile();
 
@@ -482,6 +496,157 @@ describe('GroupsService', () => {
     });
   });
 
+  // ─── getAnalytics ────────────────────────────────────────────────────────────
+
+  describe('getAnalytics()', () => {
+    const groupId = 'group-1';
+    const userId = 'user-1';
+
+    it('returns zero values when group has no expenses', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      prisma.expense.findMany.mockResolvedValue([]);
+
+      const result = await service.getAnalytics(groupId, userId);
+
+      expect(result.totalExpenses).toBe(0);
+      expect(result.totalAmount).toBe(0);
+      expect(result.categoryBreakdown).toHaveLength(0);
+      expect(result.memberSpending).toHaveLength(0);
+      expect(result.timeline).toHaveLength(0);
+    });
+
+    it('aggregates totalExpenses and totalAmount correctly', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      prisma.expense.findMany.mockResolvedValue([
+        {
+          id: 'e1',
+          amount: 100,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-10'),
+          paidBy: { walletAddress: VALID_WALLET_A },
+          splits: [],
+        },
+        {
+          id: 'e2',
+          amount: 50,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-11'),
+          paidBy: { walletAddress: VALID_WALLET_B },
+          splits: [],
+        },
+      ]);
+
+      const result = await service.getAnalytics(groupId, userId);
+
+      expect(result.totalExpenses).toBe(2);
+      expect(result.totalAmount).toBe(150);
+    });
+
+    it('builds categoryBreakdown grouped by currency', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      prisma.expense.findMany.mockResolvedValue([
+        {
+          id: 'e1',
+          amount: 100,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-10'),
+          paidBy: { walletAddress: VALID_WALLET_A },
+          splits: [],
+        },
+        {
+          id: 'e2',
+          amount: 40,
+          currency: 'USDC',
+          createdAt: new Date('2026-01-11'),
+          paidBy: { walletAddress: VALID_WALLET_A },
+          splits: [],
+        },
+        {
+          id: 'e3',
+          amount: 60,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-12'),
+          paidBy: { walletAddress: VALID_WALLET_B },
+          splits: [],
+        },
+      ]);
+
+      const result = await service.getAnalytics(groupId, userId);
+
+      const xlm = result.categoryBreakdown.find((c: { category: string }) => c.category === 'XLM');
+      const usdc = result.categoryBreakdown.find((c: { category: string }) => c.category === 'USDC');
+
+      expect(xlm?.total).toBe(160);
+      expect(xlm?.count).toBe(2);
+      expect(usdc?.total).toBe(40);
+      expect(usdc?.count).toBe(1);
+    });
+
+    it('builds memberSpending grouped by walletAddress', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      prisma.expense.findMany.mockResolvedValue([
+        {
+          id: 'e1',
+          amount: 80,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-10'),
+          paidBy: { walletAddress: VALID_WALLET_A },
+          splits: [],
+        },
+        {
+          id: 'e2',
+          amount: 20,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-11'),
+          paidBy: { walletAddress: VALID_WALLET_A },
+          splits: [],
+        },
+      ]);
+
+      const result = await service.getAnalytics(groupId, userId);
+
+      expect(result.memberSpending).toHaveLength(1);
+      expect(result.memberSpending[0].walletAddress).toBe(VALID_WALLET_A);
+      expect(result.memberSpending[0].total).toBe(100);
+    });
+
+    it('builds cumulative timeline sorted by date', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      prisma.expense.findMany.mockResolvedValue([
+        {
+          id: 'e1',
+          amount: 30,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-10'),
+          paidBy: { walletAddress: VALID_WALLET_A },
+          splits: [],
+        },
+        {
+          id: 'e2',
+          amount: 70,
+          currency: 'XLM',
+          createdAt: new Date('2026-01-11'),
+          paidBy: { walletAddress: VALID_WALLET_B },
+          splits: [],
+        },
+      ]);
+
+      const result = await service.getAnalytics(groupId, userId);
+
+      expect(result.timeline).toHaveLength(2);
+      expect(result.timeline[0].date).toBe('2026-01-10');
+      expect(result.timeline[0].cumulative).toBe(30);
+      expect(result.timeline[1].date).toBe('2026-01-11');
+      expect(result.timeline[1].cumulative).toBe(100);
+    });
+
+    it('throws 403 when user is not a member', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.getAnalytics(groupId, userId)).rejects.toThrow(ForbiddenException);
+    });
+  });
+
   // ─── getInviteLink ───────────────────────────────────────────────────────────
 
   describe('getInviteLink()', () => {
@@ -517,6 +682,147 @@ describe('GroupsService', () => {
       prisma.group.findUnique.mockResolvedValue(mockGroup);
 
       await expect(service.getInviteLink(groupId, 'non-member')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  // ─── transferOwnership ───────────────────────────────────────────────────────
+
+  describe('transferOwnership()', () => {
+    const groupId = 'group-1';
+    const creatorId = 'creator-1';
+    const newOwnerId = 'member-1';
+    const dto = { newOwnerId };
+
+    it('transfers ownership: swaps roles via $transaction', async () => {
+      prisma.groupMember.findUnique
+        .mockResolvedValueOnce({ id: 'gm1', role: 'CREATOR', groupId, userId: creatorId })
+        .mockResolvedValueOnce({ id: 'gm2', role: 'MEMBER', groupId, userId: newOwnerId });
+      prisma.$transaction.mockResolvedValue([{}, {}]);
+
+      await expect(service.transferOwnership(groupId, creatorId, dto)).resolves.toBeUndefined();
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws ForbiddenException when caller is not the group creator', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+
+      await expect(service.transferOwnership(groupId, 'non-creator', dto)).rejects.toThrow(ForbiddenException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when the new owner is not a group member', async () => {
+      prisma.groupMember.findUnique
+        .mockResolvedValueOnce({ id: 'gm1', role: 'CREATOR' }) // assertCreator
+        .mockResolvedValueOnce(null);                           // new owner lookup
+
+      await expect(service.transferOwnership(groupId, creatorId, dto)).rejects.toThrow(NotFoundException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws ForbiddenException when caller is not a group member at all', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.transferOwnership(groupId, 'outsider', dto)).rejects.toThrow(ForbiddenException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── Cache invalidation (C5 — Redis caching) ─────────────────────────────────
+
+  describe('Cache invalidation', () => {
+    const groupId = 'group-cache-1';
+    const userId = 'user-cache-1';
+
+    it('update() invalidates group cache after saving', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'CREATOR' });
+      prisma.group.update.mockResolvedValue({ id: groupId, name: 'New Name' });
+
+      await service.update(groupId, userId, { name: 'New Name' });
+
+      expect(cache.del).toHaveBeenCalledWith(`group:${groupId}`);
+    });
+
+    it('remove() invalidates both group and balances cache', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'CREATOR' });
+      prisma.group.delete.mockResolvedValue({});
+
+      await service.remove(groupId, userId);
+
+      expect(cache.del).toHaveBeenCalledWith(`group:${groupId}`);
+      expect(cache.del).toHaveBeenCalledWith(`group:${groupId}:balances`);
+    });
+
+    it('join() invalidates group cache when new member joins', async () => {
+      prisma.group.findUnique.mockResolvedValue({ id: groupId, inviteCode: null });
+      prisma.groupMember.findUnique.mockResolvedValue(null);
+      prisma.groupMember.create.mockResolvedValue({ id: 'gm-new', groupId, userId });
+
+      await service.join(groupId, userId);
+
+      expect(cache.del).toHaveBeenCalledWith(`group:${groupId}`);
+    });
+
+    it('leave() invalidates group cache when member leaves', async () => {
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER', groupId, userId });
+      prisma.groupMember.delete.mockResolvedValue({});
+
+      await service.leave(groupId, userId);
+
+      expect(cache.del).toHaveBeenCalledWith(`group:${groupId}`);
+    });
+
+    it('transferOwnership() invalidates group cache', async () => {
+      const newOwnerId = 'new-owner';
+      prisma.groupMember.findUnique
+        .mockResolvedValueOnce({ id: 'gm1', role: 'CREATOR', groupId, userId })
+        .mockResolvedValueOnce({ id: 'gm2', role: 'MEMBER', groupId, userId: newOwnerId });
+      prisma.$transaction.mockResolvedValue([{}, {}]);
+
+      await service.transferOwnership(groupId, userId, { newOwnerId });
+
+      expect(cache.del).toHaveBeenCalledWith(`group:${groupId}`);
+    });
+
+    it('getBalances() returns cached result without hitting DB on cache hit', async () => {
+      const cachedBalances = [{ userId: 'u1', balance: 50 }];
+      cache.get.mockResolvedValueOnce(cachedBalances); // simulate cache hit
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+
+      const result = await service.getBalances(groupId, userId);
+
+      expect(result).toEqual(cachedBalances);
+      expect(prisma.expense.findMany).not.toHaveBeenCalled();
+    });
+
+    it('getBalances() stores result in cache on cache miss', async () => {
+      cache.get.mockResolvedValue(null); // cache miss
+      prisma.groupMember.findUnique.mockResolvedValue({ id: 'gm1', role: 'MEMBER' });
+      prisma.expense.findMany.mockResolvedValue([]); // no expenses
+
+      await service.getBalances(groupId, userId);
+
+      expect(cache.set).toHaveBeenCalledWith(`group:${groupId}:balances`, [], expect.any(Number));
+    });
+
+    it('findOne() skips DB on cache hit', async () => {
+      const cachedGroup = {
+        id: groupId,
+        members: [{ userId, user: { id: userId, walletAddress: VALID_WALLET_A, reputationScore: 0 } }],
+        creator: { id: userId, walletAddress: VALID_WALLET_A },
+        _count: { expenses: 0, settlements: 0 },
+        inviteCode: null,
+      };
+      cache.get.mockResolvedValueOnce(cachedGroup);
+
+      const result = await service.findOne(groupId, userId);
+
+      expect(prisma.group.findUnique).not.toHaveBeenCalled();
+      expect(result.id).toBe(groupId);
+    });
+
+    it('invalidateBalances() removes the balances cache key', async () => {
+      await service.invalidateBalances(groupId);
+      expect(cache.del).toHaveBeenCalledWith(`group:${groupId}:balances`);
     });
   });
 });

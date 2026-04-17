@@ -10,12 +10,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { RecurringService } from './recurring.service';
 import { CreateRecurringDto } from './dto/create-recurring.dto';
 
+@Throttle({ default: { limit: 20, ttl: 60000 } })
 @ApiTags('recurring')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)

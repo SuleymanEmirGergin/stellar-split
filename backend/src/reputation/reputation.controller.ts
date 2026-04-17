@@ -1,9 +1,11 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { ReputationService } from './reputation.service';
 
+@Throttle({ default: { limit: 60, ttl: 60000 } })
 @ApiTags('reputation')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)

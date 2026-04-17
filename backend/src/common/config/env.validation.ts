@@ -16,6 +16,9 @@ interface EnvVars {
   STELLAR_NETWORK: string;
   SOROBAN_RPC_URL: string;
   SOROBAN_CONTRACT_ID: string;
+  VAPID_PUBLIC_KEY: string;
+  VAPID_PRIVATE_KEY: string;
+  VAPID_SUBJECT: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvVars {
@@ -90,6 +93,16 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     contractId = ''; // treat placeholder as unset in dev
   }
 
+  // VAPID keys — required in production for Web Push; optional in dev
+  const vapidPublicKey = String(config['VAPID_PUBLIC_KEY'] ?? '').trim();
+  const vapidPrivateKey = String(config['VAPID_PRIVATE_KEY'] ?? '').trim();
+  const vapidSubject = String(config['VAPID_SUBJECT'] ?? '').trim();
+  if (nodeEnv === 'production') {
+    if (!vapidPublicKey) errors.push('  VAPID_PUBLIC_KEY — required in production');
+    if (!vapidPrivateKey) errors.push('  VAPID_PRIVATE_KEY — required in production');
+    if (!vapidSubject) errors.push('  VAPID_SUBJECT — required in production (e.g. mailto:admin@example.com)');
+  }
+
   if (errors.length > 0) {
     throw new Error(
       `\n\n[StellarSplit] Environment validation failed — fix these variables before starting:\n\n` +
@@ -110,5 +123,8 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     STELLAR_NETWORK: stellarNetwork,
     SOROBAN_RPC_URL: sorobanRpcUrl,
     SOROBAN_CONTRACT_ID: contractId,
+    VAPID_PUBLIC_KEY: vapidPublicKey,
+    VAPID_PRIVATE_KEY: vapidPrivateKey,
+    VAPID_SUBJECT: vapidSubject,
   };
 }

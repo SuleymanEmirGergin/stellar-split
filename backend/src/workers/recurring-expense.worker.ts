@@ -1,7 +1,9 @@
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { EventsService } from '../events/events.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface RecurringJobData {
   templateId: string;
@@ -21,6 +23,8 @@ export class RecurringExpenseWorker extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue('recurring-expenses') private readonly recurringQueue: Queue,
+    private readonly events: EventsService,
+    private readonly notifications: NotificationsService,
   ) {
     super();
   }
@@ -76,5 +80,24 @@ export class RecurringExpenseWorker extends WorkerHost {
     );
 
     this.logger.log({ templateId, nextDue }, 'Recurring expense auto-created; next run scheduled');
+
+    // SSE gerçek zamanlı bildirim
+    this.events.publish({
+      groupId: template.groupId,
+      type: 'recurring:triggered',
+      payload: { description: template.description, amount: String(template.amount) },
+      ts: Date.now(),
+    });
+
+    // Tüm grup üyelerine kalıcı bildirim gönder
+    for (const memberId of memberIds) {
+      this.notifications.dispatch(memberId, 'RECURRING_TRIGGERED', {
+        groupId: template.groupId,
+        description: template.description,
+        amount: String(template.amount),
+      }).catch((err: unknown) =>
+        this.logger.warn({ memberId, err: String(err) }, 'Recurring notification dispatch failed'),
+      );
+    }
   }
 }

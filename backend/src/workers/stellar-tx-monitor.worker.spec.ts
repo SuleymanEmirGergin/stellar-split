@@ -194,4 +194,58 @@ describe('StellarTxMonitorWorker', () => {
       );
     });
   });
+
+  // ─── Retry count tracking ─────────────────────────────────────────────────────
+
+  describe('process() — attempt count logging', () => {
+    it('retries do not double-confirm a settlement (tx not found path re-throws)', async () => {
+      stellar.getTransaction.mockResolvedValue(null);
+      const job = makeJob({ settlementId: SETTLEMENT_ID, txHash: TX_HASH });
+      (job as any).attemptsMade = 5;
+
+      await expect(worker.process(job)).rejects.toThrow();
+      expect(prisma.settlement.update).not.toHaveBeenCalled();
+    });
+
+    it('processes successfully even on a non-first attempt', async () => {
+      const confirmedAt = new Date().toISOString();
+      stellar.getTransaction.mockResolvedValue({ successful: true, createdAt: confirmedAt });
+      prisma.settlement.update.mockResolvedValue({
+        id: SETTLEMENT_ID,
+        groupId: GROUP_ID,
+        settledById: SETTLER_ID,
+        status: 'CONFIRMED',
+        group: { id: GROUP_ID },
+      });
+      prisma.group.update.mockResolvedValue({});
+
+      const job = makeJob();
+      (job as any).attemptsMade = 3; // retry attempt
+
+      await expect(worker.process(job)).resolves.toBeUndefined();
+      expect(prisma.settlement.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'CONFIRMED' }) }),
+      );
+    });
+  });
+
+  // ─── Prisma error propagation ─────────────────────────────────────────────────
+
+  describe('process() — DB error handling', () => {
+    it('propagates Prisma error on CONFIRMED update (triggers BullMQ retry)', async () => {
+      const confirmedAt = new Date().toISOString();
+      stellar.getTransaction.mockResolvedValue({ successful: true, createdAt: confirmedAt });
+      prisma.settlement.update.mockRejectedValue(new Error('DB connection lost'));
+
+      await expect(worker.process(makeJob())).rejects.toThrow('DB connection lost');
+    });
+
+    it('does not award reputation when DB update throws', async () => {
+      stellar.getTransaction.mockResolvedValue({ successful: true, createdAt: new Date().toISOString() });
+      prisma.settlement.update.mockRejectedValue(new Error('tx failed'));
+
+      await expect(worker.process(makeJob())).rejects.toThrow();
+      expect(reputation.updateScore).not.toHaveBeenCalled();
+    });
+  });
 });

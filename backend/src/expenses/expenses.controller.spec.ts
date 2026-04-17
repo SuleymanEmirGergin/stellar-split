@@ -28,11 +28,12 @@ describe('ExpensesController', () => {
     expect(mockService.findByGroup).toHaveBeenCalledWith('grp-1', USER.sub, undefined, undefined);
   });
 
-  it('create() delegates to service', async () => {
-    const dto = { groupId: 'grp-1', description: 'lunch', amount: 100, currency: 'XLM', splitType: 'EQUAL' } as any;
-    const created = { id: 'exp-1', ...dto };
+  it('create() injects groupId from URL param and delegates to service', async () => {
+    const dto = { description: 'lunch', amount: 100, currency: 'XLM', splitType: 'EQUAL' } as any;
+    const created = { id: 'exp-1', groupId: 'grp-1', ...dto };
     mockService.create.mockResolvedValue(created);
-    await expect(controller.create(USER, dto)).resolves.toEqual(created);
+    await expect(controller.create('grp-1', USER, dto)).resolves.toEqual(created);
+    expect(dto.groupId).toBe('grp-1');
     expect(mockService.create).toHaveBeenCalledWith(USER.sub, dto);
   });
 

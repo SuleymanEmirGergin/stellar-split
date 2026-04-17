@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 
@@ -37,6 +38,7 @@ describe('NotificationsService', () => {
         NotificationsService,
         { provide: PrismaService, useValue: prisma },
         { provide: getQueueToken('notifications'), useValue: queue },
+        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('mock-value') } },
       ],
     }).compile();
 

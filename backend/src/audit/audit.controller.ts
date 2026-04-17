@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
@@ -14,6 +15,7 @@ class AuditQueryDto {
   @IsOptional() @IsString() action?: string;
 }
 
+@Throttle({ default: { limit: 60, ttl: 60000 } })
 @ApiTags('audit')
 @ApiBearerAuth()
 @Controller('groups/:groupId/audit')

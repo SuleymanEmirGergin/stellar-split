@@ -19,6 +19,9 @@ model User {
   id              String   @id @default(uuid())
   walletAddress   String   @unique
   reputationScore Int      @default(0)
+  referralCode    String   @unique @default(cuid())
+  referredById    String?
+  referralCount   Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -36,9 +39,18 @@ model User {
   proposalsCreated  Proposal[]          @relation("ProposalCreator")
   proposalVotes     ProposalVote[]      @relation("ProposalVoter")
   disputesCreated   Dispute[]           @relation("DisputeInitiator")
-  pushSubscriptions PushSubscription[]
+  disputeVotes      DisputeVote[]       @relation("DisputeVoter")
+  pushSubscriptions    PushSubscription[]
+  expenseSplits        ExpenseSplit[]      @relation("ExpenseSplitUser")
+  paymentRequestsSent  PaymentRequest[]      @relation("PaymentRequestFrom")
+  paymentRequestsRecvd PaymentRequest[]      @relation("PaymentRequestTo")
+  referredBy           User?                 @relation("ReferralTree", fields: [referredById], references: [id])
+  referrals            User[]                @relation("ReferralTree")
+  savingsPoolsCreated  SavingsPool[]         @relation("SavingsPoolCreator")
+  savingsContributions SavingsContribution[] @relation("SavingsContributor")
 
   @@index([walletAddress])
+  @@index([referralCode])
 }
 
 // ─────────────────────────────────────────────
@@ -60,8 +72,10 @@ model Group {
   settlements Settlement[]
   recurring   RecurringTemplate[]
   guardians   Guardian[]
-  proposals   Proposal[]
-  disputes    Dispute[]
+  proposals       Proposal[]
+  disputes        Dispute[]
+  paymentRequests PaymentRequest[]
+  savingsPools    SavingsPool[]
 
   @@index([createdById])
   @@index([inviteCode])
@@ -143,6 +157,7 @@ model ExpenseSplit {
   isPaid     Boolean  @default(false)
 
   expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation("ExpenseSplitUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expenseId])
   @@index([userId])
@@ -168,6 +183,7 @@ model Settlement {
   @@index([groupId])
   @@index([txHash])
   @@index([status])
+  @@index([settledById])
 }
 
 enum SettlementStatus {
@@ -223,6 +239,7 @@ model Guardian {
   @@unique([userId, guardianUserId, groupId])
   @@index([userId])
   @@index([groupId])
+  @@index([guardianUserId])
 }
 
 // ─────────────────────────────────────────────
@@ -238,6 +255,7 @@ model RecoveryRequest {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([groupId])
   @@index([status])
 }
 
@@ -393,11 +411,26 @@ model Dispute {
   status      DisputeStatus @default(OPEN)
   createdAt   DateTime      @default(now())
 
-  group     Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  initiator User  @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  group     Group         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  initiator User          @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  votes     DisputeVote[]
 
   @@index([groupId])
   @@index([status])
+}
+
+model DisputeVote {
+  id        String   @id @default(uuid())
+  disputeId String
+  voterId   String
+  option    String   // 'uphold' | 'dismiss'
+  createdAt DateTime @default(now())
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  voter   User    @relation("DisputeVoter", fields: [voterId], references: [id], onDelete: Cascade)
+
+  @@unique([disputeId, voterId])
+  @@index([disputeId])
 }
 
 enum ProposalStatus {
@@ -410,6 +443,84 @@ enum DisputeStatus {
   OPEN
   RESOLVED
   DISMISSED
+}
+
+// ─────────────────────────────────────────────
+// PaymentRequest — request-to-pay between members
+// ─────────────────────────────────────────────
+model PaymentRequest {
+  id         String               @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  groupId    String
+  amount     Decimal              @db.Decimal(18, 7)
+  currency   Currency             @default(XLM)
+  note       String?
+  dueDate    DateTime?
+  status     PaymentRequestStatus @default(PENDING)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  fromUser User  @relation("PaymentRequestFrom", fields: [fromUserId], references: [id])
+  toUser   User  @relation("PaymentRequestTo",   fields: [toUserId],   references: [id])
+  group    Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([groupId])
+  @@index([status])
+}
+
+enum PaymentRequestStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
+// ─────────────────────────────────────────────
+// SavingsPool — group piggy-bank with a goal
+// ─────────────────────────────────────────────
+model SavingsPool {
+  id            String            @id @default(uuid())
+  groupId       String
+  createdById   String
+  title         String
+  goalAmount    Decimal           @db.Decimal(18, 7)
+  currentAmount Decimal           @default(0) @db.Decimal(18, 7)
+  currency      Currency          @default(XLM)
+  deadline      DateTime?
+  status        SavingsPoolStatus @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  group       Group                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdBy   User                  @relation("SavingsPoolCreator", fields: [createdById], references: [id])
+  contributions SavingsContribution[]
+
+  @@index([groupId])
+  @@index([status])
+}
+
+model SavingsContribution {
+  id        String      @id @default(uuid())
+  poolId    String
+  userId    String
+  amount    Decimal     @db.Decimal(18, 7)
+  note      String?
+  createdAt DateTime    @default(now())
+
+  pool SavingsPool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user User        @relation("SavingsContributor", fields: [userId], references: [id])
+
+  @@index([poolId])
+  @@index([userId])
+}
+
+enum SavingsPoolStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 // ─────────────────────────────────────────────

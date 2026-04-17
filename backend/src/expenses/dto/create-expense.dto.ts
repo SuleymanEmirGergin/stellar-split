@@ -10,7 +10,7 @@ import {
   ValidateNested,
   Matches,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum SplitType {
@@ -43,6 +43,7 @@ export class SplitDetailDto {
 
 export class CreateExpenseDto {
   @ApiProperty()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/<[^>]*>/g, '') : value))
   @IsString()
   @MinLength(1)
   @MaxLength(200)
@@ -66,7 +67,8 @@ export class CreateExpenseDto {
   @IsEnum(SplitType)
   splitType: SplitType;
 
-  @ApiProperty({ description: 'Group ID this expense belongs to' })
+  @ApiPropertyOptional({ description: 'Group ID this expense belongs to (set from URL param)' })
+  @IsOptional()
   @IsString()
   groupId: string;
 

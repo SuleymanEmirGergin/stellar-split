@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LoggerModule } from 'nestjs-pino';
@@ -24,6 +26,9 @@ import { AuditModule } from './audit/audit.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { UsersModule } from './users/users.module';
 import { GovernanceModule } from './governance/governance.module';
+import { PaymentRequestsModule } from './payment-requests/payment-requests.module';
+import { ReferralModule } from './referral/referral.module';
+import { SavingsModule } from './savings/savings.module';
 
 @Module({
   imports: [
@@ -69,6 +74,21 @@ import { GovernanceModule } from './governance/governance.module';
       }),
     }),
 
+    // Redis cache — global, TTL 60s default (key-level TTL overrides this)
+    CacheModule.registerAsync({
+      isGlobal: true,
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        store: await redisStore({
+          socket: {
+            host: config.get<string>('REDIS_HOST', 'localhost'),
+            port: config.get<number>('REDIS_PORT', 6379),
+          },
+        }),
+        ttl: 60 * 1000, // 60 seconds in ms
+      }),
+    }),
+
     // BullMQ
     BullModule.forRootAsync({
       inject: [ConfigService],
@@ -105,6 +125,9 @@ import { GovernanceModule } from './governance/governance.module';
     MetricsModule,
     UsersModule,
     GovernanceModule,
+    PaymentRequestsModule,
+    ReferralModule,
+    SavingsModule,
   ],
   providers: [
     // Apply JWT auth globally — @Public() bypasses it
