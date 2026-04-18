@@ -1324,6 +1324,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         isOpen={showAddSub}
         onClose={() => setShowAddSub(false)}
         onSave={handleAddSubscription}
+        t={t}
       />
 
       {/* Mobile bottom tab bar – visible only on sm and below */}

@@ -105,6 +105,7 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <motion.button
                   type="button"
+                  data-testid="landing-connect-btn"
                   onClick={onConnect}
                   disabled={!freighterAvailable || connecting}
                   className="btn-birik disabled:opacity-50"
@@ -122,6 +123,7 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
                 {onTryDemo && (
                   <motion.button
                     type="button"
+                    data-testid="landing-try-demo"
                     onClick={onTryDemo}
                     className="btn-ghost-birik"
                     whileHover={{ scale: 1.03 }}
