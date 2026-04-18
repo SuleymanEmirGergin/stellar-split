@@ -29,4 +29,16 @@ export default tseslint.config(
       ],
     },
   },
+  // Test files: allow `any` (mocking) + relax unused-vars (convention imports like beforeEach).
+  // Tests aren't shipped; strict type hygiene here pays little and costs much.
+  {
+    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}', '**/test/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
 )

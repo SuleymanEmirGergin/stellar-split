@@ -25,7 +25,6 @@ import {
   Trash2,
   Check,
   X,
-  AlertTriangle,
 } from 'lucide-react';
 import { estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
 import ErrorBoundary from './ErrorBoundary';
@@ -76,9 +75,7 @@ import SavingsPool from './SavingsPool';
 
 import { sendWebhookNotification, sendSettlementReadyNotification, sendLocalNotification, requestNotificationPermission } from '../lib/notifications';
 import { useNotificationStore } from '../store/useNotificationStore';
-import { type RecurringTemplate } from '../lib/recurring';
 import { getLiveApy } from '../lib/defi';
-import { type Proposal, type VoteOption, type Dispute } from '../lib/governance';
 import { scanReceiptAI, hasReceiptAI, getMockScannedData, type ScannedData } from '../lib/ai';
 import { useI18n } from '../lib/i18n';
 import { useToast } from './Toast';
@@ -284,8 +281,6 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
   const {
     proposals,
-    disputes,
-    setDisputes,
     showAddPropose,
     setShowAddPropose,
     newPropTitle,

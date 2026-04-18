@@ -66,10 +66,15 @@ describe('pollWiroTask', () => {
       json: vi.fn().mockResolvedValue({ tasklist: [{ status: 'task_running' }] }),
     } as any);
     const { pollWiroTask } = await import('./wiro');
+    // Attach the rejection handler BEFORE advancing timers; otherwise the
+    // rejection fires between advanceTimersByTimeAsync resolving and our
+    // assertion attaching, which Vitest flags as an unhandled rejection and
+    // fails the CI run even though the test passes locally.
     const promise = pollWiroTask('task-token');
+    const assertion = expect(promise).rejects.toThrow('Wiro task timeout');
     // Advance timers past MAX_POLL_ATTEMPTS * POLL_INTERVAL_MS (30 * 2000 = 60000ms)
     await vi.advanceTimersByTimeAsync(65000);
-    await expect(promise).rejects.toThrow('Wiro task timeout');
+    await assertion;
   });
 
   it('returns debugoutput when task ends and no output URL is present', async () => {

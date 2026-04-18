@@ -17,7 +17,7 @@ interface Props {
   onBack: () => void;
 }
 
-export function SmartVaults({ walletAddress, onBack }: Props) {
+export function SmartVaults({ walletAddress: _walletAddress, onBack }: Props) {
   const [stats, setStats] = useState<VaultStats>(getVaultStats());
   const [isAutoEnabled, setIsAutoEnabled] = useState(stats.autoInvestEnabled);
 

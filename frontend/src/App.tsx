@@ -16,7 +16,7 @@ import {
   QrCode,
   Settings
 } from 'lucide-react';
-import { isFreighterInstalled, connectFreighter, getFreighterAddress, isTestnet } from './lib/stellar';
+import { isFreighterInstalled, connectFreighter, getFreighterAddress } from './lib/stellar';
 import { signInWithStellar, signOut } from './lib/siws';
 import { setAccessToken, usersApi, authApi } from './lib/api';
 import { maskAddress } from './lib/format';

@@ -13,6 +13,10 @@ export interface Message {
 
 interface PendingAction {
   name: string;
+  // AI tool-call args are dynamically shaped by the model; typing as `any` is
+  // the honest lie — a proper discriminated union would require the agent to
+  // promise it'll only emit matching arg shapes, which it doesn't.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args: Record<string, any>;
 }
 
@@ -76,6 +80,7 @@ export function useAIAgent() {
   const walletAddress = useAppStore((s) => s.walletAddress);
   const { addToast } = useToast();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleToolCall = useCallback(async (name: string, args: Record<string, any>) => {
     if (name === 'get_balances') {
       try {
@@ -130,9 +135,9 @@ export function useAIAgent() {
         setMessages((prev) => [...prev, { role: 'assistant', content: "Harcama başarıyla eklendi! ✅" }]);
         addToast("Harcama başarıyla eklendi!", "success");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Contract action error:', err);
-      const msg = err.message || "İşlem sırasında bir hata oluştu.";
+      const msg = err instanceof Error ? err.message : "İşlem sırasında bir hata oluştu.";
       setMessages((prev) => [...prev, { role: 'assistant', content: `Hata: ${msg}` }]);
       addToast(msg, "error");
     } finally {

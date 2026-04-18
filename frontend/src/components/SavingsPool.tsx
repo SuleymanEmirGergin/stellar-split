@@ -5,7 +5,6 @@ import {
   PiggyBank,
   Plus,
   Target,
-  Calendar,
   ChevronDown,
   ChevronUp,
   Check,
@@ -545,7 +544,7 @@ function ContributeModal({
 }
 
 // ─── Main SavingsPool Component ───────────────────────────────────────────────
-export default function SavingsPool({ groupId, walletAddress, currencyLabel }: SavingsPoolProps) {
+export default function SavingsPool({ groupId, walletAddress, currencyLabel: _currencyLabel }: SavingsPoolProps) {
   const { t } = useI18n();
   const { addToast } = useToast();
   const [showCreate, setShowCreate] = useState(false);

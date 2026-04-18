@@ -44,7 +44,7 @@ export function MiniAppSim({ onClose }: Props) {
     setTimeout(() => {
       setIsTyping(false);
       
-      const inviteId = Math.floor(Math.random() * 1000);
+      // Mock invite id — display only, not consumed
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
