@@ -342,15 +342,9 @@ describe('Group → Expense → Settlement integration flow', () => {
       //      B = -30 (owes A) + 40 (paid 60 - own share 20) = +10
       //      C = -30 - 20 = -50
 
-      const balances = [
-        { userId: USER_A.id, balance: 10 },
-        { userId: USER_B.id, balance: 10 },  // simplified: B still owed 10 by C
-        { userId: USER_C.id, balance: -50 },
-      ];
-      // Wait - let me recalculate: A=+10, B=+10, C=-20 (doesn't sum to 0)
-      // Correct: A pays 90 → A net +60 (90-30). B pays 60 → B net +40. C net -50-20= -100? No.
-      // Let's simplify: A pays 90, each owes 30. A already paid so A is owed 60 (30 from B + 30 from C).
-      // B pays 60, each owes 20. B is already paid so B is owed 40 (20 from A + 20 from C).
+      // Balance reasoning:
+      // A pays 90, each owes 30. A is owed 60 (30 from B + 30 from C).
+      // B pays 60, each owes 20. B is owed 40 (20 from A + 20 from C).
       // Net A: paid 90, owed 30 self → +60 owed TO A, owes 20 to B → net = +60 - 20 = +40
       // Net B: paid 60, owed 20 self → +40 owed TO B, owes 30 to A → net = +40 - 30 = +10
       // Net C: owes 30 to A + 20 to B = -50

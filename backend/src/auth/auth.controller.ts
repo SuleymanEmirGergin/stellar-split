@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { ApiAuth, ApiUnauthorized } from '../common/swagger/decorators';
+import { ApiAuth } from '../common/swagger/decorators';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { VerifyWalletDto } from './dto/verify-wallet.dto';
