@@ -149,10 +149,18 @@ vi.mock('../hooks/useBackendGroups', () => ({
   useBackendAudit: () => ({ data: undefined, isLoading: false }),
   useSettlementPlan: () => ({ data: undefined }),
   useInviteLink: () => ({ data: undefined }),
+  useBackendGroup: () => ({ data: undefined }),
+  useUpdateGroupMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDeleteGroupMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
   backendGroupKeys: {
     expenses: (id: string) => ['backend', 'expenses', id],
     balances: (id: string) => ['backend', 'balances', id],
     detail: (id: string) => ['backend', 'detail', id],
+    settlements: (id: string) => ['backend', 'settlements', id],
+    settlementPlan: (id: string) => ['backend', 'settlement-plan', id],
+    audit: (id: string) => ['backend', 'audit', id],
+    analytics: (id: string) => ['backend', 'analytics', id],
+    recurring: (id: string) => ['backend', 'recurring', id],
   },
 }));
 

@@ -45,7 +45,8 @@ test.describe('Mobile navigation — GroupDetail bottom bar', () => {
     const bottomBar = page.locator('.sm\\:hidden.fixed.bottom-0');
     await expect(bottomBar).toBeVisible({ timeout: 10000 });
     await bottomBar.locator('button').last().click();
-    const sheet = page.locator('.grid-cols-3').first();
+    // Use testid — page has a separate `.grid-cols-3` for the balance-summary widget
+    const sheet = page.getByTestId('mobile-more-sheet');
     await expect(sheet).toBeVisible({ timeout: 5000 });
   });
 
@@ -53,7 +54,7 @@ test.describe('Mobile navigation — GroupDetail bottom bar', () => {
     await seedGroupAndGoGroup(page);
     const bottomBar = page.locator('.sm\\:hidden.fixed.bottom-0');
     await bottomBar.locator('button').last().click();
-    const sheet = page.locator('.grid-cols-3').first();
+    const sheet = page.getByTestId('mobile-more-sheet');
     await expect(sheet).toBeVisible({ timeout: 5000 });
     await sheet.locator('button').first().click();
     await expect(sheet).toBeHidden({ timeout: 5000 });

@@ -16,9 +16,9 @@ import {
   QrCode,
   Settings
 } from 'lucide-react';
-import { isFreighterInstalled, connectFreighter, getFreighterAddress, isTestnet } from './lib/stellar';
+import { isFreighterInstalled, connectFreighter, getFreighterAddress } from './lib/stellar';
 import { signInWithStellar, signOut } from './lib/siws';
-import { setAccessToken, usersApi } from './lib/api';
+import { setAccessToken, usersApi, authApi } from './lib/api';
 import { maskAddress } from './lib/format';
 import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
@@ -179,7 +179,7 @@ function AppContent() {
 
   // Open Graph / document.title per route (helps JS-aware crawlers and tabs)
   useEffect(() => {
-    const base = 'StellarSplit';
+    const base = 'Birik';
     let title = base;
     let desc = 'Decentralized group expense splitting and settlement on Stellar. Split bills, settle debts with Soroban.';
     if (isGroup && hasValidGroupId) {
@@ -187,7 +187,7 @@ function AppContent() {
       desc = `View and manage group expenses and settlements. Split bills on Stellar.`;
     } else if (isJoin && hasValidJoinGroupId) {
       title = `${base} – Join group`;
-      desc = `You're invited to a StellarSplit group. Connect your wallet to join.`;
+      desc = `You're invited to a Birik group. Connect your wallet to join.`;
     } else if (pathname === '/dashboard') {
       title = `${base} – Dashboard`;
       desc = 'Your groups and expense splits on Stellar.';
@@ -229,16 +229,10 @@ function AppContent() {
             const newToken = refreshRes?.data?.accessToken;
             if (newToken) {
               setAccessToken(newToken);
-              // Fetch user profile with the new token
+              // Fetch user profile with the new token (centralized via usersApi.me)
               try {
-                const meRes = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3001'}/users/me`, {
-                  headers: { Authorization: `Bearer ${newToken}` },
-                  credentials: 'include',
-                });
-                if (meRes.ok) {
-                  const meBody = await meRes.json() as { data: { id: string; walletAddress: string; reputationScore: number } };
-                  useAppStore.getState().setBackendUser(meBody.data ?? null);
-                }
+                const meRes = await usersApi.me();
+                useAppStore.getState().setBackendUser(meRes?.data ?? null);
               } catch { /* profile fetch failed — token still valid */ }
             } else {
               // 2. Silent refresh failed (first time or cookie expired) → full SIWS
@@ -282,7 +276,7 @@ function AppContent() {
   // Sponsorlu İşlem (Gasless Tx) Toast Dinleyicisi
   useEffect(() => {
     const handleSponsored = () => {
-      addToast('⚡ İşlem ücreti (fee) StellarSplit tarafından sponsorlandı!', 'success');
+      addToast('⚡ İşlem ücreti (fee) Birik tarafından sponsorlandı!', 'success');
     };
     window.addEventListener('stellarsplit:tx-sponsored', handleSponsored);
     return () => window.removeEventListener('stellarsplit:tx-sponsored', handleSponsored);
@@ -385,12 +379,13 @@ function AppContent() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300 overflow-x-hidden bg-wallet-grid">
-      {/* ── Ambient background glow orbs ── */}
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full bg-indigo-600/5 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-purple-600/5 blur-[100px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-blue-500/3 blur-[80px]" />
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
+      {/* ── Ambient background: Direction B — single-source directional glow + film grain ── */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-ink">
+        {/* Single lime glow anchored top-right (see index.css .bg-birik-glow) */}
+        <div className="absolute inset-0 bg-birik-glow" />
+        {/* Subtle film grain — perceptible only on close inspection */}
+        <div className="absolute inset-0 bg-film-grain" />
       </div>
       {/* ── Sticky top: offline banner + header ── */}
       <div className="sticky top-0 z-50 flex flex-col">
@@ -405,11 +400,11 @@ function AppContent() {
           <button
             type="button"
             onClick={goHome}
-            className="flex items-center gap-2 shrink-0 group"
+            className="flex items-center gap-2 shrink-0 group text-birik"
           >
-            <Logo size={30} className="rounded-xl group-hover:opacity-90 transition-opacity" />
-            <span className="hidden sm:block bg-gradient-to-r from-indigo-400 via-white/90 to-purple-400 bg-[length:200%_auto] animate-glimmer bg-clip-text text-transparent font-black text-base tracking-tight">
-              StellarSplit
+            <Logo size={30} className="group-hover:opacity-90 transition-opacity" />
+            <span className="hidden sm:block font-display uppercase tracking-[-0.04em] text-bone text-[22px] leading-none">
+              birik
             </span>
           </button>
 
@@ -436,7 +431,7 @@ function AppContent() {
                 {t('header.testnet')}
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/8 px-2.5 py-1 rounded-lg border border-indigo-500/15">
+              <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-birik bg-birik/10 px-2.5 py-1 rounded-lg border border-birik/20">
                 <Shield size={9} />
                 {t('header.demo_mode')}
               </div>
@@ -447,7 +442,7 @@ function AppContent() {
               <button
                 onClick={toggleDemoMode}
                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all text-sm ${
-                  demoMode ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'text-white/40 hover:text-white/80 hover:bg-white/[0.06]'
+                  demoMode ? 'bg-birik text-ink shadow-md shadow-birik/30' : 'text-white/40 hover:text-white/80 hover:bg-white/[0.06]'
                 }`}
                 title={demoMode ? t('header.switch_testnet') : t('header.switch_demo')}
               >
@@ -495,7 +490,7 @@ function AppContent() {
                     <BalanceMetric value={walletBalance != null ? parseFloat(walletBalance) : null} suffix="XLM" />
                   </span>
                   <span className="w-px h-3 bg-white/10" />
-                  <Shield size={12} className="text-purple-400 shrink-0" />
+                  <Shield size={12} className="text-plum shrink-0" />
                   <span className="font-mono text-white/75">
                     <BalanceMetric value={spltBalance} suffix="SPLT" />
                   </span>
@@ -523,7 +518,7 @@ function AppContent() {
               </div>
             ) : (
               <button
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm rounded-xl shadow-[0_0_16px_rgba(99,102,241,0.35)] hover:shadow-[0_0_24px_rgba(99,102,241,0.5)] hover:-translate-y-px transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-birik text-ink font-bold text-sm rounded-xl shadow-[0_0_16px_rgba(196,255,77,0.35)] hover:shadow-[0_0_24px_rgba(196,255,77,0.5)] hover:bg-birik-hot hover:-translate-y-px transition-all disabled:opacity-50"
                 onClick={handleConnect}
                 disabled={!freighterAvailable || connecting}
               >
@@ -542,7 +537,7 @@ function AppContent() {
 
       {/* ── Demo Bar ── */}
       {demoMode && walletAddress && (
-        <div className="bg-indigo-600/10 border-b border-indigo-500/10 py-1.5 text-[9px] font-black text-indigo-400 tracking-[0.3em] uppercase flex items-center justify-center gap-8 overflow-hidden relative">
+        <div className="bg-birik/10 border-b border-birik/20 py-1.5 text-[9px] font-black text-birik tracking-[0.3em] uppercase flex items-center justify-center gap-8 overflow-hidden relative">
           <div className="flex items-center gap-2"><Shield size={10} /> Shield: On</div>
           <div className="flex items-center gap-2"><Wifi size={10} /> Simulated RPC</div>
           <div className="flex items-center gap-2"><Globe size={10} /> Offline Priority</div>
@@ -560,7 +555,7 @@ function AppContent() {
             transition={{ duration: 0.2, ease: [0.33, 1, 0.68, 1] }}
             className="min-h-0"
           >
-          <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><Zap size={24} className="animate-spin text-indigo-400" /></div>}>
+          <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><Zap size={24} className="animate-spin text-birik" /></div>}>
             {pathname === '/' && (
               !walletAddress ? (
                 <Landing onConnect={handleConnect} onPasskey={toggleDemoMode} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
@@ -610,23 +605,23 @@ function AppContent() {
 
       {/* PWA install banner */}
       {canInstall && showInstallBanner && (
-        <div className="sticky bottom-0 z-40 flex items-center justify-between gap-4 px-6 py-3 bg-indigo-600/90 backdrop-blur border-t border-indigo-500/30 text-white text-sm">
+        <div className="sticky bottom-0 z-40 flex items-center justify-between gap-4 px-6 py-3 bg-birik backdrop-blur border-t border-birik-deep/30 text-ink text-sm">
           <div>
             <span className="font-bold">{t('pwa.install_app')}</span>
-            <span className="ml-2 text-white/80">{t('pwa.install_app_desc')}</span>
+            <span className="ml-2 text-ink/80">{t('pwa.install_app_desc')}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={promptInstall}
-              className="px-4 py-2 bg-white text-indigo-600 font-bold rounded-xl hover:bg-white/90 transition-colors"
+              className="px-4 py-2 bg-ink text-birik font-bold rounded-xl hover:bg-ink/90 transition-colors"
             >
               {t('pwa.install_app')}
             </button>
             <button
               type="button"
               onClick={dismissBanner}
-              className="p-2 text-white/80 hover:text-white transition-colors"
+              className="p-2 text-ink/70 hover:text-ink transition-colors"
               aria-label="Dismiss"
             >
               ×

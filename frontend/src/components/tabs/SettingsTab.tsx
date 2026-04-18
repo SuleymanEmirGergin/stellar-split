@@ -20,7 +20,7 @@ interface SettingsTabProps {
 
 export default function SettingsTab({
   groupIdStr,
-  groupName,
+  groupName: _groupName,
   hasJwt,
   inviteCode,
   t,

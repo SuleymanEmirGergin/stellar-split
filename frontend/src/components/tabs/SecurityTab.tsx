@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, AlertTriangle, Zap, CheckCircle2, UserCheck, RefreshCw, ChevronDown, ChevronUp, Plus, Trash2, Crown, XCircle, ClipboardList } from 'lucide-react';
 import { type Group, type RecoveryRequest, setGuardians, initiateRecovery, approveRecovery, getRecovery, isDemoMode } from '../../lib/contract';
-import { saveGuardians, approveRecovery as localApproveRecovery, initiateRecovery as localInitiateRecovery, loadAllGuardians, loadRecoveryRequest } from '../../lib/recovery';
+import { saveGuardians, approveRecovery as localApproveRecovery, initiateRecovery as localInitiateRecovery, loadRecoveryRequest } from '../../lib/recovery';
 import { guardiansApi, type BackendGuardian, type BackendRecoveryRequest } from '../../lib/api';
 import {
   useBackendGroup,

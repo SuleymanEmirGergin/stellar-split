@@ -62,7 +62,8 @@ export function DashboardCharts({
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={36} />
                 <Tooltip
-                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, boxShadow: '0 8px 32px -8px rgba(0,0,0,0.5)' }}
+                  cursor={{ stroke: 'hsl(var(--primary))', strokeOpacity: 0.4, strokeWidth: 1 }}
                   formatter={(v: number | undefined) => [`${(v ?? 0).toFixed(2)} XLM`, 'Balance']}
                 />
                 <Line type="monotone" dataKey="balance" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
@@ -88,7 +89,8 @@ export function DashboardCharts({
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={24} />
                 <Tooltip
-                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, boxShadow: '0 8px 32px -8px rgba(0,0,0,0.5)' }}
+                  cursor={{ fill: 'rgba(196, 255, 77, 0.08)' }}
                 />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {txByDay.map((_, i) => (

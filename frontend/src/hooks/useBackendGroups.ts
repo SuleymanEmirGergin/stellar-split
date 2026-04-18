@@ -132,6 +132,28 @@ export function useLeaveGroupMutation(groupId: string) {
   });
 }
 
+/** Update group metadata (name / currency). Creator-only on the backend. */
+export function useUpdateGroupMutation(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (updates: { name?: string; currency?: 'XLM' | 'USDC' }) =>
+      groupsApi.update(groupId, updates),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: backendGroupKeys.detail(groupId) });
+      qc.invalidateQueries({ queryKey: backendGroupKeys.all });
+    },
+  });
+}
+
+/** Permanently delete a group. Creator-only — UI must confirm destructively. */
+export function useDeleteGroupMutation(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => groupsApi.remove(groupId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: backendGroupKeys.all }),
+  });
+}
+
 export function useCreateExpenseMutation(groupId: string) {
   const qc = useQueryClient();
   return useMutation({

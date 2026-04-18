@@ -17,7 +17,7 @@ interface Props {
   onBack: () => void;
 }
 
-export function SmartVaults({ walletAddress, onBack }: Props) {
+export function SmartVaults({ walletAddress: _walletAddress, onBack }: Props) {
   const [stats, setStats] = useState<VaultStats>(getVaultStats());
   const [isAutoEnabled, setIsAutoEnabled] = useState(stats.autoInvestEnabled);
 
@@ -181,7 +181,7 @@ export function SmartVaults({ walletAddress, onBack }: Props) {
                 </div>
                 <div>
                   <h4 className="text-sm font-black uppercase tracking-tight">Insured Vaults</h4>
-                  <p className="text-[10px] font-medium text-muted-foreground">Assets secured by StellarSplit DAO.</p>
+                  <p className="text-[10px] font-medium text-muted-foreground">Assets secured by Birik DAO.</p>
                 </div>
               </div>
               <ChevronRight size={18} className="text-muted-foreground" />

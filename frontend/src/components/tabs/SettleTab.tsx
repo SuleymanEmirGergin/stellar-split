@@ -145,7 +145,7 @@ export default function SettleTab({
                     exit={{ opacity: 0, height: 0 }}
                     className="pt-4 border-t border-white/5 flex flex-col items-center overflow-hidden"
                   >
-                    <QRCode type="pay" destination={s.to} amount={amountXlm} memo={`StellarSplit #${groupId}`} />
+                    <QRCode type="pay" destination={s.to} amount={amountXlm} memo={`Birik #${groupId}`} />
                     <p className="text-[10px] text-muted-foreground mt-4 font-medium italic">{t('group.pay_via_freighter')}</p>
                   </motion.div>
                 )}

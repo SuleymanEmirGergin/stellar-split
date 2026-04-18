@@ -40,6 +40,7 @@ test.describe('Landing and routes', () => {
 
   test('logo and nav elements are visible', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('banner').getByText('StellarSplit')).toBeVisible();
+    // Brand wordmark after rebrand is "birik" (lowercase, in header)
+    await expect(page.getByRole('banner').getByText(/birik/i)).toBeVisible();
   });
 });

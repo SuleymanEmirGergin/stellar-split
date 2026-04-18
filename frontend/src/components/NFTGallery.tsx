@@ -184,7 +184,7 @@ function NFTCard({ sbt, isActive, offset }: { sbt: SBTMetadata; isActive: boolea
           
           <div>
             <div className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3">Stellar Soulbound Token</div>
-            <h4 className="text-2xl font-black text-white tracking-widest uppercase truncate w-64">{sbt.name.replace('StellarSplit SBT: ', '')}</h4>
+            <h4 className="text-2xl font-black text-white tracking-widest uppercase truncate w-64">{sbt.name.replace('Birik SBT: ', '')}</h4>
           </div>
 
           <div className="w-full flex items-center justify-between px-2 pt-8 border-t border-white/10">

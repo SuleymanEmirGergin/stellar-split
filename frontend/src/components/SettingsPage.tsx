@@ -91,7 +91,7 @@ function WebhookRow({ label, storageKey, payloadKey, placeholder }: WebhookRowPr
               await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [payloadKey]: '🧪 StellarSplit webhook test' }),
+                body: JSON.stringify({ [payloadKey]: '🧪 Birik webhook test' }),
               });
               addToast(t('settings.test_sent'), 'success');
             } catch (err) {

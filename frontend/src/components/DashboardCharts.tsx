@@ -14,6 +14,18 @@ interface DashboardChartsProps {
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+/** Shared Recharts Tooltip styling — Birik dark card, no default white. */
+const tooltipContentStyle = {
+  backgroundColor: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: 8,
+  fontSize: 11,
+  color: 'hsl(var(--foreground))',
+  boxShadow: '0 8px 32px -8px rgba(0, 0, 0, 0.5)',
+};
+const barCursor = { fill: 'rgba(196, 255, 77, 0.08)' };
+const lineCursor = { stroke: 'hsl(var(--primary))', strokeOpacity: 0.4, strokeWidth: 1 };
+
 export default function DashboardCharts({
   balanceHistory = [],
   last7Tx = [],
@@ -39,7 +51,7 @@ export default function DashboardCharts({
               <LineChart data={balanceHistory} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={36} />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} formatter={(v: number | undefined) => [`${Number(v ?? 0).toFixed(2)} XLM`, 'Balance']} />
+                <Tooltip contentStyle={tooltipContentStyle} cursor={lineCursor} formatter={(v: number | undefined) => [`${Number(v ?? 0).toFixed(2)} XLM`, 'Balance']} />
                 <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -60,7 +72,7 @@ export default function DashboardCharts({
               <BarChart data={last7Tx} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={24} />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                <Tooltip contentStyle={tooltipContentStyle} cursor={barCursor} />
                 <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -84,7 +96,7 @@ export default function DashboardCharts({
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number | undefined) => [`${Number(v ?? 0).toFixed(4)} XLM`, 'Fee']} />
+                <Tooltip contentStyle={tooltipContentStyle} formatter={(v: number | undefined) => [`${Number(v ?? 0).toFixed(4)} XLM`, 'Fee']} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -107,7 +119,7 @@ export default function DashboardCharts({
                   <Cell key={i} fill={CHART_COLORS[(i + 1) % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number | undefined) => [`${Number(v ?? 0)}%`, 'Share']} />
+              <Tooltip contentStyle={tooltipContentStyle} formatter={(v: number | undefined) => [`${Number(v ?? 0)}%`, 'Share']} />
             </PieChart>
           </ResponsiveContainer>
         </div>

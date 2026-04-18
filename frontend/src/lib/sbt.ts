@@ -29,14 +29,14 @@ export async function mintSBT(badge: Badge, walletAddress: string): Promise<SBTM
   
   const metadata: SBTMetadata = {
     tokenId: `sbt_${badge.id}_${Math.floor(Math.random() * 10000)}`,
-    name: `StellarSplit SBT: ${badge.name}`,
+    name: `Birik SBT: ${badge.name}`,
     description: `Permanent reputation token awarded for: ${badge.description}`,
     image: badge.icon, // In production, this would be an IPFS hash
     external_url: 'https://stellarsplit.app',
     attributes: [
       { trait_type: 'Achievement', value: badge.name },
       { trait_type: 'Identity', value: 'Verified User' },
-      { trait_type: 'Issuer', value: 'StellarSplit DAO' }
+      { trait_type: 'Issuer', value: 'Birik DAO' }
     ],
     issuer: 'GA...DAO', // DAO contract/public key
     mintedAt: Date.now(),

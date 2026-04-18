@@ -535,7 +535,7 @@ impl StellarSplitContract {
         request.approvals.push_back(guardian);
 
         // Eşik değerine ulaşıldı mı?
-        if request.approvals.len() as u32 >= config.threshold {
+        if request.approvals.len() >= config.threshold {
             request.status = 1u32; // Completed
             // GerçekAA cüzdanı olsaydı burada anahtar değişimi yapılırdı. 
             // Bu simülasyonda sadece durumu işaretliyoruz.

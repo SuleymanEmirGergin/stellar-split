@@ -49,6 +49,9 @@ export async function seedDemoSession(
       if (cfg.clearDemoExpenses) {
         localStorage.removeItem('stellarsplit_demo_expenses');
       }
+      // Force EN locale so copy-dependent assertions in tests are stable.
+      // Default app locale is 'tr' which changes button/heading text.
+      localStorage.setItem('stellarsplit_lang', 'en');
     },
     { wallet, demoMode, markJoyrideDone, clearStorage, clearGroups, clearDemoExpenses }
   );

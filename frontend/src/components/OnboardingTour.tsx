@@ -25,7 +25,7 @@ export default function OnboardingTour() {
   const steps = [
     {
       target: 'body',
-      content: 'StellarSplit\'e hoş geldiniz! Uygulamanın Hackathon jürisine özel hazırladığımız "Wow-Factor" özelliklerini keşfetmek için tura başlayalım.',
+      content: 'Birik\'e hoş geldiniz! Uygulamanın Hackathon jürisine özel hazırladığımız "Wow-Factor" özelliklerini keşfetmek için tura başlayalım.',
       placement: 'center' as const,
       disableBeacon: true,
     },

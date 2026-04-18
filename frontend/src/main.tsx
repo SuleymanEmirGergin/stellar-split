@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import { registerSW } from 'virtual:pwa-register'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
+
+// Self-hosted display font for Birik brand (Inter + JetBrains Mono already loaded via design system)
+import '@fontsource/archivo-black/400.css'
+
 import './index.css'
 import App from './App.tsx'
 

@@ -64,7 +64,7 @@ export function exportToPrintReport(group: Group, expenses: Expense[]) {
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <title>StellarSplit — ${escapeHtml(group.name)}</title>
+  <title>Birik — ${escapeHtml(group.name)}</title>
   <style>
     body { font-family: system-ui, sans-serif; padding: 24px; max-width: 800px; margin: 0 auto; color: #1a1a1a; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
@@ -89,7 +89,7 @@ export function exportToPrintReport(group: Group, expenses: Expense[]) {
     <tbody>${rows}</tbody>
   </table>
   <p class="total">Toplam: ${totalXlm} XLM</p>
-  <p class="meta" style="margin-top: 32px;">StellarSplit · ${new Date().toLocaleString()}</p>
+  <p class="meta" style="margin-top: 32px;">Birik · ${new Date().toLocaleString()}</p>
   <script>window.onload = function() { window.print(); }</script>
 </body>
 </html>`;
@@ -261,7 +261,7 @@ export async function exportToPDF(group: Group, elementId: string) {
     
     // Header for the PDF
     pdf.setFontSize(16);
-    pdf.text(`StellarSplit - ${group.name} Raporu`, padding, padding + 5);
+    pdf.text(`Birik - ${group.name} Raporu`, padding, padding + 5);
     pdf.setFontSize(10);
     pdf.setTextColor(150);
     pdf.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')} | Grup ID: #${group.id}`, padding, padding + 12);
@@ -271,9 +271,9 @@ export async function exportToPDF(group: Group, elementId: string) {
     
     // Footer
     pdf.setFontSize(8);
-    pdf.text('StellarSplit Decentralized Expense Sharing', padding, 297 - padding); // A4 height is 297mm
+    pdf.text('Birik Decentralized Expense Sharing', padding, 297 - padding); // A4 height is 297mm
 
-    pdf.save(`StellarSplit_${group.name.replace(/\s+/g, '_')}_Rapor.pdf`);
+    pdf.save(`Birik_${group.name.replace(/\s+/g, '_')}_Rapor.pdf`);
   } catch (error) {
     console.error('PDF export failed:', error);
   }

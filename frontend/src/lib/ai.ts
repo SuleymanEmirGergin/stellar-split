@@ -1,5 +1,5 @@
 /**
- * Receipt scanning for StellarSplit.
+ * Receipt scanning for Birik.
  * Priority: 1) Wiro.ai (VITE_WIRO_API_KEY), 2) OpenAI Vision (VITE_OPENAI_API_KEY), 3) mock.
  *
  * Security note: API keys in the frontend are exposed in the bundle.
@@ -255,7 +255,7 @@ export async function adviseFinancial(
   `;
 
   const prompt = `
-    You are StellarSplit Advanced Financial Advisor. 
+    You are Birik Advanced Financial Advisor. 
     Analyze this user's group spending and balances on the Stellar network:
     ${ragContext}
 

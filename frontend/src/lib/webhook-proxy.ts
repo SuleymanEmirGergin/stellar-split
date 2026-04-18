@@ -1,5 +1,5 @@
 /**
- * Webhook Proxy Utility for StellarSplit.
+ * Webhook Proxy Utility for Birik.
  * - In production, this should call a backend that forwards the message to Slack/Discord.
  * - This prevents exposing the actual Discord/Slack webhook URLs in the frontend logs/bundle.
  */

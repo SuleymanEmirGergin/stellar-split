@@ -1,5 +1,3 @@
-import { type Expense } from './contract';
-
 export interface SettlementPrediction {
   recommendedDate: string;
   confidence: number; // 0-1
@@ -8,13 +6,18 @@ export interface SettlementPrediction {
   tip: string;
 }
 
+/** Shape of an expense item actually consumed by the predictor (only `.amount` is read). */
+interface PredictorExpense {
+  amount: number | string;
+}
+
 /**
  * AI-driven logical analysis to predict the best time to settle debts.
  * In a production app, this would use a time-series model (e.g., Prophet or LSTM)
  * or a deep-learning agent like Gemini to analyze private banking data/history.
  */
 export const predictBestSettlementTime = (
-  expenses: any[],
+  expenses: PredictorExpense[],
   currentBalance: number,
   totalDebt: number
 ): SettlementPrediction => {

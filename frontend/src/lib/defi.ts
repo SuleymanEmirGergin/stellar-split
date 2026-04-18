@@ -1,5 +1,5 @@
 /**
- * DeFi & Yield Logic for StellarSplit.
+ * DeFi & Yield Logic for Birik.
  *
  * APY source priority:
  *   1. VITE_DEFI_APY_URL  — custom endpoint returning { apy: number }

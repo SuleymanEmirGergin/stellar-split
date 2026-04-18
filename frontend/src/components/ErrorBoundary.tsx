@@ -19,7 +19,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('[StellarSplit] ErrorBoundary caught:', error, info.componentStack);
+    console.error('[Birik] ErrorBoundary caught:', error, info.componentStack);
   }
 
   render(): ReactNode {

@@ -72,9 +72,10 @@ test.describe('GroupDetail tab switching', () => {
   test('governance tab renders proposals section', async ({ page }) => {
     await page.getByTestId('tab-governance').click();
     // Should show either empty proposals state or add proposal button
-    await expect(page.getByText(/Proposal|Oylama|Governance|teklif/i).first()).toBeVisible({
-      timeout: 8000,
-    });
+    // EN: "Voting" tab + "No Votes" empty; TR: "Oylama" / "Oylama Yok"; + "New Proposal" / "Yeni Teklif" CTA
+    await expect(
+      page.getByText(/Proposal|Oylama|Governance|teklif|Voting|No Votes/i).first(),
+    ).toBeVisible({ timeout: 8000 });
   });
 
   test('expenses tab is active by default', async ({ page }) => {

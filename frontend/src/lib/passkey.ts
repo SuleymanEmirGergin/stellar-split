@@ -29,7 +29,7 @@ export async function registerPasskey(userName: string): Promise<PasskeyIdentity
   const options = {
     challenge: challenge as BufferSource,
     rp: {
-      name: "StellarSplit",
+      name: "Birik",
       id: window.location.hostname,
     },
     user: {

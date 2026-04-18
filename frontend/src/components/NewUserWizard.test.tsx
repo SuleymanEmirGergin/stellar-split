@@ -36,7 +36,7 @@ describe('NewUserWizard', () => {
 
   it('ilk adımı render eder', () => {
     render(<NewUserWizard onClose={vi.fn()} />);
-    expect(screen.getByText("StellarSplit'e Hoş Geldiniz!")).toBeInTheDocument();
+    expect(screen.getByText("Birik'e Hoş Geldiniz!")).toBeInTheDocument();
   });
 
   it('ileri butonu ile adım ilerler', () => {

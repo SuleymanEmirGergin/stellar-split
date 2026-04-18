@@ -15,7 +15,6 @@ import { motion } from 'framer-motion';
 import { exportToCSV, exportToPDF } from '../lib/export';
 import { type Group } from '../lib/contract';
 import { useGroupAnalytics } from '../hooks/useBackendGroups';
-import type { GroupAnalytics } from '../lib/api';
 import { getExpensePayer, getExpenseCreatedAt } from '../lib/expense-utils';
 import { calcGroupCarbon, getCarbonLabel } from '../lib/carbon';
 
@@ -132,7 +131,7 @@ export default function InsightsPanel({ expenses, members, group, currentUser, b
 
     // Member Contribution — backend'den gel varsa, yoksa lokal hesapla
     let barData: Array<{ name: string; amount: number }>;
-    let memberPaid: Record<string, number> = {};
+    const memberPaid: Record<string, number> = {};
 
     if (backendAnalytics?.memberSpending?.length) {
       barData = backendAnalytics.memberSpending.map(m => ({

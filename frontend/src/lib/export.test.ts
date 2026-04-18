@@ -127,7 +127,7 @@ describe('exportToPrintReport', () => {
     exportToPrintReport(makeGroup(), [makeExpense()]);
 
     expect(window.open).toHaveBeenCalledWith('', '_blank');
-    expect(mockDoc.write).toHaveBeenCalledWith(expect.stringContaining('StellarSplit'));
+    expect(mockDoc.write).toHaveBeenCalledWith(expect.stringContaining('Birik'));
     expect(mockDoc.close).toHaveBeenCalled();
   });
 

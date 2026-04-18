@@ -17,7 +17,7 @@ export default function QRCode({ groupId, groupName, destination, amount, memo, 
   let subText = '';
 
   if (type === 'pay' && destination && amount) {
-    data = `web+stellar:pay?destination=${encodeURIComponent(destination)}&amount=${encodeURIComponent(amount)}&memo=${encodeURIComponent(memo || 'StellarSplit')}`;
+    data = `web+stellar:pay?destination=${encodeURIComponent(destination)}&amount=${encodeURIComponent(amount)}&memo=${encodeURIComponent(memo || 'Birik')}`;
     label = `${amount} XLM ${t('group.qr_pay').split(' ')[1]}`;
     subText = `Dest: ${destination.slice(0, 4)}...${destination.slice(-4)}`;
   } else {

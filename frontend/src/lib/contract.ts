@@ -1157,7 +1157,7 @@ export async function getSavingsPool(
   }
 }
 
-/** Fetch SPLT (StellarSplit Reward Token) balance for a user. */
+/** Fetch SPLT (Birik Reward Token) balance for a user. */
 export async function getSPLTBalance(userAddress: string): Promise<number> {
   if (isDemoMode()) return 1200; // Mock SPLT
   if (!SPLT_CONTRACT_ID) return 0; // Contract not deployed yet

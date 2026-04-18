@@ -26,7 +26,7 @@ export function Governance({ onBack }: Props) {
   const karma = 145; // Mock actual user karma
   const creditProfile = useMemo(() => {
     const mockBadges = [{}, {}, {}]; // Mock 3 badges
-    return calculateSocialCredit(karma, mockBadges as any[]);
+    return calculateSocialCredit(karma, mockBadges as Parameters<typeof calculateSocialCredit>[1]);
   }, [karma]);
 
   const [filter, setFilter] = useState<'Active' | 'Passed' | 'All'>('Active');

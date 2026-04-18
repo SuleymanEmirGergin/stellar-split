@@ -36,10 +36,8 @@ import { SavingsModule } from './savings/savings.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      validate: (config) => {
-        const { validateEnv } = require('./common/config/env.validation');
-        return validateEnv(config);
-      },
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      validate: (config) => require('./common/config/env.validation').validateEnv(config),
     }),
 
     // Pino structured logging
