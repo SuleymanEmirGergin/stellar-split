@@ -25,6 +25,7 @@ import {
   Trash2,
   Check,
   X,
+  MoreHorizontal,
 } from 'lucide-react';
 import { estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
 import ErrorBoundary from './ErrorBoundary';
@@ -1332,67 +1333,117 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         const primaryTabs = tabItems.slice(0, 5);
         const moreTabs = tabItems.slice(5);
         return (
-          <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-white/5">
-            <div className="flex items-center justify-around px-2 py-2">
-              {primaryTabs.map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => { setTab(item.key); setShowMobileMore(false); }}
-                  className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
-                    tab === item.key && !showMobileMore
-                      ? 'text-indigo-400'
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  <item.icon size={18} />
-                  <span className="text-[9px] font-black uppercase tracking-wider">{item.label.slice(0, 6)}</span>
-                </button>
-              ))}
-              <button
-                onClick={() => setShowMobileMore((v) => !v)}
-                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
-                  showMobileMore ? 'text-indigo-400' : 'text-muted-foreground'
-                }`}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
-                </svg>
-                <span className="text-[9px] font-black uppercase tracking-wider">More</span>
-              </button>
-            </div>
-
-            {/* "More" bottom sheet */}
+          <>
+            {/* Dim backdrop when More sheet is open — tap to close */}
             <AnimatePresence>
               {showMobileMore && (
-                <motion.div
-                  data-testid="mobile-more-sheet"
-                  initial={{ y: '100%' }}
-                  animate={{ y: 0 }}
-                  exit={{ y: '100%' }}
-                  transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                  className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-white/5 rounded-t-3xl p-4"
-                >
-                  <div className="w-8 h-1 rounded-full bg-white/20 mx-auto mb-4" />
-                  <div className="grid grid-cols-3 gap-2">
-                    {moreTabs.map((item) => (
-                      <button
-                        key={item.key}
-                        onClick={() => { setTab(item.key); setShowMobileMore(false); }}
-                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all ${
-                          tab === item.key
-                            ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-                            : 'bg-white/5 text-muted-foreground hover:text-foreground border border-transparent'
-                        }`}
-                      >
-                        <item.icon size={20} />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-center leading-tight">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
+                <motion.button
+                  type="button"
+                  aria-label="Close menu"
+                  onClick={() => setShowMobileMore(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="sm:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+                />
               )}
             </AnimatePresence>
-          </div>
+
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-white/5">
+              <div className="flex items-center justify-around px-2 py-2">
+                {primaryTabs.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => { setTab(item.key); setShowMobileMore(false); }}
+                    className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
+                      tab === item.key && !showMobileMore
+                        ? 'text-indigo-400'
+                        : 'text-muted-foreground'
+                    }`}
+                  >
+                    <item.icon size={18} />
+                    <span className="text-[9px] font-black uppercase tracking-wider">{item.label.slice(0, 6)}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowMobileMore((v) => !v)}
+                  aria-expanded={showMobileMore}
+                  aria-controls="mobile-more-sheet"
+                  className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
+                    showMobileMore ? 'text-indigo-400' : 'text-muted-foreground'
+                  }`}
+                >
+                  <MoreHorizontal size={18} />
+                  <span className="text-[9px] font-black uppercase tracking-wider">More</span>
+                </button>
+              </div>
+
+              {/* "More" bottom sheet */}
+              <AnimatePresence>
+                {showMobileMore && (
+                  <motion.div
+                    id="mobile-more-sheet"
+                    data-testid="mobile-more-sheet"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="More tabs"
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: '100%', opacity: 0 }}
+                    transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                    className="absolute bottom-full left-0 right-0 bg-card/98 backdrop-blur-2xl border-t border-white/[0.08] rounded-t-[32px] p-5 shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.6)]"
+                  >
+                    {/* Drag handle */}
+                    <div className="w-10 h-1 rounded-full bg-white/25 mx-auto mb-5" />
+
+                    {/* Header row */}
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                        More tabs
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowMobileMore(false)}
+                        aria-label="Close"
+                        className="w-7 h-7 rounded-full bg-white/[0.05] hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Tab grid */}
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {moreTabs.map((item, i) => {
+                        const isActive = tab === item.key;
+                        return (
+                          <motion.button
+                            key={item.key}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.02, duration: 0.2 }}
+                            onClick={() => { setTab(item.key); setShowMobileMore(false); }}
+                            className={`flex flex-col items-center gap-2 p-3.5 rounded-2xl transition-all active:scale-95 ${
+                              isActive
+                                ? 'bg-gradient-to-br from-indigo-500/25 to-purple-500/15 text-indigo-300 border border-indigo-500/40 shadow-[0_4px_16px_-4px_rgba(99,102,241,0.3)]'
+                                : 'bg-white/[0.04] text-muted-foreground hover:text-foreground hover:bg-white/[0.07] border border-white/[0.06]'
+                            }`}
+                          >
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                              isActive ? 'bg-indigo-500/25' : 'bg-white/[0.04]'
+                            }`}>
+                              <item.icon size={18} />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-center leading-tight">{item.label}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
         );
       })()}
 
