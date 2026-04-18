@@ -10,6 +10,8 @@ import { Reflector } from '@nestjs/core';
 
 import { ExpensesController } from '../src/expenses/expenses.controller';
 import { ExpensesService } from '../src/expenses/expenses.service';
+import { EventsService } from '../src/events/events.service';
+import { AuditService } from '../src/audit/audit.service';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { JwtStrategy } from '../src/auth/jwt.strategy';
 import { AuthService } from '../src/auth/auth.service';
@@ -73,6 +75,8 @@ describe('Expenses E2E', () => {
         Reflector,
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: EventsService, useValue: { publish: jest.fn() } },
+        { provide: AuditService, useValue: { log: jest.fn() } },
         { provide: 'REDIS_CLIENT', useValue: mockRedis },
         {
           provide: ConfigService,
@@ -120,7 +124,7 @@ describe('Expenses E2E', () => {
       mockPrisma.expense.create.mockResolvedValue(buildMockExpense());
 
       const res = await request(app.getHttpServer())
-        .post('/expenses')
+        .post(`/groups/${GROUP_ID}/expenses`)
         .set('Authorization', getTestAuthHeader())
         .send({
           groupId: GROUP_ID,
@@ -138,7 +142,7 @@ describe('Expenses E2E', () => {
 
     it('401 — no token', async () => {
       await request(app.getHttpServer())
-        .post('/expenses')
+        .post(`/groups/${GROUP_ID}/expenses`)
         .send({
           groupId: GROUP_ID,
           description: 'Test',
@@ -154,7 +158,7 @@ describe('Expenses E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post('/expenses')
+        .post(`/groups/${GROUP_ID}/expenses`)
         .set('Authorization', getTestAuthHeader())
         .send({ description: 'Incomplete expense' }) // missing amount, currency, paidBy, splitType, groupId
         .expect(400);
@@ -166,7 +170,7 @@ describe('Expenses E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post('/expenses')
+        .post(`/groups/${GROUP_ID}/expenses`)
         .set('Authorization', getTestAuthHeader())
         .send({
           groupId: GROUP_ID,
@@ -196,7 +200,7 @@ describe('Expenses E2E', () => {
       );
 
       const res = await request(app.getHttpServer())
-        .post('/expenses')
+        .post(`/groups/${GROUP_ID}/expenses`)
         .set('Authorization', getTestAuthHeader())
         .send({
           groupId: GROUP_ID,
@@ -219,7 +223,7 @@ describe('Expenses E2E', () => {
       setupCreateStubs();
 
       await request(app.getHttpServer())
-        .post('/expenses')
+        .post(`/groups/${GROUP_ID}/expenses`)
         .set('Authorization', getTestAuthHeader())
         .send({
           groupId: GROUP_ID,
@@ -240,7 +244,7 @@ describe('Expenses E2E', () => {
       setupCreateStubs();
 
       await request(app.getHttpServer())
-        .post('/expenses')
+        .post(`/groups/${GROUP_ID}/expenses`)
         .set('Authorization', getTestAuthHeader())
         .send({
           groupId: GROUP_ID,
@@ -270,7 +274,7 @@ describe('Expenses E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       const res = await request(app.getHttpServer())
-        .patch(`/expenses/${EXPENSE_ID}/cancel`)
+        .patch(`/groups/${GROUP_ID}/expenses/${EXPENSE_ID}/cancel`)
         .set('Authorization', getTestAuthHeader())
         .expect(200);
 
@@ -287,7 +291,7 @@ describe('Expenses E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .patch(`/expenses/${EXPENSE_ID}/cancel`)
+        .patch(`/groups/${GROUP_ID}/expenses/${EXPENSE_ID}/cancel`)
         .set('Authorization', getTestAuthHeader())
         .expect(400);
     });
@@ -309,7 +313,7 @@ describe('Expenses E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_B);
 
       await request(app.getHttpServer())
-        .patch(`/expenses/${EXPENSE_ID}/cancel`)
+        .patch(`/groups/${GROUP_ID}/expenses/${EXPENSE_ID}/cancel`)
         .set('Authorization', userBToken)
         .expect(403);
     });
@@ -319,14 +323,14 @@ describe('Expenses E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .patch('/expenses/nonexistent-id/cancel')
+        .patch(`/groups/${GROUP_ID}/expenses/nonexistent-id/cancel`)
         .set('Authorization', getTestAuthHeader())
         .expect(404);
     });
 
     it('401 — no token', async () => {
       await request(app.getHttpServer())
-        .patch(`/expenses/${EXPENSE_ID}/cancel`)
+        .patch(`/groups/${GROUP_ID}/expenses/${EXPENSE_ID}/cancel`)
         .expect(401);
     });
   });

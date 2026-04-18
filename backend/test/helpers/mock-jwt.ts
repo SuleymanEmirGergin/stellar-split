@@ -61,13 +61,13 @@ export function generateInvalidToken(
  */
 export const TEST_USER_A = {
   id: 'test-user-a-uuid',
-  walletAddress: 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN',
+  walletAddress: 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWNA',
   reputationScore: 0,
 };
 
 export const TEST_USER_B = {
   id: 'test-user-b-uuid',
-  walletAddress: 'GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGOZ3GGMFAHJ3IRCKLR2TONBQ',
+  walletAddress: 'GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGOZ3GGMFAHJ3IRCKLR2TONBQA',
   reputationScore: 0,
 };
 

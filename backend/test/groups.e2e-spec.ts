@@ -7,9 +7,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { GroupsController } from '../src/groups/groups.controller';
 import { GroupsService } from '../src/groups/groups.service';
+import { EventsService } from '../src/events/events.service';
+import { AuditService } from '../src/audit/audit.service';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { JwtStrategy } from '../src/auth/jwt.strategy';
 import { AuthService } from '../src/auth/auth.service';
@@ -78,6 +81,12 @@ describe('Groups E2E', () => {
         Reflector,
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: EventsService, useValue: { publish: jest.fn() } },
+        { provide: AuditService, useValue: { log: jest.fn() } },
+        {
+          provide: CACHE_MANAGER,
+          useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },
+        },
         { provide: 'REDIS_CLIENT', useValue: mockRedis },
         {
           provide: ConfigService,
@@ -282,7 +291,7 @@ describe('Groups E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post(`/groups/${MOCK_GROUP_ID}/leave`)
+        .delete(`/groups/${MOCK_GROUP_ID}/leave`)
         .set('Authorization', getTestAuthHeader())
         .expect(200);
     });
@@ -297,7 +306,7 @@ describe('Groups E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post(`/groups/${MOCK_GROUP_ID}/leave`)
+        .delete(`/groups/${MOCK_GROUP_ID}/leave`)
         .set('Authorization', getTestAuthHeader())
         .expect(403);
     });
@@ -307,14 +316,14 @@ describe('Groups E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post(`/groups/${MOCK_GROUP_ID}/leave`)
+        .delete(`/groups/${MOCK_GROUP_ID}/leave`)
         .set('Authorization', getTestAuthHeader())
         .expect(404);
     });
 
     it('401 — no token', async () => {
       await request(app.getHttpServer())
-        .post(`/groups/${MOCK_GROUP_ID}/leave`)
+        .delete(`/groups/${MOCK_GROUP_ID}/leave`)
         .expect(401);
     });
   });

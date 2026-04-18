@@ -95,8 +95,8 @@ describe('Governance E2E', () => {
         .set('Authorization', getTestAuthHeader())
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body[0].title).toBe('Test Proposal');
+      expect(Array.isArray(res.body.items)).toBe(true);
+      expect(res.body.items[0].title).toBe('Test Proposal');
     });
 
     it('200 — returns empty array when no proposals', async () => {
@@ -110,7 +110,8 @@ describe('Governance E2E', () => {
         .set('Authorization', getTestAuthHeader())
         .expect(200);
 
-      expect(res.body).toHaveLength(0);
+      expect(res.body.items).toHaveLength(0);
+      expect(res.body.hasMore).toBe(false);
     });
 
     it('401 — no token', async () => {
@@ -324,8 +325,8 @@ describe('Governance E2E', () => {
         .set('Authorization', getTestAuthHeader())
         .expect(200);
 
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body[0].expenseId).toBe('exp-1');
+      expect(Array.isArray(res.body.items)).toBe(true);
+      expect(res.body.items[0].expenseId).toBe('exp-1');
     });
 
     it('401 — no token', async () => {

@@ -145,7 +145,7 @@ describe('Settlements E2E', () => {
       mockPrisma.settlement.create.mockResolvedValue(buildMockSettlement());
 
       const res = await request(app.getHttpServer())
-        .post('/settlements')
+        .post(`/groups/${GROUP_ID}/settlements`)
         .set('Authorization', getTestAuthHeader())
         .send(validBody)
         .expect(201);
@@ -160,7 +160,7 @@ describe('Settlements E2E', () => {
       mockPrisma.settlement.findUnique.mockResolvedValue(buildMockSettlement());
 
       const res = await request(app.getHttpServer())
-        .post('/settlements')
+        .post(`/groups/${GROUP_ID}/settlements`)
         .set('Authorization', getTestAuthHeader())
         .send(validBody)
         .expect(201);
@@ -173,7 +173,7 @@ describe('Settlements E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post('/settlements')
+        .post(`/groups/${GROUP_ID}/settlements`)
         .set('Authorization', getTestAuthHeader())
         .send({ groupId: GROUP_ID, amount: 10 })
         .expect(400);
@@ -183,7 +183,7 @@ describe('Settlements E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post('/settlements')
+        .post(`/groups/${GROUP_ID}/settlements`)
         .set('Authorization', getTestAuthHeader())
         .send({ groupId: GROUP_ID, txHash: 'not-a-hash', amount: 10 })
         .expect(400);
@@ -193,7 +193,7 @@ describe('Settlements E2E', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER_A);
 
       await request(app.getHttpServer())
-        .post('/settlements')
+        .post(`/groups/${GROUP_ID}/settlements`)
         .set('Authorization', getTestAuthHeader())
         .send({ groupId: GROUP_ID, txHash: VALID_TX_HASH, amount: -5 })
         .expect(400);
@@ -201,7 +201,7 @@ describe('Settlements E2E', () => {
 
     it('401 — no token', async () => {
       await request(app.getHttpServer())
-        .post('/settlements')
+        .post(`/groups/${GROUP_ID}/settlements`)
         .send(validBody)
         .expect(401);
     });
@@ -211,7 +211,7 @@ describe('Settlements E2E', () => {
       mockPrisma.groupMember.findUnique.mockResolvedValue(null);
 
       await request(app.getHttpServer())
-        .post('/settlements')
+        .post(`/groups/${GROUP_ID}/settlements`)
         .set('Authorization', getTestAuthHeader(TEST_USER_B.id, TEST_USER_B.walletAddress))
         .send(validBody)
         .expect(403);
