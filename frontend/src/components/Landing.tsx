@@ -934,7 +934,14 @@ interface Testimonial {
  */
 function BirikOrb() {
   return (
-    <Reveal direction="none" duration={0.9} className="relative mx-auto flex flex-col items-center md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2">
+    // Desktop: absolute-centered inside the square orbital container.
+    // Mobile: flex column sibling that renders above the stacked cards.
+    // The wordmark + tagline render BELOW the circle in both layouts.
+    <Reveal
+      direction="none"
+      duration={0.9}
+      className="relative mx-auto flex flex-col items-center md:absolute md:left-1/2 md:top-1/2 md:z-10 md:[transform:translate(-50%,-50%)]"
+    >
       <div className="relative h-[240px] w-[240px] md:h-[320px] md:w-[320px]">
         {/* Layer 1 — slow rotating conic halo (subtle, behind everything) */}
         <motion.div
@@ -1057,27 +1064,22 @@ function Testimonials() {
       accent: 'bg-fog text-bone border border-heat/40', initial: 'Z' },
   ];
 
-  // 8 desktop slots arranged like clock positions around the center orb.
-  // Using explicit static Tailwind so the JIT compiler resolves every class.
-  // Slot order: N, NE, E, SE, S, SW, W, NW — matches items[] above.
-  const slots = [
-    // N  (top, centered)
-    'md:absolute md:top-[0%]     md:left-1/2 md:-translate-x-1/2 md:w-[260px]',
-    // NE (upper right)
-    'md:absolute md:top-[14%]    md:right-[2%]                       md:w-[240px]',
-    // E  (right, centered vertically)
-    'md:absolute md:top-1/2      md:right-[0%]  md:-translate-y-1/2  md:w-[240px]',
-    // SE (lower right)
-    'md:absolute md:bottom-[14%] md:right-[2%]                       md:w-[240px]',
-    // S  (bottom, centered)
-    'md:absolute md:bottom-[0%]  md:left-1/2 md:-translate-x-1/2    md:w-[260px]',
-    // SW (lower left)
-    'md:absolute md:bottom-[14%] md:left-[2%]                        md:w-[240px]',
-    // W  (left, centered vertically)
-    'md:absolute md:top-1/2      md:left-[0%]   md:-translate-y-1/2  md:w-[240px]',
-    // NW (upper left)
-    'md:absolute md:top-[14%]    md:left-[2%]                        md:w-[240px]',
-  ];
+  // 8 angular positions around the orb at a fixed radius, calculated from
+  // the center of a square container. Items[0] at 0° (N) and advance 45°
+  // clockwise. Using computed sin/cos + translate keeps every card
+  // *equidistant* from the center — a true circle, not a stretched ellipse.
+  //
+  // Radius 420px + card width 240px → card center at 420 from center,
+  // card edge at 540. Container is 1120px square → 560px from center to
+  // edge → 20px safety gap.
+  const ORBIT_RADIUS = 420;
+  const positions = [0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
+    const rad = (deg * Math.PI) / 180;
+    return {
+      x: Math.round(Math.sin(rad) * ORBIT_RADIUS),
+      y: Math.round(-Math.cos(rad) * ORBIT_RADIUS),
+    };
+  });
 
   return (
     <section className="section-birik">
@@ -1104,37 +1106,54 @@ function Testimonials() {
       </div>
 
       {/* Orbital container.
-          Desktop: min-h ~1100px to give the 8 cards + orb breathing room.
-          Mobile: flex column stack, no absolute positioning. */}
-      <div className="relative mt-20 md:mt-24 flex flex-col gap-6 md:block md:min-h-[1100px]">
+          Desktop: locked to a SQUARE (clamped 920-1120px) so every card's
+          distance to the orb is identical — otherwise a wide viewport
+          stretches the "circle" into an ellipse and the cards collide.
+          Mobile: simple flex column stack, orb on top, 8 cards below. */}
+      <div className="relative mt-20 md:mt-24 flex flex-col gap-6 md:mx-auto md:block md:h-[min(80vw,1120px)] md:w-[min(80vw,1120px)]">
         <BirikOrb />
 
-        {items.map((t, i) => (
-          <Reveal
-            key={t.name}
-            amount={0.2}
-            duration={0.7}
-            distance={18}
-            delay={0.15 + i * 0.06}
-            className={slots[i] ?? ''}
-          >
-            <div className={`rounded-brick p-5 md:p-6 ${t.accent}`}>
-              <svg viewBox="0 0 24 24" fill="currentColor" className="mb-3 h-6 w-6 opacity-40">
-                <path d="M7 11H4c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zm9 0h-3c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zM4 13v8h8v-8H4zm12 0v8h8v-8h-8z" />
-              </svg>
-              <p className="text-[13px] md:text-sm leading-snug">"{t.quote}"</p>
-              <div className="mt-4 flex items-center gap-2.5">
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-ink/10 font-display text-sm">
-                  {t.initial}
+        {items.map((t, i) => {
+          const { x, y } = positions[i];
+          return (
+            <div
+              key={t.name}
+              // Desktop: absolute-anchor at container center, then offset
+              //          by (x, y) using CSS vars so the transform reads clean.
+              //          Card is 240px wide; translate(-50%,-50%) centers it
+              //          on the anchor, then (x,y) drops it onto its orbit slot.
+              // Mobile:  flows normally (md: prefix only; CSS vars inert).
+              className="md:absolute md:left-1/2 md:top-1/2 md:w-[240px] md:[transform:translate(calc(-50%+var(--ox)),calc(-50%+var(--oy)))]"
+              style={{
+                ['--ox' as string]: `${x}px`,
+                ['--oy' as string]: `${y}px`,
+              }}
+            >
+              <Reveal
+                amount={0.2}
+                duration={0.7}
+                distance={16}
+                delay={0.15 + i * 0.07}
+              >
+                <div className={`rounded-brick p-5 md:p-6 ${t.accent}`}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="mb-3 h-6 w-6 opacity-40">
+                    <path d="M7 11H4c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zm9 0h-3c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zM4 13v8h8v-8H4zm12 0v8h8v-8h-8z" />
+                  </svg>
+                  <p className="text-[13px] md:text-sm leading-snug">"{t.quote}"</p>
+                  <div className="mt-4 flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-ink/10 font-display text-sm">
+                      {t.initial}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-medium">{t.name}</div>
+                      <div className="truncate text-[10px] opacity-70">{t.role} · {t.city}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-medium">{t.name}</div>
-                  <div className="truncate text-[10px] opacity-70">{t.role} · {t.city}</div>
-                </div>
-              </div>
+              </Reveal>
             </div>
-          </Reveal>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
