@@ -163,6 +163,12 @@ function AppContent() {
   const isSettings = pathname === '/settings';
   const isGroup = pathname.startsWith('/group/');
   const isJoin = pathname.startsWith('/join/');
+  // Landing is a full-bleed marketing page — it must escape the app <main>
+  // constraints (max-w-[1200px] + p-6/8) that the in-app surfaces use.
+  // Landing renders when there's no wallet AND the route isn't a standalone
+  // page (join links still show Landing's CTA shell but constrained is OK there).
+  const isLandingView =
+    !walletAddress && !isJoin && (pathname === '/' || isDashboard || isGroup || isReputation);
   const joinGroupId = isJoin ? parseInt(pathname.replace(/^\/join\//, ''), 10) : null;
   const hasValidJoinGroupId = joinGroupId !== null && !Number.isNaN(joinGroupId);
   // Support both numeric (Soroban) and string UUID (backend) group IDs
@@ -544,8 +550,16 @@ function AppContent() {
         </div>
       )}
 
-      {/* ── Main Content (page transition: fade + 8px depth) ── */}
-      <main className="flex-1 p-6 md:p-8 max-w-[1200px] w-full mx-auto overflow-hidden relative z-10">
+      {/* ── Main Content (page transition: fade + 8px depth) ──
+          Landing gets full-bleed (no padding, no max-width) so its marketing
+          sections can use the full viewport. In-app surfaces (Dashboard,
+          Group, Settings, Reputation) stay constrained to 1200px for
+          comfortable line-length + sidebar UX. */}
+      <main
+        className={`flex-1 w-full overflow-hidden relative z-10 ${
+          isLandingView ? '' : 'p-6 md:p-8 max-w-[1200px] mx-auto'
+        }`}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}
