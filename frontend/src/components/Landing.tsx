@@ -1127,7 +1127,7 @@ function BirikWordmark() {
     <div className="text-center md:absolute md:left-1/2 md:top-1/2 md:z-10 md:w-max md:[transform:translate(-50%,200px)]">
       <Reveal direction="none" duration={0.7} delay={0.25}>
         <div className="font-display text-3xl md:text-4xl leading-none tracking-[-0.04em] text-bone">
-          birik
+          BİRİK
         </div>
         <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-birik/80">
           10.000+ grup · hepsi burada
