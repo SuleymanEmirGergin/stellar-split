@@ -1365,6 +1365,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             <AnimatePresence>
               {showMobileMore && (
                 <motion.div
+                  data-testid="mobile-more-sheet"
                   initial={{ y: '100%' }}
                   animate={{ y: 0 }}
                   exit={{ y: '100%' }}
