@@ -5,13 +5,13 @@
 /* ── Birik component utilities (used by new landing + marketing surfaces) ── */
 @layer components {
   .btn-birik {
-    @apply inline-flex items-center justify-center gap-2 rounded-pill bg-birik px-8 py-4 font-display text-lg text-ink transition-all hover:bg-birik-hot active:bg-birik-deep active:translate-y-0.5 shadow-chunk;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-birik px-8 py-4 font-display text-lg text-ink transition-all hover:bg-birik-hot active:bg-birik-deep active:translate-y-0.5 shadow-chunk;
   }
   .btn-ghost-birik {
-    @apply inline-flex items-center justify-center gap-2 rounded-pill border border-edge px-8 py-4 font-display text-lg text-bone transition-all hover:border-birik hover:text-birik;
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-edge px-8 py-4 font-display text-lg text-bone transition-all hover:border-birik hover:text-birik;
   }
   .chip-birik {
-    @apply inline-flex items-center gap-2 rounded-pill border border-edge bg-mist px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-bone/70;
+    @apply inline-flex items-center gap-2 rounded-full border border-edge bg-mist px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-bone/70;
   }
   .section-birik {
     @apply relative mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-12;
@@ -20,7 +20,7 @@
     @apply font-display uppercase tracking-tight;
   }
   .card-birik {
-    @apply relative rounded-brick border border-edge bg-fog p-8 transition-all hover:border-birik/40;
+    @apply relative rounded-[28px] border border-edge bg-fog p-8 transition-all hover:border-birik/40;
   }
   .grain::after {
     content: '';
@@ -36,6 +36,61 @@
 ::selection {
   background: #C4FF4D;
   color: #0A0A0A;
+}
+
+/* ── html5-qrcode (Scanner.tsx) dark-mode overrides ─────────────────────────
+ * The library renders its own dashboard UI (permission button, file-picker,
+ * camera selector, status text) inside #qr-reader. Without overrides these
+ * show up as default light HTML controls that clash hard with Birik's dark
+ * palette. We scope everything with `.birik-qr-reader` (added in Scanner.tsx)
+ * so the overrides only apply to our instance.
+ */
+.birik-qr-reader {
+  color: rgb(245 245 240 / 0.9);
+}
+.birik-qr-reader #qr-reader__dashboard_section_csr,
+.birik-qr-reader #qr-reader__dashboard_section_fsr,
+.birik-qr-reader #qr-reader__dashboard_section_swaplink,
+.birik-qr-reader #qr-reader__dashboard_section {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 12px !important;
+  border: none !important;
+}
+.birik-qr-reader button,
+.birik-qr-reader select {
+  background: rgb(99 102 241 / 0.12) !important;
+  color: rgb(199 210 254) !important;
+  border: 1px solid rgb(99 102 241 / 0.3) !important;
+  border-radius: 12px !important;
+  padding: 8px 14px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+.birik-qr-reader button:hover {
+  background: rgb(99 102 241 / 0.2) !important;
+}
+.birik-qr-reader a {
+  color: rgb(165 180 252) !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+}
+.birik-qr-reader a:hover {
+  color: rgb(199 210 254) !important;
+}
+.birik-qr-reader input[type="file"] {
+  color: rgb(148 163 184) !important;
+  font-size: 11px !important;
+}
+.birik-qr-reader img {
+  filter: invert(1) brightness(1.4) hue-rotate(180deg);
+  opacity: 0.7;
+}
+.birik-qr-reader video {
+  border-radius: 16px !important;
 }
 
 /* ── Ambient glow palette (values remapped to birik/plum/heat; legacy names kept for backward compat) ── */
