@@ -2,7 +2,7 @@ import { motion, useInView, useMotionValue, animate, useTransform, AnimatePresen
 import { useState, useEffect, useRef, type ComponentType, type ReactNode } from 'react';
 import {
   Receipt, Users, Split, Zap, Shield, Link2, QrCode, Eye,
-  Globe, Github, Cpu, Lock, ArrowRight, Plus, Check,
+  Globe, Github, Cpu, Lock, ArrowRight, Plus, Check, ChevronDown,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import Reveal, { Stagger, StaggerItem } from './landing/Reveal';
@@ -933,6 +933,104 @@ interface Testimonial {
  *      circle, as the user asked).
  */
 /**
+ * TestimonialsPrelude — the "set up the question" scroll break that lives
+ * BETWEEN the section header (stats, rating) and the orbital layout.
+ *
+ * Scroll narrative:
+ *   1. User reads the header: "10.000+ grup Birik ile bölüyor."
+ *   2. Scrolls into a pause screen asking "Ne diyorlar?" — the question
+ *      earns the answers that follow.
+ *   3. A pulsing "yorumlar yükleniyor" + bouncing chevron primes them to
+ *      keep scrolling (the testimonials will ripple in next).
+ *   4. Scrolls further → orbital container enters viewport → 8 cards
+ *      sequentially reveal around the BirikOrb.
+ *
+ * Content-only component; motion is all scroll-triggered via useInView.
+ */
+function TestimonialsPrelude() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-20% 0px' });
+
+  return (
+    <div
+      ref={ref}
+      className="relative mt-24 md:mt-32 py-20 md:py-28 flex flex-col items-center text-center"
+    >
+      <motion.span
+        initial={{ opacity: 0, y: 20 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="chip-birik mb-8"
+      >
+        <span className="h-2 w-2 rounded-full bg-birik animate-pulse" />
+        Kullanıcı sesi
+      </motion.span>
+
+      <motion.h3
+        initial={{ opacity: 0, y: 40 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+        className="display text-mega leading-[0.9]"
+      >
+        Ne <br />
+        <span className="text-birik">diyorlar?</span>
+      </motion.h3>
+
+      <motion.p
+        initial={{ opacity: 0, y: 20 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+        className="mt-8 max-w-xl text-xl text-bone/70"
+      >
+        Birik'i kullananlar hakkında ne düşünüyor?
+        <br />
+        <span className="text-birik font-bold">2.400+ yorumdan 8 ses</span>, aşağıda.
+      </motion.p>
+
+      {/* Fake "loading" dots — primes user that content is about to appear */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={inView ? { opacity: 1 } : { opacity: 0 }}
+        transition={{ duration: 0.5, delay: 0.9 }}
+        className="mt-14 flex items-center gap-2"
+      >
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            aria-hidden
+            className="h-1.5 w-1.5 rounded-full bg-birik"
+            animate={{ opacity: [0.25, 1, 0.25], scale: [0.9, 1.2, 0.9] }}
+            transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+          />
+        ))}
+        <span className="ml-3 text-[10px] font-mono uppercase tracking-[0.3em] text-birik/70">
+          yorumlar yükleniyor
+        </span>
+      </motion.div>
+
+      {/* Bouncing chevron — explicit scroll affordance */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
+        transition={{ duration: 0.6, delay: 1.2 }}
+        className="mt-10 flex flex-col items-center gap-3"
+      >
+        <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-bone/40">
+          Aşağı kaydır
+        </span>
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          className="grid h-11 w-11 place-items-center rounded-full border border-birik/30 bg-birik/5 text-birik"
+        >
+          <ChevronDown size={18} strokeWidth={2.5} />
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
+/**
  * BirikOrb — ONLY the circular mark. No wordmark attached.
  *
  * Critical: the positioning transform must sit on an OUTER wrapper, NOT on
@@ -1135,12 +1233,23 @@ function Testimonials() {
         </Reveal>
       </div>
 
+      {/* PRELUDE — "Ne diyorlar?" scroll break. Sits between the stats
+          header above and the orbital grid below. Forces the user to pause
+          on the question before seeing the answers. */}
+      <TestimonialsPrelude />
+
       {/* Orbital container.
           Desktop: locked to a SQUARE (clamped 920-1120px) so every card's
           distance to the orb is identical — otherwise a wide viewport
           stretches the "circle" into an ellipse and the cards collide.
-          Mobile: simple flex column stack, orb on top, 8 cards below. */}
-      <div className="relative mt-20 md:mt-24 flex flex-col items-center gap-8 md:mx-auto md:block md:h-[min(80vw,1120px)] md:w-[min(80vw,1120px)]">
+          Mobile: simple flex column stack, orb on top, 8 cards below.
+
+          Cards reveal staggered with longer delays (0.15s between each)
+          so they feel like they're "loading in" one after another as the
+          user scrolls past the prelude. Natural scroll position does the
+          heavy lifting (N card at y=-440 is higher in the container so
+          it enters viewport first); the stagger adds polish on top. */}
+      <div className="relative mt-12 md:mt-16 flex flex-col items-center gap-8 md:mx-auto md:block md:h-[min(80vw,1120px)] md:w-[min(80vw,1120px)]">
         <BirikOrb />
         <BirikWordmark />
 
@@ -1164,10 +1273,10 @@ function Testimonials() {
               }}
             >
               <Reveal
-                amount={0.2}
-                duration={0.7}
-                distance={16}
-                delay={0.15 + i * 0.07}
+                amount={0.15}
+                duration={0.75}
+                distance={24}
+                delay={0.2 + i * 0.15}
               >
                 <div className={`rounded-brick p-5 ${t.accent}`}>
                   <svg viewBox="0 0 24 24" fill="currentColor" className="mb-3 h-6 w-6 opacity-40">
