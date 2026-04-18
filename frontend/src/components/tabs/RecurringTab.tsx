@@ -1,8 +1,8 @@
 import { memo } from 'react';
-import { motion } from 'framer-motion';
 import { Plus, Repeat, Trash2, Cloud } from 'lucide-react';
 import { type RecurringTemplate } from '../../lib/recurring';
-import { SkeletonShimmer } from '../ui/SkeletonShimmer';
+import { TabSkeleton } from '../ui/TabSkeleton';
+import EmptyState from '../EmptyState';
 import type { TranslationKey } from '../../lib/i18n';
 
 interface RecurringTabProps {
@@ -24,13 +24,7 @@ export default memo(function RecurringTab({
   t,
 }: RecurringTabProps) {
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <SkeletonShimmer className="h-14" rounded="2xl" />
-        <SkeletonShimmer className="h-14" rounded="2xl" />
-        <SkeletonShimmer className="h-14" rounded="2xl" />
-      </div>
-    );
+    return <TabSkeleton rows={3} rowHeight={14} rounded="2xl" />;
   }
 
   return (
@@ -55,30 +49,14 @@ export default memo(function RecurringTab({
       </div>
 
       {subscriptions.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="py-20 text-center bg-white/[0.025] border border-dashed border-white/[0.07] rounded-[32px] relative group overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-          >
-            <Repeat className="w-16 h-16 mx-auto text-indigo-500/20 mb-6" />
-          </motion.div>
-          <p className="text-lg font-black text-white/90 tracking-tight">{t('group.recurring_empty')}</p>
-          <p className="text-sm font-bold text-muted-foreground mt-2 max-w-[250px] mx-auto leading-relaxed">
-            {t('group.recurring_empty_hint')}
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowAddSub(true)}
-            className="mt-6 px-6 py-2.5 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 text-xs font-black uppercase tracking-widest hover:bg-indigo-500/30 transition-colors"
-          >
-            + {t('group.recurring')}
-          </button>
-        </motion.div>
+        <EmptyState
+          icon={Repeat}
+          title={t('group.recurring_empty')}
+          description={t('group.recurring_empty_hint')}
+          action={{ label: `+ ${t('group.recurring')}`, onClick: () => setShowAddSub(true) }}
+          tone="indigo"
+          variant="spin"
+        />
       )}
 
       <div className="space-y-3">

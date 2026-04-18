@@ -7,7 +7,9 @@ import { formatStroopsWithUsd } from '../../lib/xlmPrice';
 import Avatar from '../Avatar';
 import QRCode from '../QRCode';
 import ImpactPanel from '../ImpactPanel';
+import EmptyState from '../EmptyState';
 import { Glow } from '../ui/Glow';
+import { TabSkeleton } from '../ui/TabSkeleton';
 import type { TranslationKey } from '../../lib/i18n';
 import { useBackendSettlements, useUpdateSettlementStatusMutation } from '../../hooks/useBackendGroups';
 import type { BackendSettlement } from '../../lib/api';
@@ -98,11 +100,13 @@ export default function SettleTab({
       <div className="space-y-3">
         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">{t('group.optimized_settlements')}</h4>
         {settlements.length === 0 ? (
-          <div className="py-16 text-center rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-6">
-            <Zap className="mx-auto w-14 h-14 text-emerald-500/40 mb-4" />
-            <p className="text-lg font-black text-emerald-400">{t('group.empty_settlements')}</p>
-            <p className="text-sm text-muted-foreground mt-2 max-w-[280px] mx-auto">{t('group.empty_settlements_hint')}</p>
-          </div>
+          <EmptyState
+            icon={Zap}
+            title={t('group.empty_settlements')}
+            description={t('group.empty_settlements_hint')}
+            tone="emerald"
+            variant="pulse"
+          />
         ) : settlements.map((s: Settlement, i: number) => {
           const amountXlm = (s.amount / 10_000_000).toFixed(2);
           const amountDisplay = currencyLabel === 'XLM' ? formatStroopsWithUsd(s.amount, xlmUsd) : `${amountXlm} ${currencyLabel}`;
@@ -240,11 +244,7 @@ export default function SettleTab({
           {showHistory && (
             <div className="mt-4 space-y-2">
               {loadingHistory ? (
-                <div className="space-y-2">
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="h-14 bg-white/5 rounded-xl animate-pulse" />
-                  ))}
-                </div>
+                <TabSkeleton rows={3} rowHeight={14} rounded="xl" />
               ) : backendSettlements.length === 0 ? (
                 <p className="text-[11px] text-muted-foreground">—</p>
               ) : (

@@ -10,7 +10,42 @@ import {
   Bar,
   Cell,
 } from 'recharts';
+import { Activity, Receipt, Coins } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import DonutChart from '../DonutChart';
+
+/**
+ * Inline empty state for chart cards. Unlike <EmptyState/>, this has no
+ * card chrome (the parent card already provides it) — just icon + text
+ * centered at the chart's height. Tone-colored to match the card's theme.
+ */
+function ChartEmpty({
+  icon: Icon,
+  label,
+  tone = 'indigo',
+  height = 120,
+}: {
+  icon: LucideIcon;
+  label: string;
+  tone?: 'indigo' | 'emerald' | 'amber';
+  height?: number;
+}) {
+  const toneText: Record<string, string> = {
+    indigo: 'text-indigo-400/40',
+    emerald: 'text-emerald-400/40',
+    amber: 'text-amber-400/40',
+  };
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-2 text-muted-foreground"
+      style={{ height }}
+      aria-live="polite"
+    >
+      <Icon size={24} className={toneText[tone]} aria-hidden />
+      <p className="text-[11px] font-bold">{label}</p>
+    </div>
+  );
+}
 
 export interface WalletChartsProps {
   /** Balance over time (e.g. last 7 points). Mock if no API. */
@@ -146,9 +181,12 @@ export function WalletCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
-            {t('charts.empty_tx') || 'No transactions yet'}
-          </div>
+          <ChartEmpty
+            icon={Activity}
+            label={t?.('charts.empty_tx') || 'No transactions yet'}
+            tone="indigo"
+            height={180}
+          />
         )}
       </div>
 
@@ -164,9 +202,11 @@ export function WalletCharts({
             title={t('charts.fees') || 'Fees'}
           />
         ) : (
-          <div className="h-[120px] flex items-center justify-center text-muted-foreground text-sm">
-            {t('charts.empty_fees') || 'No fee data yet'}
-          </div>
+          <ChartEmpty
+            icon={Receipt}
+            label={t?.('charts.empty_fees') || 'No fee data yet'}
+            tone="amber"
+          />
         )}
       </div>
 
@@ -182,9 +222,11 @@ export function WalletCharts({
             title={t('charts.assets') || 'Assets'}
           />
         ) : (
-          <div className="h-[120px] flex items-center justify-center text-muted-foreground text-sm">
-            {t('charts.empty_assets') || 'XLM 100%'}
-          </div>
+          <ChartEmpty
+            icon={Coins}
+            label={t?.('charts.empty_assets') || 'XLM 100%'}
+            tone="emerald"
+          />
         )}
       </div>
     </div>

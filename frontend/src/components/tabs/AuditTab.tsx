@@ -1,7 +1,8 @@
 import { Clock, Lock } from 'lucide-react';
 import { type AuditLogEntry } from '../../lib/api';
 import { maskAddress } from '../../lib/format';
-import { SkeletonShimmer } from '../ui/SkeletonShimmer';
+import { TabSkeleton } from '../ui/TabSkeleton';
+import EmptyState from '../EmptyState';
 import { useI18n } from '../../lib/i18n';
 import type { TranslationKey } from '../../lib/i18n';
 
@@ -66,29 +67,29 @@ export default function AuditTab({ entries, isLoading, hasJwt }: AuditTabProps) 
 
   if (!hasJwt) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-        <Lock size={32} className="opacity-20" />
-        <p className="text-sm font-bold">{t('audit.connect_wallet_hint')}</p>
-      </div>
+      <EmptyState
+        icon={Lock}
+        title={t('audit.connect_wallet_hint')}
+        tone="indigo"
+        variant="none"
+        size="sm"
+      />
     );
   }
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <SkeletonShimmer key={i} className="h-12" rounded="xl" />
-        ))}
-      </div>
-    );
+    return <TabSkeleton rows={5} rowHeight={12} rounded="xl" />;
   }
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-        <Clock size={32} className="opacity-20" />
-        <p className="text-sm font-bold">{t('audit.no_activity')}</p>
-      </div>
+      <EmptyState
+        icon={Clock}
+        title={t('audit.no_activity')}
+        tone="indigo"
+        variant="float"
+        size="sm"
+      />
     );
   }
 

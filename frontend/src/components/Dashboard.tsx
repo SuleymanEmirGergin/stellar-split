@@ -320,27 +320,55 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
       <UserAnalytics walletAddress={walletAddress} groups={groups} />
       <GlobalImpact />
 
-      {/* Quick Stats Grid */}
-      <motion.div 
+      {/* Quick Stats Grid — each card wears its tone (indigo/purple/amber/emerald)
+          via a subtle gradient wash + tone-matched border glow on hover. */}
+      <motion.div
         variants={containerVars}
         className="grid grid-cols-2 md:grid-cols-4 gap-4"
       >
         {[
-          { value: displayGroupCount, label: t('dash.total_groups'), icon: FolderOpen, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-          { value: displayMemberCount, label: t('dash.total_members'), icon: Users, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-          { value: '~5s', label: t('dash.avg_finality'), icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-          { value: '$0.00005', label: t('dash.fee'), icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          {
+            value: displayGroupCount, label: t('dash.total_groups'), icon: FolderOpen,
+            text: 'text-indigo-300', iconBg: 'bg-indigo-500/15', iconRing: 'border-indigo-500/25',
+            wash: 'from-indigo-500/[0.08] via-indigo-500/[0.02]', border: 'border-indigo-500/15',
+            hoverBorder: 'hover:border-indigo-500/35', hoverGlow: 'hover:shadow-[0_8px_32px_-12px_rgba(99,102,241,0.4)]',
+          },
+          {
+            value: displayMemberCount, label: t('dash.total_members'), icon: Users,
+            text: 'text-purple-300', iconBg: 'bg-purple-500/15', iconRing: 'border-purple-500/25',
+            wash: 'from-purple-500/[0.08] via-purple-500/[0.02]', border: 'border-purple-500/15',
+            hoverBorder: 'hover:border-purple-500/35', hoverGlow: 'hover:shadow-[0_8px_32px_-12px_rgba(168,85,247,0.4)]',
+          },
+          {
+            value: '~5s', label: t('dash.avg_finality'), icon: Zap,
+            text: 'text-amber-300', iconBg: 'bg-amber-500/15', iconRing: 'border-amber-500/25',
+            wash: 'from-amber-500/[0.08] via-amber-500/[0.02]', border: 'border-amber-500/15',
+            hoverBorder: 'hover:border-amber-500/35', hoverGlow: 'hover:shadow-[0_8px_32px_-12px_rgba(245,158,11,0.4)]',
+          },
+          {
+            value: '$0.00005', label: t('dash.fee'), icon: DollarSign,
+            text: 'text-emerald-300', iconBg: 'bg-emerald-500/15', iconRing: 'border-emerald-500/25',
+            wash: 'from-emerald-500/[0.08] via-emerald-500/[0.02]', border: 'border-emerald-500/15',
+            hoverBorder: 'hover:border-emerald-500/35', hoverGlow: 'hover:shadow-[0_8px_32px_-12px_rgba(16,185,129,0.4)]',
+          },
         ].map((s, i) => (
-          <motion.div 
-            key={i} 
+          <motion.div
+            key={i}
             variants={itemVars}
-            className="card-glass-hover bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-all group"
+            className={`relative bg-card/60 backdrop-blur-sm border ${s.border} ${s.hoverBorder} rounded-2xl p-5 ${s.hoverGlow} transition-all group overflow-hidden`}
           >
-            <div className={`p-2 w-fit rounded-lg ${s.bg} ${s.color} mb-3 group-hover:scale-110 transition-transform`}>
-              <s.icon size={20} />
+            {/* Tone wash — soft gradient that says "this card is this color" without shouting */}
+            <div
+              aria-hidden
+              className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${s.wash} to-transparent opacity-80`}
+            />
+            <div className="relative">
+              <div className={`w-10 h-10 rounded-xl ${s.iconBg} border ${s.iconRing} ${s.text} mb-3 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <s.icon size={18} />
+              </div>
+              <div className={`text-2xl font-black ${s.text} tracking-tight tabular-nums`}>{s.value}</div>
+              <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.1em] mt-1">{s.label}</div>
             </div>
-            <div className={`text-2xl font-black ${s.color} tracking-tight`}>{s.value}</div>
-            <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.1em] mt-1">{s.label}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -462,9 +490,25 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                             : 'Settled'}
                         </div>
                       )}
-                      <div className="text-xs font-bold px-3 py-1 bg-white/5 rounded-full border border-white/5 text-muted-foreground">
-                        {g.currency || 'XLM'}
-                      </div>
+                      {(() => {
+                        const cur = g.currency || 'XLM';
+                        const isUsdc = cur === 'USDC';
+                        return (
+                          <div
+                            className={`text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full border uppercase inline-flex items-center gap-1.5 ${
+                              isUsdc
+                                ? 'bg-sky-500/10 border-sky-500/30 text-sky-300'
+                                : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300'
+                            }`}
+                          >
+                            <span
+                              aria-hidden
+                              className={`w-1.5 h-1.5 rounded-full ${isUsdc ? 'bg-sky-400' : 'bg-indigo-400'}`}
+                            />
+                            {cur}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </Link>
@@ -612,18 +656,20 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
                 <div>
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block ml-1">{t('group.currency_label')}</label>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => setCurrency('XLM')} 
-                      className={`flex-1 py-3 rounded-xl border font-black text-xs transition-all ${currency === 'XLM' ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400' : 'bg-secondary/50 border-white/5 text-muted-foreground hover:bg-secondary'}`}
+                      onClick={() => setCurrency('XLM')}
+                      className={`flex-1 py-3 rounded-xl border font-black text-xs transition-all inline-flex items-center justify-center gap-2 ${currency === 'XLM' ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-secondary/50 border-white/5 text-muted-foreground hover:bg-secondary'}`}
                     >
+                      <span aria-hidden className={`w-1.5 h-1.5 rounded-full ${currency === 'XLM' ? 'bg-indigo-400' : 'bg-muted-foreground/50'}`} />
                       {t('group.currency_xlm')}
                     </button>
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => setCurrency('USDC')} 
-                      className={`flex-1 py-3 rounded-xl border font-black text-xs transition-all ${currency === 'USDC' ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400' : 'bg-secondary/50 border-white/5 text-muted-foreground hover:bg-secondary'}`}
+                      onClick={() => setCurrency('USDC')}
+                      className={`flex-1 py-3 rounded-xl border font-black text-xs transition-all inline-flex items-center justify-center gap-2 ${currency === 'USDC' ? 'bg-sky-500/20 border-sky-500/50 text-sky-300' : 'bg-secondary/50 border-white/5 text-muted-foreground hover:bg-secondary'}`}
                     >
+                      <span aria-hidden className={`w-1.5 h-1.5 rounded-full ${currency === 'USDC' ? 'bg-sky-400' : 'bg-muted-foreground/50'}`} />
                       {t('group.currency_usdc')}
                     </button>
                   </div>
