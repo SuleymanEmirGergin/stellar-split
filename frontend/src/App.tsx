@@ -295,13 +295,26 @@ function AppContent() {
       if (addr) {
         setWalletAddress(addr);
         useAppStore.getState().setWalletAddress(addr);
-        // Authenticate with backend (SIWS) — non-blocking; errors shown as info toasts
+        // Authenticate with backend (SIWS) — non-blocking. The app fully
+        // functions in offline mode (localStorage-backed), so a dead
+        // backend shouldn't scare the user with a "Failed to fetch" toast.
         try {
           const { user } = await signInWithStellar(addr);
           useAppStore.getState().setBackendUser(user);
         } catch (siwsErr) {
           const siwsMsg = siwsErr instanceof Error ? siwsErr.message : 'Backend auth failed';
-          addToast(`${siwsMsg} (offline mode active)`, 'info');
+          // Network errors (backend unreachable) → silent. Header already
+          // shows the offline indicator; no need to surface a scary toast
+          // right after a successful wallet connection.
+          const isNetworkDown =
+            /failed to fetch|networkerror|err_connection|load failed/i.test(siwsMsg);
+          if (isNetworkDown) {
+            console.warn('[siws] backend unreachable — continuing in offline mode');
+          } else {
+            // Real auth failures (bad signature, expired nonce, 4xx/5xx
+            // from a reachable backend) still deserve user-visible feedback.
+            addToast(`${siwsMsg} (offline mode active)`, 'info');
+          }
         }
         if (isJoin && hasValidJoinGroupId) {
           navigate(`/group/${joinGroupId}`);

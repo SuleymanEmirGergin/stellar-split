@@ -25,6 +25,18 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       gcTime: 1000 * 60 * 10, // keep unused cache 10 min (reduce refetches when navigating)
+      // If the backend is down (CONNECTION_REFUSED / Failed to fetch), don't
+      // retry 3× by default — it spams the console and delays offline-mode
+      // fallback. Retry once for genuinely transient errors, then give up.
+      retry: (failureCount, error) => {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (/failed to fetch|networkerror|err_connection|load failed/i.test(msg)) {
+          return false;
+        }
+        return failureCount < 1;
+      },
+      // Same reasoning for window-focus refetch: spam when offline.
+      refetchOnWindowFocus: false,
     },
   },
 });
