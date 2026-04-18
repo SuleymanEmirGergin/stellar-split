@@ -308,7 +308,7 @@ jobs:
         run: npm run lint
 
       - name: Unit tests with coverage
-        run: npm run test:cov -- --runInBand
+        run: npm run test:cov -- --runInBand --forceExit
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stellarsplit_test
           REDIS_URL: redis://localhost:6379
@@ -317,7 +317,7 @@ jobs:
           NODE_ENV: test
 
       - name: E2E tests
-        run: npm run test:e2e -- --runInBand
+        run: npm run test:e2e -- --runInBand --forceExit
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stellarsplit_test
           REDIS_URL: redis://localhost:6379
