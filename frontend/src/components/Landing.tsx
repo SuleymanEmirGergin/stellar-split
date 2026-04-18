@@ -932,88 +932,110 @@ interface Testimonial {
  *   6. "birik" wordmark + tagline rendered BELOW the orb (outside the
  *      circle, as the user asked).
  */
+/**
+ * BirikOrb — ONLY the circular mark. No wordmark attached.
+ *
+ * Critical: the positioning transform must sit on an OUTER wrapper, NOT on
+ * the Reveal/motion.div itself. Framer-motion writes `transform` directly
+ * into style for its animation — that silently overrides any className-based
+ * `[transform:...]`. Previous layouts had the orb's -50%/-50% centering on
+ * the Reveal element, so framer's identity transform kept winning and the
+ * orb was anchored by its top-left corner instead of its center — visible
+ * as the orb landing in the lower-right of the orbital container.
+ *
+ * Fix: outer <div> handles absolute + translate(-50%,-50%); inner Reveal
+ * only handles the fade-in.
+ */
 function BirikOrb() {
   return (
-    // Desktop: absolute-centered inside the square orbital container.
-    // Mobile: flex column sibling that renders above the stacked cards.
-    // The wordmark + tagline render BELOW the circle in both layouts.
-    <Reveal
-      direction="none"
-      duration={0.9}
-      className="relative mx-auto flex flex-col items-center md:absolute md:left-1/2 md:top-1/2 md:z-10 md:[transform:translate(-50%,-50%)]"
-    >
-      <div className="relative h-[240px] w-[240px] md:h-[320px] md:w-[320px]">
-        {/* Layer 1 — slow rotating conic halo (subtle, behind everything) */}
-        <motion.div
-          aria-hidden
-          className="absolute -inset-10 rounded-full opacity-50"
-          style={{
-            background:
-              'conic-gradient(from 0deg, rgba(196,255,77,0) 0%, rgba(196,255,77,0.3) 25%, rgba(196,255,77,0) 50%, rgba(124,58,237,0.25) 75%, rgba(196,255,77,0) 100%)',
-            filter: 'blur(24px)',
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
-        />
+    <div className="mx-auto md:absolute md:left-1/2 md:top-1/2 md:z-10 md:mx-0 md:[transform:translate(-50%,-50%)]">
+      <Reveal direction="none" duration={0.9}>
+        <div className="relative h-[240px] w-[240px] md:h-[320px] md:w-[320px]">
+          {/* Layer 1 — slow rotating conic halo (subtle, behind everything) */}
+          <motion.div
+            aria-hidden
+            className="absolute -inset-10 rounded-full opacity-50"
+            style={{
+              background:
+                'conic-gradient(from 0deg, rgba(196,255,77,0) 0%, rgba(196,255,77,0.3) 25%, rgba(196,255,77,0) 50%, rgba(124,58,237,0.25) 75%, rgba(196,255,77,0) 100%)',
+              filter: 'blur(24px)',
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
+          />
 
-        {/* Layer 2 — pulsing concentric rings */}
-        <motion.span
-          aria-hidden
-          className="absolute inset-0 rounded-full border border-birik/30"
-          animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0, 0.5] }}
-          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.span
-          aria-hidden
-          className="absolute inset-0 rounded-full border border-birik/20"
-          animate={{ scale: [1, 1.32, 1], opacity: [0.35, 0, 0.35] }}
-          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
-        />
+          {/* Layer 2 — pulsing concentric rings */}
+          <motion.span
+            aria-hidden
+            className="absolute inset-0 rounded-full border border-birik/30"
+            animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.span
+            aria-hidden
+            className="absolute inset-0 rounded-full border border-birik/20"
+            animate={{ scale: [1, 1.32, 1], opacity: [0.35, 0, 0.35] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
+          />
 
-        {/* Layer 3 — outer lime shell (atmosphere) */}
-        <motion.div
-          className="absolute inset-0 rounded-full bg-birik shadow-[0_0_100px_rgba(196,255,77,0.5)]"
-          animate={{ scale: [1, 1.025, 1] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          {/* Layer 4 — ink core. 6% inset = thick enough to read as a ring. */}
-          <div className="absolute inset-[7%] rounded-full bg-gradient-to-br from-ink via-mist to-fog">
-            {/* Inner highlight — faint top-left sheen like a planet */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-birik/15 via-transparent to-transparent" />
+          {/* Layer 3 — outer lime shell (atmosphere) */}
+          <motion.div
+            className="absolute inset-0 rounded-full bg-birik shadow-[0_0_100px_rgba(196,255,77,0.5)]"
+            animate={{ scale: [1, 1.025, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            {/* Layer 4 — ink core. 7% inset = thick enough to read as a ring. */}
+            <div className="absolute inset-[7%] rounded-full bg-gradient-to-br from-ink via-mist to-fog">
+              {/* Inner highlight — faint top-left sheen like a planet */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-birik/15 via-transparent to-transparent" />
 
-            {/* Layer 5 — logo mark, lime on ink. Responsive size: smaller
-                on mobile orb (240px) so the mark breathes inside the core. */}
-            <div className="absolute inset-0 grid place-items-center text-birik md:hidden">
-              <Logo size={86} variant="hero" />
+              {/* Layer 5 — logo mark, lime on ink. Responsive sizes */}
+              <div className="absolute inset-0 grid place-items-center text-birik md:hidden">
+                <Logo size={86} variant="hero" />
+              </div>
+              <div className="absolute inset-0 hidden md:grid md:place-items-center text-birik">
+                <Logo size={120} variant="hero" />
+              </div>
+
+              {/* Tiny orbit dot — satellite reinforcing the orbital idea */}
+              <motion.div
+                aria-hidden
+                className="absolute inset-0"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+              >
+                <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-birik shadow-[0_0_12px_rgba(196,255,77,0.8)]" />
+              </motion.div>
             </div>
-            <div className="absolute inset-0 hidden md:grid md:place-items-center text-birik">
-              <Logo size={120} variant="hero" />
-            </div>
+          </motion.div>
+        </div>
+      </Reveal>
+    </div>
+  );
+}
 
-            {/* Tiny orbit dot — a satellite circling the core, reinforces
-                the "orbital" mental model. */}
-            <motion.div
-              aria-hidden
-              className="absolute inset-0"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
-            >
-              <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-birik shadow-[0_0_12px_rgba(196,255,77,0.8)]" />
-            </motion.div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Wordmark + tagline BELOW the orb, as the user requested */}
-      <div className="mt-7 text-center">
-        <div className="font-display text-4xl md:text-5xl leading-none tracking-[-0.04em] text-bone">
+/**
+ * Wordmark + tagline below the orb.
+ *
+ * Mobile: flows naturally between the orb and the 8 stacked testimonial
+ * cards (flex column order handles it).
+ *
+ * Desktop: absolute-positioned below the orb (y = +200px from container
+ * center, which is orb_radius(160) + gap(40)). Same outer-wrapper trick as
+ * BirikOrb so framer's transform doesn't fight Tailwind's.
+ */
+function BirikWordmark() {
+  return (
+    <div className="text-center md:absolute md:left-1/2 md:top-1/2 md:z-10 md:w-max md:[transform:translate(-50%,200px)]">
+      <Reveal direction="none" duration={0.7} delay={0.25}>
+        <div className="font-display text-3xl md:text-4xl leading-none tracking-[-0.04em] text-bone">
           birik
         </div>
-        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.3em] text-birik/80">
+        <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-birik/80">
           10.000+ grup · hepsi burada
         </div>
-      </div>
-    </Reveal>
+      </Reveal>
+    </div>
   );
 }
 
@@ -1066,13 +1088,21 @@ function Testimonials() {
 
   // 8 angular positions around the orb at a fixed radius, calculated from
   // the center of a square container. Items[0] at 0° (N) and advance 45°
-  // clockwise. Using computed sin/cos + translate keeps every card
-  // *equidistant* from the center — a true circle, not a stretched ellipse.
+  // clockwise. Using computed sin/cos keeps every card *equidistant* from
+  // center — a true circle, not a stretched ellipse.
   //
-  // Radius 420px + card width 240px → card center at 420 from center,
-  // card edge at 540. Container is 1120px square → 560px from center to
-  // edge → 20px safety gap.
-  const ORBIT_RADIUS = 420;
+  // Geometry (desktop @1120px container):
+  //   - Container half:        560px
+  //   - Orb radius:            160  (320px diameter)
+  //   - Orb halo extends:      +40  → effective mark ≈ 200px from center
+  //   - Wordmark block y:      +200 to +~260 from center (below orb)
+  //   - Card width:            220  (half = 110)
+  //   - Orbit radius for card: 440
+  //     → card center at ±440; card edge at 330 (inner) to 550 (outer)
+  //     → 550 < 560 (container edge): 10px safety
+  //     → inner edge 330 is 130px clear of orb halo (r=200) ✓
+  //     → S card top at y = 440-90 = 350; wordmark ends ~260: 90px gap ✓
+  const ORBIT_RADIUS = 440;
   const positions = [0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
     const rad = (deg * Math.PI) / 180;
     return {
@@ -1110,20 +1140,24 @@ function Testimonials() {
           distance to the orb is identical — otherwise a wide viewport
           stretches the "circle" into an ellipse and the cards collide.
           Mobile: simple flex column stack, orb on top, 8 cards below. */}
-      <div className="relative mt-20 md:mt-24 flex flex-col gap-6 md:mx-auto md:block md:h-[min(80vw,1120px)] md:w-[min(80vw,1120px)]">
+      <div className="relative mt-20 md:mt-24 flex flex-col items-center gap-8 md:mx-auto md:block md:h-[min(80vw,1120px)] md:w-[min(80vw,1120px)]">
         <BirikOrb />
+        <BirikWordmark />
 
         {items.map((t, i) => {
           const { x, y } = positions[i];
           return (
             <div
               key={t.name}
-              // Desktop: absolute-anchor at container center, then offset
-              //          by (x, y) using CSS vars so the transform reads clean.
-              //          Card is 240px wide; translate(-50%,-50%) centers it
-              //          on the anchor, then (x,y) drops it onto its orbit slot.
-              // Mobile:  flows normally (md: prefix only; CSS vars inert).
-              className="md:absolute md:left-1/2 md:top-1/2 md:w-[240px] md:[transform:translate(calc(-50%+var(--ox)),calc(-50%+var(--oy)))]"
+              // Positioning wrapper is OUTSIDE Reveal so framer-motion doesn't
+              // overwrite the orbit transform (same fix as BirikOrb — see
+              // that function's docstring for the underlying issue).
+              //
+              // Desktop: anchor at container center via left-1/2 top-1/2,
+              //          then translate(-50%,-50%) to center on anchor,
+              //          plus (x, y) from CSS vars to land on orbit slot.
+              // Mobile:  flows naturally; CSS vars inert.
+              className="w-full max-w-xs md:absolute md:left-1/2 md:top-1/2 md:w-[220px] md:max-w-none md:[transform:translate(calc(-50%+var(--ox)),calc(-50%+var(--oy)))]"
               style={{
                 ['--ox' as string]: `${x}px`,
                 ['--oy' as string]: `${y}px`,
@@ -1135,13 +1169,13 @@ function Testimonials() {
                 distance={16}
                 delay={0.15 + i * 0.07}
               >
-                <div className={`rounded-brick p-5 md:p-6 ${t.accent}`}>
+                <div className={`rounded-brick p-5 ${t.accent}`}>
                   <svg viewBox="0 0 24 24" fill="currentColor" className="mb-3 h-6 w-6 opacity-40">
                     <path d="M7 11H4c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zm9 0h-3c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zM4 13v8h8v-8H4zm12 0v8h8v-8h-8z" />
                   </svg>
-                  <p className="text-[13px] md:text-sm leading-snug">"{t.quote}"</p>
+                  <p className="text-[12.5px] md:text-[13px] leading-snug">"{t.quote}"</p>
                   <div className="mt-4 flex items-center gap-2.5">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-ink/10 font-display text-sm">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-ink/10 font-display text-sm shrink-0">
                       {t.initial}
                     </div>
                     <div className="min-w-0">
