@@ -7,6 +7,7 @@ import {
 import { useI18n } from '../lib/i18n';
 import Reveal, { Stagger, StaggerItem } from './landing/Reveal';
 import SectionGlow from './landing/SectionGlow';
+import Logo from './Logo';
 
 /**
  * Birik landing page — marketing surface for the group expense product.
@@ -918,36 +919,164 @@ interface Testimonial {
 }
 
 /**
- * Testimonials — orbital layout on desktop.
+ * BirikOrb — the gravitational center of the Testimonials section.
  *
- * On md+ screens, a central "BİRİK" orb anchors the section and testimonial
- * cards float at fixed positions around it (TL / TR / L / R / BL / BR). This
- * turns "here are 6 quotes" into "here are 6 voices circling the product" —
- * the brand is the gravitational center, the stories orbit.
+ * Visual recipe:
+ *   1. Outermost: a slow-rotating conic-gradient halo (lime → transparent)
+ *      that reads as "orbital energy" without being a literal orbit line.
+ *   2. Two pulsing concentric rings (offset phase) for breath.
+ *   3. A lime outer shell (the "atmosphere") 6% thick.
+ *   4. A dark ink core — lets the logo mark pop in lime instead of
+ *      disappearing into a lime-on-lime wash.
+ *   5. The Logo component (three-bar brand mark) centered in the core.
+ *   6. "birik" wordmark + tagline rendered BELOW the orb (outside the
+ *      circle, as the user asked).
+ */
+function BirikOrb() {
+  return (
+    <Reveal direction="none" duration={0.9} className="relative mx-auto flex flex-col items-center md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2">
+      <div className="relative h-[240px] w-[240px] md:h-[320px] md:w-[320px]">
+        {/* Layer 1 — slow rotating conic halo (subtle, behind everything) */}
+        <motion.div
+          aria-hidden
+          className="absolute -inset-10 rounded-full opacity-50"
+          style={{
+            background:
+              'conic-gradient(from 0deg, rgba(196,255,77,0) 0%, rgba(196,255,77,0.3) 25%, rgba(196,255,77,0) 50%, rgba(124,58,237,0.25) 75%, rgba(196,255,77,0) 100%)',
+            filter: 'blur(24px)',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
+        />
+
+        {/* Layer 2 — pulsing concentric rings */}
+        <motion.span
+          aria-hidden
+          className="absolute inset-0 rounded-full border border-birik/30"
+          animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0, 0.5] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.span
+          aria-hidden
+          className="absolute inset-0 rounded-full border border-birik/20"
+          animate={{ scale: [1, 1.32, 1], opacity: [0.35, 0, 0.35] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: 1.1 }}
+        />
+
+        {/* Layer 3 — outer lime shell (atmosphere) */}
+        <motion.div
+          className="absolute inset-0 rounded-full bg-birik shadow-[0_0_100px_rgba(196,255,77,0.5)]"
+          animate={{ scale: [1, 1.025, 1] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          {/* Layer 4 — ink core. 6% inset = thick enough to read as a ring. */}
+          <div className="absolute inset-[7%] rounded-full bg-gradient-to-br from-ink via-mist to-fog">
+            {/* Inner highlight — faint top-left sheen like a planet */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-birik/15 via-transparent to-transparent" />
+
+            {/* Layer 5 — logo mark, lime on ink. Responsive size: smaller
+                on mobile orb (240px) so the mark breathes inside the core. */}
+            <div className="absolute inset-0 grid place-items-center text-birik md:hidden">
+              <Logo size={86} variant="hero" />
+            </div>
+            <div className="absolute inset-0 hidden md:grid md:place-items-center text-birik">
+              <Logo size={120} variant="hero" />
+            </div>
+
+            {/* Tiny orbit dot — a satellite circling the core, reinforces
+                the "orbital" mental model. */}
+            <motion.div
+              aria-hidden
+              className="absolute inset-0"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+            >
+              <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-birik shadow-[0_0_12px_rgba(196,255,77,0.8)]" />
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Wordmark + tagline BELOW the orb, as the user requested */}
+      <div className="mt-7 text-center">
+        <div className="font-display text-4xl md:text-5xl leading-none tracking-[-0.04em] text-bone">
+          birik
+        </div>
+        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.3em] text-birik/80">
+          10.000+ grup · hepsi burada
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+/**
+ * Testimonials — true orbital layout, 8 testimonials at compass positions.
  *
- * On small screens, the orbital layout collapses back to a single column
- * (with the orb on top) — absolute positioning disabled, vertical stack.
+ * Desktop (md+): 8 cards pinned at N / NE / E / SE / S / SW / W / NW around
+ * the central BirikOrb. Container locked to an aspect that keeps the orbit
+ * roughly circular on any viewport. Cards are sized so they don't overlap
+ * the orb at typical desktop widths.
+ *
+ * Mobile: orbital absolute positioning is disabled (md: prefix only);
+ * everything falls back to a simple column stack — orb first, cards below.
  */
 function Testimonials() {
   const items: Testimonial[] = [
-    { quote: 'Erasmus grubunda 7 kişiydik. Her akşam hesap tutmaktan yorulmuştuk. Birik ile 5 dakikada tüm borçlar kapandı.', name: 'Deniz A.', role: 'Üniversite öğrencisi', city: 'İstanbul', accent: 'bg-birik text-ink', initial: 'D' },
-    { quote: 'Remote ekip olarak farklı ülkelerdeyiz. Freelancer ödemeleri ve ekip etkinlikleri — hepsi Stellar üzerinde. Banka gerek kalmadı.', name: 'Mert K.', role: 'Remote dev team lead', city: 'İzmir', accent: 'bg-plum text-cream', initial: 'M' },
-    { quote: 'Ev arkadaşlarıyla kirayı ve faturaları bölüyoruz. On-chain olması hiç tartışma çıkarmıyor — kayıt net.', name: 'Ayşe G.', role: 'Kiralık evde 3 kişi', city: 'Ankara', accent: 'bg-heat text-ink', initial: 'A' },
-    { quote: 'Ofis öğle yemeği klubü olarak kuruldu, şimdi haftada iki etkinlik organize ediyoruz. Her hesap Birik\'te.', name: 'Burak Y.', role: 'Office lunch club', city: 'Bursa', accent: 'bg-fog text-bone border border-birik/40', initial: 'B' },
-    { quote: '10 kişilik tatil grubu. QR ile 30 saniyede katıldılar — kimsenin ilk başta Birik\'i kurmasına bile gerek kalmadı.', name: 'Selin Ö.', role: 'Tatil organizatörü', city: 'Antalya', accent: 'bg-cream text-ink', initial: 'S' },
-    // Added to fill the orbital layout (6 cards around the central orb).
-    { quote: 'Düğün organizasyonunda 12 kişiydik. Ekstraları herkes tek tek hesaplamak yerine tek bir Birik grubuna topladık, settle bir dakika sürdü.', name: 'Ece T.', role: 'Gelin', city: 'Muğla', accent: 'bg-fog text-bone border border-plum/40', initial: 'E' },
+    // N (top)
+    { quote: 'Erasmus grubunda 7 kişiydik. Her akşam hesap tutmaktan yorulmuştuk. Birik ile 5 dakikada tüm borçlar kapandı.',
+      name: 'Deniz A.', role: 'Üniversite öğrencisi', city: 'İstanbul',
+      accent: 'bg-birik text-ink', initial: 'D' },
+    // NE
+    { quote: 'Remote ekip olarak farklı ülkelerdeyiz. Freelancer ödemeleri ve ekip etkinlikleri — hepsi Stellar üzerinde. Banka gerek kalmadı.',
+      name: 'Mert K.', role: 'Remote dev team lead', city: 'İzmir',
+      accent: 'bg-plum text-cream', initial: 'M' },
+    // E (right)
+    { quote: 'Ofis öğle yemeği klubü olarak kuruldu, şimdi haftada iki etkinlik organize ediyoruz. Her hesap Birik\'te.',
+      name: 'Burak Y.', role: 'Office lunch club', city: 'Bursa',
+      accent: 'bg-fog text-bone border border-birik/40', initial: 'B' },
+    // SE
+    { quote: 'Düğün organizasyonunda 12 kişiydik. Ekstraları herkes tek tek hesaplamak yerine tek Birik grubunda topladık, settle bir dakika sürdü.',
+      name: 'Ece T.', role: 'Gelin', city: 'Muğla',
+      accent: 'bg-fog text-bone border border-plum/40', initial: 'E' },
+    // S (bottom)
+    { quote: '10 kişilik tatil grubu. QR ile 30 saniyede katıldılar — kimsenin ilk başta Birik\'i kurmasına bile gerek kalmadı.',
+      name: 'Selin Ö.', role: 'Tatil organizatörü', city: 'Antalya',
+      accent: 'bg-cream text-ink', initial: 'S' },
+    // SW — NEW (8th card): maç günü senaryosu
+    { quote: 'Stadyum maçına 20 kişilik grupla gidiyoruz. Bilet + yemek + transfer — eskiden excel tutardım. Şimdi Birik 10 saniyede bölüyor.',
+      name: 'Can B.', role: 'Fan club lideri', city: 'Eskişehir',
+      accent: 'bg-birik/90 text-ink', initial: 'C' },
+    // W (left)
+    { quote: 'Ev arkadaşlarıyla kirayı ve faturaları bölüyoruz. On-chain olması hiç tartışma çıkarmıyor — kayıt net.',
+      name: 'Ayşe G.', role: 'Kiralık evde 3 kişi', city: 'Ankara',
+      accent: 'bg-heat text-ink', initial: 'A' },
+    // NW — NEW (7th card): sürpriz/hediye senaryosu
+    { quote: 'Annemin 60. yaş günü hediyesine 15 kişi katıldı. Herkes kendi payını gönderdi, tek cüzdanda topladık, sürpriz sürpriz kaldı.',
+      name: 'Zeynep K.', role: 'Sürpriz organizatörü', city: 'Konya',
+      accent: 'bg-fog text-bone border border-heat/40', initial: 'Z' },
   ];
 
-  // Desktop orbital slot positions — 6 cards arranged around the center orb.
-  // Tailwind positional classes kept static so JIT scanner picks them up.
+  // 8 desktop slots arranged like clock positions around the center orb.
+  // Using explicit static Tailwind so the JIT compiler resolves every class.
+  // Slot order: N, NE, E, SE, S, SW, W, NW — matches items[] above.
   const slots = [
-    'md:absolute md:top-[4%]    md:left-[4%]    md:w-[280px]', // TL
-    'md:absolute md:top-[4%]    md:right-[4%]   md:w-[280px]', // TR
-    'md:absolute md:top-[46%]   md:left-[0%]    md:w-[260px] md:-translate-y-1/2', // L
-    'md:absolute md:top-[46%]   md:right-[0%]   md:w-[260px] md:-translate-y-1/2', // R
-    'md:absolute md:bottom-[4%] md:left-[10%]   md:w-[280px]', // BL
-    'md:absolute md:bottom-[4%] md:right-[10%]  md:w-[280px]', // BR
+    // N  (top, centered)
+    'md:absolute md:top-[0%]     md:left-1/2 md:-translate-x-1/2 md:w-[260px]',
+    // NE (upper right)
+    'md:absolute md:top-[14%]    md:right-[2%]                       md:w-[240px]',
+    // E  (right, centered vertically)
+    'md:absolute md:top-1/2      md:right-[0%]  md:-translate-y-1/2  md:w-[240px]',
+    // SE (lower right)
+    'md:absolute md:bottom-[14%] md:right-[2%]                       md:w-[240px]',
+    // S  (bottom, centered)
+    'md:absolute md:bottom-[0%]  md:left-1/2 md:-translate-x-1/2    md:w-[260px]',
+    // SW (lower left)
+    'md:absolute md:bottom-[14%] md:left-[2%]                        md:w-[240px]',
+    // W  (left, centered vertically)
+    'md:absolute md:top-1/2      md:left-[0%]   md:-translate-y-1/2  md:w-[240px]',
+    // NW (upper left)
+    'md:absolute md:top-[14%]    md:left-[2%]                        md:w-[240px]',
   ];
 
   return (
@@ -974,63 +1103,33 @@ function Testimonials() {
         </Reveal>
       </div>
 
-      {/* Orbital container — relative positioning anchor.
-          Mobile: simple column layout. Desktop (md+): absolute positioning. */}
-      <div className="relative mt-20 md:mt-24 flex flex-col gap-6 md:block md:min-h-[860px]">
-        {/* Central BİRİK orb */}
-        <Reveal direction="none" duration={0.9}>
-          <div className="relative mx-auto flex h-[220px] w-[220px] md:h-[280px] md:w-[280px] md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 items-center justify-center">
-            {/* Orbit rings (decorative, pulse) */}
-            <motion.span
-              aria-hidden
-              className="absolute inset-0 rounded-full border border-birik/30"
-              animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0, 0.4] }}
-              transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.span
-              aria-hidden
-              className="absolute inset-0 rounded-full border border-birik/20"
-              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
-              transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-            />
+      {/* Orbital container.
+          Desktop: min-h ~1100px to give the 8 cards + orb breathing room.
+          Mobile: flex column stack, no absolute positioning. */}
+      <div className="relative mt-20 md:mt-24 flex flex-col gap-6 md:block md:min-h-[1100px]">
+        <BirikOrb />
 
-            {/* Orb body — gradient lime → ink core with BİRİK wordmark */}
-            <motion.div
-              className="relative grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-birik via-birik/80 to-birik/40 text-ink shadow-[0_0_80px_rgba(196,255,77,0.4)]"
-              animate={{ scale: [1, 1.03, 1] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <div className="absolute inset-[6px] rounded-full bg-gradient-to-br from-birik to-birik/70" />
-              <div className="relative text-center">
-                <div className="font-display text-5xl md:text-6xl leading-none tracking-tight">birik</div>
-                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.25em] opacity-70">10K+ grup</div>
-              </div>
-            </motion.div>
-          </div>
-        </Reveal>
-
-        {/* Testimonial cards — orbital positions on desktop, stacked on mobile */}
         {items.map((t, i) => (
           <Reveal
             key={t.name}
-            amount={0.25}
+            amount={0.2}
             duration={0.7}
-            distance={24}
-            delay={i * 0.08}
-            className={`${slots[i] ?? ''}`}
+            distance={18}
+            delay={0.15 + i * 0.06}
+            className={slots[i] ?? ''}
           >
-            <div className={`rounded-brick p-6 md:p-7 ${t.accent}`}>
-              <svg viewBox="0 0 24 24" fill="currentColor" className="mb-4 h-7 w-7 opacity-40">
+            <div className={`rounded-brick p-5 md:p-6 ${t.accent}`}>
+              <svg viewBox="0 0 24 24" fill="currentColor" className="mb-3 h-6 w-6 opacity-40">
                 <path d="M7 11H4c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zm9 0h-3c0-4.4 2.6-7 7-7v3c-2.8 0-4 1.4-4 4zM4 13v8h8v-8H4zm12 0v8h8v-8h-8z" />
               </svg>
-              <p className="text-[15px] leading-snug md:text-base">"{t.quote}"</p>
-              <div className="mt-5 flex items-center gap-3">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-ink/10 font-display text-base">
+              <p className="text-[13px] md:text-sm leading-snug">"{t.quote}"</p>
+              <div className="mt-4 flex items-center gap-2.5">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-ink/10 font-display text-sm">
                   {t.initial}
                 </div>
-                <div>
-                  <div className="text-sm font-medium">{t.name}</div>
-                  <div className="text-[11px] opacity-70">{t.role} · {t.city}</div>
+                <div className="min-w-0">
+                  <div className="truncate text-xs font-medium">{t.name}</div>
+                  <div className="truncate text-[10px] opacity-70">{t.role} · {t.city}</div>
                 </div>
               </div>
             </div>
