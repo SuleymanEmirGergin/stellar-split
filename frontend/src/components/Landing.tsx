@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import Reveal, { Stagger, StaggerItem } from './landing/Reveal';
+import SectionGlow from './landing/SectionGlow';
 
 /**
  * Birik landing page — marketing surface for the group expense product.
@@ -155,6 +156,14 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
           </motion.div>
         </div>
       </div>
+
+      {/* Fade-out to black — softens the transition from Hero's dramatic
+          ambient (green + plum blobs) into the next section, so the
+          brand-aesthetic → content boundary doesn't feel like a hard cut. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent via-ink/50 to-ink"
+      />
     </section>
   );
 }
@@ -360,6 +369,9 @@ function Pillars() {
 
   return (
     <section id="ozellikler" className="section-birik">
+      {/* Subtle lime ambient — echoes hero, ~25% intensity */}
+      <SectionGlow tone="birik" corner="tr" size={420} opacity="8" />
+
       <Reveal className="max-w-3xl">
         <span className="chip-birik mb-6">Nasıl çalışır</span>
         <h2 className="display text-huge">Ekle. Böl. <br /><span className="text-birik">Settle.</span></h2>
@@ -418,6 +430,9 @@ function Features() {
 
   return (
     <section className="section-birik">
+      {/* Subtle plum ambient — pairs with the Birik Kart purple section that follows */}
+      <SectionGlow tone="plum" corner="bl" size={480} opacity="10" />
+
       <div className="flex flex-col items-end gap-8 md:flex-row md:justify-between">
         <Reveal className="max-w-2xl">
           <span className="chip-birik mb-6">Birik ne sunuyor</span>
@@ -648,6 +663,9 @@ function Trust() {
 
   return (
     <section className="section-birik border-t border-edge">
+      {/* Subtle lime ambient — "security" reads confident when it echoes the brand lime */}
+      <SectionGlow tone="birik" corner="br" size={440} opacity="8" />
+
       <Reveal className="max-w-3xl">
         <span className="chip-birik mb-6">Güvenlik</span>
         <h2 className="display text-huge">
