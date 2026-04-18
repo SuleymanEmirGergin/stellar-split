@@ -1,5 +1,5 @@
 /**
- * StellarSplit Backend API client.
+ * Birik Backend API client.
  *
  * - Base URL: VITE_API_URL (defaults to http://localhost:3001)
  * - Auth: Bearer JWT (access token) + HttpOnly refresh cookie
@@ -156,6 +156,12 @@ export const groupsApi = {
     api.get<{ data: BackendGroupDetail }>(`/groups/${groupId}`),
   create: (name: string, currency: 'XLM' | 'USDC', members?: string[]) =>
     api.post<{ data: BackendGroup }>('/groups', { name, currency, members }),
+  /** Update group metadata (name, currency). Creator-only on the backend. */
+  update: (groupId: string, updates: Partial<Pick<BackendGroup, 'name' | 'currency'>>) =>
+    api.patch<{ data: BackendGroup }>(`/groups/${groupId}`, updates),
+  /** Permanently delete a group. Creator-only; different from `leave`. */
+  remove: (groupId: string) =>
+    api.delete<void>(`/groups/${groupId}`),
   join: (groupId: string, inviteCode?: string) =>
     api.post<{ data: unknown }>(`/groups/${groupId}/join`, { inviteCode }),
   leave: (groupId: string) =>
@@ -427,9 +433,6 @@ export const paymentRequestsApi = {
     dueDate?: string;
   }) => api.post<BackendPaymentRequest>('/payment-requests', payload),
 
-  listByGroup: (groupId: string) =>
-    api.get<BackendPaymentRequest[]>(`/payment-requests?groupId=${encodeURIComponent(groupId)}`),
-
   listReceived: () =>
     api.get<BackendPaymentRequest[]>('/payment-requests/received'),
 
@@ -477,9 +480,6 @@ export const savingsApi = {
   listByGroup: (groupId: string) =>
     api.get<BackendSavingsPool[]>(`/savings?groupId=${encodeURIComponent(groupId)}`),
 
-  getOne: (id: string) =>
-    api.get<BackendSavingsPool>(`/savings/${id}`),
-
   contribute: (id: string, amount: number, note?: string) =>
     api.post<{ contribution: unknown; goalReached: boolean }>(`/savings/${id}/contribute`, { amount, note }),
 
@@ -489,7 +489,15 @@ export const savingsApi = {
 
 // ─── Users / GDPR endpoints ───────────────────────────────────────────────────
 
+export interface BackendUser {
+  id: string;
+  walletAddress: string;
+  reputationScore: number;
+}
+
 export const usersApi = {
+  /** Fetch the current authenticated user's profile (from JWT). */
+  me: () => api.get<{ data: BackendUser }>('/users/me'),
   deleteAccount: () => api.delete<void>('/users/me'),
 };
 
@@ -506,12 +514,27 @@ export async function downloadGdprExport(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `stellarsplit-export-${Date.now()}.json`;
+  a.download = `birik-export-${Date.now()}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ─── Referral endpoints ──────────────────────────────────────────────────────
+
+export interface BackendReferral {
+  code: string;
+  referralCount: number;
+  totalEarnings: number;
+  tier: 'Starter' | 'Pro' | 'Influencer';
+  history: Array<{ friend: string; joinedAt: number; reward: number }>;
+}
+
+export const referralApi = {
+  me: () => api.get<BackendReferral>('/referral/me'),
+  claim: (code: string) => api.post<unknown>('/referral/claim', { code }),
+};
 
 // ─── Guardians endpoints ──────────────────────────────────────────────────────
 

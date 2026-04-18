@@ -1,4 +1,4 @@
-import { getAccessToken } from './api';
+import { referralApi } from './api';
 
 export interface ReferralRecord {
   code: string;
@@ -15,45 +15,13 @@ export interface ReferralRecord {
 }
 
 // ─── Backend API ──────────────────────────────────────────────────────────────
-
-const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
-
-async function apiGet<T>(path: string): Promise<T> {
-  const token = getAccessToken();
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res.json() as Promise<T>;
-}
-
-async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const token = getAccessToken();
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res.json() as Promise<T>;
-}
-
-interface BackendReferral {
-  code: string;
-  referralCount: number;
-  totalEarnings: number;
-  tier: 'Starter' | 'Pro' | 'Influencer';
-  history: Array<{ friend: string; joinedAt: number; reward: number }>;
-}
+// Uses the centralized `api` client (VITE_API_URL, shared JWT + silent refresh).
+// Previously had its own fetch wrappers pointing at VITE_BACKEND_URL — that was
+// legacy when referral lived in a separate service. Now consolidated.
 
 /** Fetch referral data from backend. Throws if not authenticated. */
 export async function fetchReferralData(): Promise<ReferralRecord> {
-  const data = await apiGet<BackendReferral>('/referral/me');
+  const data = await referralApi.me();
   return {
     code: data.code,
     invitedBy: '',
@@ -68,7 +36,7 @@ export async function fetchReferralData(): Promise<ReferralRecord> {
 /** Claim a referral code against the backend */
 export async function claimReferralCode(code: string): Promise<boolean> {
   try {
-    await apiPost('/referral/claim', { code });
+    await referralApi.claim(code);
     return true;
   } catch {
     return false;

@@ -21,6 +21,11 @@ import {
   Target,
   Clock,
   Settings,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  AlertTriangle,
 } from 'lucide-react';
 import { estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
 import ErrorBoundary from './ErrorBoundary';
@@ -39,6 +44,9 @@ import {
   useBackendBalances,
   useBackendAudit,
   useSettlementPlan,
+  useBackendGroup,
+  useUpdateGroupMutation,
+  useDeleteGroupMutation,
   backendGroupKeys,
 } from '../hooks/useBackendGroups';
 import { getAccessToken } from '../lib/api';
@@ -122,18 +130,125 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     ? new Map((backendBalancesRaw.data ?? []).map((b) => [b.userId, b.balance]))
     : balances;
 
-  // SSE: invalidate backend + Soroban caches on live events
+  // SSE: invalidate the caches relevant to each event type + announce with a
+  // per-event toast so users see WHAT happened (not just "group updated").
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   useGroupEvents(isDemo ? null : groupIdStr, (event) => {
     setRealtimeConnected(true);
-    queryClient.invalidateQueries({ queryKey: backendGroupKeys.expenses(groupIdStr) });
-    queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
-    queryClient.invalidateQueries({ queryKey: backendGroupKeys.detail(groupIdStr) });
-    queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
-    if (event.type !== 'heartbeat') {
-      addToast(t('group.updated'), 'success');
+
+    const payload = (event.payload ?? {}) as {
+      actorName?: string;
+      actor?: string;
+      label?: string;
+      amount?: number;
+      currency?: string;
+    };
+    const actor =
+      payload.actorName ??
+      (typeof payload.actor === 'string' && payload.actor.length > 10
+        ? `${payload.actor.slice(0, 4)}…${payload.actor.slice(-4)}`
+        : payload.actor);
+    const amountStr =
+      payload.amount != null ? ` (${payload.amount} ${payload.currency ?? 'XLM'})` : '';
+    const labelStr = payload.label ? `: ${payload.label}` : '';
+
+    switch (event.type) {
+      case 'expense:added':
+      case 'expense:cancelled':
+      case 'recurring:triggered': {
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.expenses(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.settlementPlan(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.audit(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.analytics(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
+        if (event.type === 'recurring:triggered') {
+          queryClient.invalidateQueries({ queryKey: backendGroupKeys.recurring(groupIdStr) });
+          addToast(`Otomatik harcama eklendi${labelStr}${amountStr}`, 'info');
+        } else if (event.type === 'expense:cancelled') {
+          addToast(`${actor ?? 'Bir üye'} harcamayı iptal etti${labelStr}`, 'info');
+        } else {
+          addToast(`${actor ?? 'Bir üye'} harcama ekledi${labelStr}${amountStr}`, 'info');
+        }
+        break;
+      }
+      case 'settlement:confirmed':
+      case 'settlement:failed': {
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.settlements(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.settlementPlan(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.audit(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
+        if (event.type === 'settlement:confirmed') {
+          addToast(`Settle onaylandı${amountStr} · Stellar'da kapandı`, 'success');
+        } else {
+          addToast(`Settle başarısız${labelStr}`, 'error');
+        }
+        break;
+      }
+      case 'member:joined':
+      case 'member:left': {
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.detail(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: backendGroupKeys.audit(groupIdStr) });
+        queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
+        addToast(
+          event.type === 'member:joined'
+            ? `${actor ?? 'Yeni bir üye'} gruba katıldı`
+            : `${actor ?? 'Bir üye'} gruptan ayrıldı`,
+          event.type === 'member:joined' ? 'success' : 'info',
+        );
+        break;
+      }
+      case 'heartbeat':
+        // no-op — keeps the connection alive; no toast, no invalidation
+        break;
     }
   });
+
+  // ── Group edit / delete (creator-only) ──────────────────────────────────
+  const { data: backendGroupRes } = useBackendGroup(hasJwt ? groupIdStr : null);
+  const backendGroup = backendGroupRes?.data;
+  const isCreator =
+    !!backendGroup && !!walletAddress && backendGroup.creator.walletAddress === walletAddress;
+  const updateGroupMutation = useUpdateGroupMutation(groupIdStr);
+  const deleteGroupMutation = useDeleteGroupMutation(groupIdStr);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleRenameStart = () => {
+    setNameDraft(backendGroup?.name ?? group?.name ?? '');
+    setIsEditingName(true);
+  };
+  const handleRenameSave = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === backendGroup?.name) {
+      setIsEditingName(false);
+      return;
+    }
+    try {
+      await updateGroupMutation.mutateAsync({ name: trimmed });
+      addToast('Grup adı güncellendi', 'success');
+      setIsEditingName(false);
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Güncelleme başarısız', 'error');
+    }
+  };
+  const handleRenameCancel = () => {
+    setIsEditingName(false);
+    setNameDraft('');
+  };
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteGroupMutation.mutateAsync();
+      addToast('Grup silindi', 'success');
+      setShowDeleteConfirm(false);
+      onBack();
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Silme başarısız', 'error');
+    }
+  };
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [contacts] = useState<Record<string, string>>(() => addressBook.getAll());
 
@@ -460,7 +575,56 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-black tracking-tighter">{group.name}</h2>
+              {isEditingName ? (
+                <form
+                  onSubmit={(e) => { e.preventDefault(); void handleRenameSave(); }}
+                  className="flex items-center gap-1.5"
+                >
+                  <input
+                    autoFocus
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') handleRenameCancel(); }}
+                    className="text-2xl font-black tracking-tighter bg-transparent border-b-2 border-primary outline-none px-1 py-0.5 min-w-[160px] max-w-[320px]"
+                    aria-label="Grup adı"
+                    maxLength={64}
+                  />
+                  <button
+                    type="submit"
+                    disabled={updateGroupMutation.isPending}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-all"
+                    aria-label="Kaydet"
+                    title="Kaydet"
+                  >
+                    <Check size={16} strokeWidth={3} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRenameCancel}
+                    disabled={updateGroupMutation.isPending}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
+                    aria-label="İptal"
+                    title="İptal (Esc)"
+                  >
+                    <X size={16} />
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-black tracking-tighter">{group.name}</h2>
+                  {isCreator && (
+                    <button
+                      type="button"
+                      onClick={handleRenameStart}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/60 hover:text-primary hover:bg-white/5 transition-all"
+                      aria-label="Grubu düzenle"
+                      title="Grup adını düzenle"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  )}
+                </>
+              )}
               {realtimeConnected && (
                 <span className="flex items-center gap-1 text-[9px] font-black text-emerald-400 uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -482,6 +646,17 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         </div>
         <div className="flex items-center gap-2">
           <NotificationCenter />
+          {isCreator && (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 hover:border-rose-500/40 transition-all"
+              aria-label="Grubu sil"
+              title="Grubu sil"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
           <button
             type="button"
             onClick={async () => {
@@ -1223,6 +1398,55 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           </div>
         );
       })()}
+
+      {/* ── Delete group confirmation modal (creator-only) ── */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => !deleteGroupMutation.isPending && setShowDeleteConfirm(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-group-title"
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-rose-500/30 bg-card p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} className="text-rose-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 id="delete-group-title" className="font-black text-lg">Grubu sil?</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  <span className="font-bold text-foreground">{group.name}</span> grubu
+                  ve içindeki tüm harcama, ödeme ve mesaj geçmişi kalıcı olarak silinecek.
+                  <span className="block mt-1 text-rose-400/90 font-bold">Bu işlem geri alınamaz.</span>
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleteGroupMutation.isPending}
+                className="px-4 py-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground hover:bg-white/10 font-bold text-sm transition-all disabled:opacity-50"
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleteGroupMutation.isPending}
+                className="px-4 py-2 rounded-xl bg-rose-500 text-white hover:bg-rose-400 font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                <Trash2 size={14} />
+                {deleteGroupMutation.isPending ? 'Siliniyor…' : 'Evet, sil'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
