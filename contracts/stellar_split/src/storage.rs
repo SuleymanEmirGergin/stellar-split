@@ -216,6 +216,9 @@ pub fn get_savings_pool(env: &Env, group_id: u64) -> Option<SavingsPool> {
     result
 }
 
+// Reserved for a future "cancel savings pool" contract entrypoint; kept so the
+// storage API surface stays symmetrical with `set_savings_pool` / `get_savings_pool`.
+#[allow(dead_code)]
 pub fn remove_savings_pool(env: &Env, group_id: u64) {
     let key = DataKey::SavingsPool(group_id);
     env.storage().persistent().remove(&key);
