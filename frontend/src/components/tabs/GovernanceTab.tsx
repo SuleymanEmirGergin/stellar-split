@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Users, Plus, AlertTriangle } from 'lucide-react';
 import { type Group } from '../../lib/contract';
 import { type Proposal, type Dispute, type DisputeVoteOption, calculateProposalMetrics } from '../../lib/governance';
+import EmptyState from '../EmptyState';
 import type { TranslationKey } from '../../lib/i18n';
 
 interface GovernanceTabProps {
@@ -81,21 +82,13 @@ export default function GovernanceTab({
         </div>
 
         {proposals.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="py-20 text-center bg-secondary/20 rounded-[32px] border border-dashed border-white/5 relative group overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <motion.div
-              animate={{ y: [0, -8, 0], scale: [1, 1.05, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Users className="w-16 h-16 mx-auto text-indigo-500/20 mb-6" />
-            </motion.div>
-            <p className="text-lg font-black text-white/90 tracking-tight">{t('group.governance_empty')}</p>
-            <p className="text-sm font-bold text-muted-foreground mt-2 max-w-[250px] mx-auto leading-relaxed">{t('group.governance_empty_desc')}</p>
-          </motion.div>
+          <EmptyState
+            icon={Users}
+            title={t('group.governance_empty')}
+            description={t('group.governance_empty_desc')}
+            tone="indigo"
+            variant="pulse"
+          />
         )}
 
         <div className="space-y-4">
@@ -165,10 +158,13 @@ export default function GovernanceTab({
         </div>
 
         {disputes.length === 0 ? (
-          <div className="py-10 text-center bg-secondary/20 rounded-[32px] border border-dashed border-white/5">
-            <AlertTriangle className="w-10 h-10 mx-auto text-amber-500/20 mb-3" />
-            <p className="text-sm font-bold text-muted-foreground">{t('group.disputes_empty')}</p>
-          </div>
+          <EmptyState
+            icon={AlertTriangle}
+            title={t('group.disputes_empty')}
+            tone="amber"
+            variant="float"
+            size="sm"
+          />
         ) : (
           <div className="space-y-3">
             {disputes.map(d => {

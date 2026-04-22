@@ -36,10 +36,11 @@ describe('DeFiTab', () => {
     vi.mocked(useDonateVaultMutation).mockReturnValue(makeMutation() as never);
   });
 
-  it('isLoading=true iken loading mesajı görünür', () => {
+  it('isLoading=true iken skeleton gösterir', () => {
     vi.mocked(useVault).mockReturnValue({ data: undefined, isLoading: true } as never);
-    render(<DeFiTab {...baseProps} />);
-    expect(screen.getByText('group.defi_loading')).toBeInTheDocument();
+    const { container } = render(<DeFiTab {...baseProps} />);
+    // TabSkeleton renders a wrapper with aria-busy="true" and SkeletonShimmer rows
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
   });
 
   it('vault=null iken not_found mesajı görünür', () => {

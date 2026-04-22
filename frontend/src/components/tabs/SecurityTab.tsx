@@ -13,6 +13,7 @@ import {
   useRejectRecoveryMutation,
 } from '../../hooks/useBackendGroups';
 import { truncateAddress } from '../../lib/stellar';
+import { TabSkeleton } from '../ui/TabSkeleton';
 import type { TranslationKey } from '../../lib/i18n';
 
 interface PendingRecovery {
@@ -347,11 +348,7 @@ export default function SecurityTab({
 
           {/* Guardian list */}
           {loadingBackendGuardians ? (
-            <div className="space-y-2">
-              {[0, 1].map(i => (
-                <div key={i} className="h-9 bg-white/5 rounded-xl animate-pulse" />
-              ))}
-            </div>
+            <TabSkeleton rows={2} rowHeight={9} rounded="xl" />
           ) : backendGuardians.length === 0 ? (
             <p className="text-[11px] text-muted-foreground">{t('group.recovery_no_guardians')}</p>
           ) : (
@@ -458,9 +455,7 @@ export default function SecurityTab({
 
               {/* Pending requests where I am guardian */}
               {loadingRecoveryRequests ? (
-                <div className="space-y-2">
-                  {[0, 1].map(i => <div key={i} className="h-14 bg-white/5 rounded-xl animate-pulse" />)}
-                </div>
+                <TabSkeleton rows={2} rowHeight={14} rounded="xl" />
               ) : pendingRecoveryRequests.length === 0 ? (
                 <p className="text-[11px] text-muted-foreground">—</p>
               ) : (

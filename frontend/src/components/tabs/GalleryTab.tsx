@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Image } from 'lucide-react';
 import { type Expense } from '../../lib/contract';
 import { formatStroopsWithUsd } from '../../lib/xlmPrice';
+import EmptyState from '../EmptyState';
 import type { TranslationKey } from '../../lib/i18n';
 
 interface GalleryTabProps {
@@ -33,21 +34,13 @@ export default function GalleryTab({
       </div>
 
       {images.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="py-20 text-center bg-secondary/20 rounded-[32px] border border-dashed border-white/5 overflow-hidden relative group"
-        >
-          <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <Image className="w-16 h-16 mx-auto text-indigo-500/20 mb-6 drop-shadow-2xl" />
-          </motion.div>
-          <p className="text-lg font-black text-white/90 tracking-tight">{t('group.gallery_empty')}</p>
-          <p className="text-sm font-bold text-muted-foreground mt-2 max-w-[250px] mx-auto leading-relaxed">{t('group.gallery_empty_hint')}</p>
-        </motion.div>
+        <EmptyState
+          icon={Image}
+          title={t('group.gallery_empty')}
+          description={t('group.gallery_empty_hint')}
+          tone="indigo"
+          variant="float"
+        />
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {images.reverse().map((exp) => (

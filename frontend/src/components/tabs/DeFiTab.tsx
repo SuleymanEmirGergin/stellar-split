@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
-import { Shield } from 'lucide-react';
+import { Shield, Vault } from 'lucide-react';
 import { useVault } from '../../hooks/useGroupQuery';
 import { useStakeVaultMutation, useWithdrawVaultMutation, useDonateVaultMutation } from '../../hooks/useExpenseMutations';
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
+import EmptyState from '../EmptyState';
+import { TabSkeleton } from '../ui/TabSkeleton';
 import type { TranslationKey } from '../../lib/i18n';
 
 interface DeFiTabProps {
@@ -39,10 +41,17 @@ export default function DeFiTab({
 
   // Ensure vault is not null before accessing its properties
   if (isLoading) {
-    return <div className="text-center p-8 opacity-50">{t('group.defi_loading')}</div>;
+    return <TabSkeleton rows={4} rowHeight={16} rounded="2xl" />;
   }
   if (!vault) {
-    return <div className="text-center p-8 opacity-50">{t('group.defi_not_found')}</div>;
+    return (
+      <EmptyState
+        icon={Vault}
+        title={t('group.defi_not_found')}
+        tone="indigo"
+        variant="pulse"
+      />
+    );
   }
 
   const handleStake = async () => {

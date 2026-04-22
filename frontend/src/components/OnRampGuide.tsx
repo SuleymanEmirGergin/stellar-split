@@ -130,23 +130,50 @@ export default function OnRampGuide({ walletAddress: walletProp }: Props) {
                 ))}
               </div>
 
-              {/* Exchange links */}
-              <div className="space-y-1.5">
+              {/* Exchange links — brand-tinted letter avatars; flag stays
+                  as a small regional indicator on the avatar. */}
+              <div className="space-y-2">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t('onramp.exchanges')}</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {EXCHANGE_LINKS.map((ex) => (
-                    <a
-                      key={ex.name}
-                      href={ex.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 p-2 bg-white/[0.03] border border-white/[0.07] rounded-xl hover:bg-white/[0.06] hover:border-white/10 transition-all group"
-                    >
-                      <span className="text-sm">{ex.flag}</span>
-                      <span className="text-[10px] font-bold text-muted-foreground group-hover:text-white transition-colors truncate">{ex.name}</span>
-                      <ExternalLink size={10} className="text-muted-foreground/50 shrink-0 ml-auto" />
-                    </a>
-                  ))}
+                  {EXCHANGE_LINKS.map((ex) => {
+                    // Strip suffixes like " (XLM)" / " (TR)" for the avatar letter
+                    const base = ex.name.split(' (')[0];
+                    const letter = base.charAt(0).toUpperCase();
+                    // Brand-tinted per exchange (approximate, tasteful — not a logo claim)
+                    const brand: Record<string, { bg: string; ring: string; text: string }> = {
+                      M: { bg: 'bg-rose-500/15',   ring: 'border-rose-500/30',   text: 'text-rose-300' },    // MoneyGram
+                      B: { bg: 'bg-amber-500/15',  ring: 'border-amber-500/30',  text: 'text-amber-300' },   // Binance / BTCTurk
+                      C: { bg: 'bg-sky-500/15',    ring: 'border-sky-500/30',    text: 'text-sky-300' },     // Coinbase
+                      K: { bg: 'bg-purple-500/15', ring: 'border-purple-500/30', text: 'text-purple-300' },  // Kraken
+                      P: { bg: 'bg-orange-500/15', ring: 'border-orange-500/30', text: 'text-orange-300' },  // Paribu
+                    };
+                    const b = brand[letter] ?? { bg: 'bg-white/[0.05]', ring: 'border-white/10', text: 'text-foreground/80' };
+                    return (
+                      <a
+                        key={ex.name}
+                        href={ex.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="relative flex items-center gap-2.5 p-2.5 bg-white/[0.03] border border-white/[0.07] rounded-xl hover:bg-white/[0.06] hover:border-white/15 hover:-translate-y-px transition-all group"
+                      >
+                        {/* Letter avatar */}
+                        <div className={`relative w-8 h-8 shrink-0 rounded-lg ${b.bg} border ${b.ring} flex items-center justify-center font-black text-xs ${b.text}`}>
+                          {letter}
+                          <span
+                            aria-hidden
+                            className="absolute -bottom-1 -right-1 text-[9px] leading-none bg-card border border-white/10 rounded-full w-4 h-4 flex items-center justify-center"
+                          >
+                            {ex.flag}
+                          </span>
+                        </div>
+                        {/* Name */}
+                        <span className="text-[11px] font-bold text-foreground/80 group-hover:text-foreground transition-colors truncate min-w-0">
+                          {base}
+                        </span>
+                        <ExternalLink size={11} className="text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 ml-auto transition-colors" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
 
