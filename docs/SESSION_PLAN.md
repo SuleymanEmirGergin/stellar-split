@@ -65,7 +65,7 @@ Progress işareti:
 - **Süre:** ~2 saat
 - **Conflict:** Sadece LandingPage.tsx — Session 6-7 ile çakışmaz
 
-### Session 6 — Lighthouse + PWA Polish (Tasks 7 + 13) `[ ]`
+### Session 6 — Lighthouse + PWA Polish (Tasks 7 + 13) `[x]` — commit TBD
 - **Scope:** Performance, a11y, SEO, PWA tamamlanması
 - **Files:**
   - `frontend/index.html` (meta tags)
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 6 (Lighthouse + PWA polish) — sıra sende
+## 🎯 Şu an aktif: Session 7 (Use cases page) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,6 +205,17 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
+
+- **Session 6** (commit TBD) — Lighthouse + PWA Polish
+  - `scripts/generate-pwa-icons.mjs` + `sharp` devdep — favicon.svg'den 6 raster çıktı (icon-192/512, icon-192/512-maskable, apple-touch-icon-180, og-image 1200×630). "Brand asset değişince bir komut, bitti."
+  - `frontend/public/manifest.json` rewritten — PNG icons with explicit sizes + `purpose: any` + `purpose: maskable` variants
+  - `frontend/vite.config.ts` manifest reconciled — was "StellarSplit" (inherited from template), now "Birik" matching public/manifest.json
+  - `frontend/index.html` — `<link rel="manifest">`, 192/512 raster favicon, apple-touch-icon, og:image → og-image.png with width/height/alt, apple-mobile-web-app-* meta tags, viewport-fit=cover
+  - `frontend/src/components/InstallPrompt.tsx` — iOS Safari detection (no beforeinstallprompt fires on iOS) + step-by-step modal ("Share → Add to Home Screen → Add")
+  - `frontend/src/lib/i18n.ts` — 7 new install.* keys × 4 languages (TR/EN/DE/ES)
+  - `frontend/src/components/InstallPrompt.test.tsx` — 3 new tests (iOS banner w/o event, iOS guide modal, desktop path still uses deferred prompt)
+  - `docs/LIGHTHOUSE_REPORT.md` — run instructions + score tracking template + "what we deferred and why" section
+  - Tests: 893/893 passing (890 + 3 iOS); TS + ESLint clean; `npm run build` emits 24 precached entries + all 6 PWA rasters copied to dist/
 
 - **Session 5** (commit `be0319d`) — Landing Live Metrics
   - `frontend/src/hooks/usePublicMetrics.ts` — React Query hook, shares cache key `['analytics', 'summary']` with StatsPanel so cross-nav is instant

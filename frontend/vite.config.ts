@@ -13,22 +13,33 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.svg'],
+      includeAssets: [
+        'favicon.svg',
+        'apple-touch-icon.png',
+        'icon-192.png',
+        'icon-512.png',
+        'icon-192-maskable.png',
+        'icon-512-maskable.png',
+        'og-image.png',
+      ],
+      // Keep in sync with frontend/public/manifest.json — the public file is the
+      // source of truth for social share tooling; this entry is what vite-plugin-pwa
+      // emits into the built manifest.webmanifest so they should agree.
       manifest: {
-        name: 'StellarSplit - Social Settlements',
-        short_name: 'StellarSplit',
-        description: 'Decentralized group expense splitting and settlement app built on Stellar.',
-        theme_color: '#6366f1',
-        background_color: '#0a0a0b',
+        name: 'Birik — Hesabı bölen cüzdan',
+        short_name: 'Birik',
+        description: 'Group expense splitting on Stellar. Track → split → settle on-chain in seconds.',
+        theme_color: '#0A0A0A',
+        background_color: '#0A0A0A',
         display: 'standalone',
+        orientation: 'portrait-primary',
         icons: [
-          {
-            src: 'favicon.svg',
-            sizes: '192x192 512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
-          }
-        ]
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],

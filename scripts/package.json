@@ -1,15 +1,19 @@
 {
   "name": "birik-scripts",
   "version": "1.0.0",
-  "description": "Operational scripts — currently: Twitter/X thread auto-poster",
+  "description": "Operational scripts: Twitter/X thread auto-poster, PWA icon generator.",
   "private": true,
   "type": "module",
   "scripts": {
     "post-thread": "node post-thread.mjs",
-    "test": "node --test"
+    "icons": "node generate-pwa-icons.mjs",
+    "test": "node --test post-thread.test.mjs"
   },
   "dependencies": {
     "twitter-api-v2": "^1.18.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
   },
   "engines": {
     "node": ">=20.0.0"
