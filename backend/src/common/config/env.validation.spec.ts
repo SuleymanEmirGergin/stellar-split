@@ -72,6 +72,29 @@ describe('validateEnv()', () => {
     expect(() => validateEnv(env)).toThrow('SOROBAN_RPC_URL');
   });
 
+  it('accepts a valid SPONSOR_SECRET_KEY (56 chars, starts with S)', () => {
+    const env = { ...VALID_ENV, SPONSOR_SECRET_KEY: 'S'.padEnd(56, 'A') };
+    expect(() => validateEnv(env)).not.toThrow();
+    expect(validateEnv(env).SPONSOR_SECRET_KEY).toBe('S'.padEnd(56, 'A'));
+  });
+
+  it('treats missing SPONSOR_SECRET_KEY as valid (feature is optional)', () => {
+    const env = { ...VALID_ENV };
+    delete env['SPONSOR_SECRET_KEY'];
+    const result = validateEnv(env);
+    expect(result.SPONSOR_SECRET_KEY).toBe('');
+  });
+
+  it('throws when SPONSOR_SECRET_KEY is set but wrong length', () => {
+    const env = { ...VALID_ENV, SPONSOR_SECRET_KEY: 'SSHORT' };
+    expect(() => validateEnv(env)).toThrow('SPONSOR_SECRET_KEY');
+  });
+
+  it("throws when SPONSOR_SECRET_KEY is set but does not start with 'S'", () => {
+    const env = { ...VALID_ENV, SPONSOR_SECRET_KEY: 'G'.padEnd(56, 'A') };
+    expect(() => validateEnv(env)).toThrow('SPONSOR_SECRET_KEY');
+  });
+
   it('collects all errors in a single throw', () => {
     const env: Record<string, string> = {
       NODE_ENV: 'development',

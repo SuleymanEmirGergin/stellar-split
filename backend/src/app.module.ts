@@ -29,6 +29,7 @@ import { GovernanceModule } from './governance/governance.module';
 import { PaymentRequestsModule } from './payment-requests/payment-requests.module';
 import { ReferralModule } from './referral/referral.module';
 import { SavingsModule } from './savings/savings.module';
+import { SponsorModule } from './sponsor/sponsor.module';
 
 @Module({
   imports: [
@@ -126,6 +127,7 @@ import { SavingsModule } from './savings/savings.module';
     PaymentRequestsModule,
     ReferralModule,
     SavingsModule,
+    SponsorModule,
   ],
   providers: [
     // Apply JWT auth globally — @Public() bypasses it

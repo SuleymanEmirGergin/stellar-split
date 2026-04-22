@@ -1,5 +1,6 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IsString, IsOptional, IsObject } from 'class-validator';
 import { Public } from '../common/decorators/public.decorator';
 import { AnalyticsService } from './analytics.service';
@@ -30,5 +31,19 @@ export class AnalyticsController {
     // Intentionally not awaited — fire and forget
     void this.analyticsService.track(dto);
     return { queued: true };
+  }
+
+  @Public()
+  @Get('summary')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @ApiOperation({
+    summary: 'Aggregated public dashboard stats (totals, DAU/WAU/MAU, volume, 14-day trend)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cached for 60s. Counts are network-wide; volume is in XLM.',
+  })
+  getSummary() {
+    return this.analyticsService.getSummary();
   }
 }

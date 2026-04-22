@@ -26,10 +26,14 @@ interface SettleTabProps {
   showPayQRIndex: number | null;
   setShowPayQRIndex: (val: number | null) => void;
   settling: boolean;
-  handleSettle: () => void;
+  handleSettle: (opts?: { sponsor?: boolean }) => void;
   onRefresh?: () => Promise<void>;
   estimatedSettleFee?: EstimatedFee | null;
   t: (key: TranslationKey) => string;
+  /** When true, Birik covers the network fee via a fee-bump transaction.
+   *  Wired to the sponsor toggle in the settle button group. */
+  sponsorFee?: boolean;
+  setSponsorFee?: (v: boolean) => void;
   isOffline?: boolean;
   groupIdStr?: string;
   hasJwt?: boolean;
@@ -54,6 +58,8 @@ export default function SettleTab({
   groupIdStr,
   hasJwt = false,
   addToast,
+  sponsorFee = false,
+  setSponsorFee,
 }: SettleTabProps) {
   const [pathPayIndex, setPathPayIndex] = useState<number | null>(null);
   const [simulatingPath, setSimulatingPath] = useState(false);
@@ -206,13 +212,59 @@ export default function SettleTab({
               })()}
             </p>
           )}
+
+          {/* ── Fee sponsorship toggle (Level 6 advanced feature) ──
+              When on, the backend wraps the signed settle tx in a
+              fee-bump — the sponsor account pays the network fee.
+              Falls back silently to self-paid if the backend returns
+              503 (SPONSOR_SECRET_KEY not configured). */}
+          {setSponsorFee && (
+            <button
+              type="button"
+              onClick={() => setSponsorFee(!sponsorFee)}
+              aria-pressed={sponsorFee}
+              className={`w-full mb-3 flex items-center justify-between gap-3 rounded-2xl p-3 border transition-all ${
+                sponsorFee
+                  ? 'bg-gradient-to-r from-birik/15 to-birik/5 border-birik/40 shadow-[0_4px_16px_-4px_rgba(196,255,77,0.3)]'
+                  : 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.05]'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center ${
+                  sponsorFee ? 'bg-birik/25 text-birik' : 'bg-white/[0.05] text-muted-foreground'
+                }`}>
+                  <Zap size={15} />
+                </span>
+                <div className="text-left min-w-0">
+                  <div className={`text-xs font-black uppercase tracking-wider ${
+                    sponsorFee ? 'text-birik' : 'text-foreground/90'
+                  }`}>
+                    Gasless — Birik ücreti ödesin
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate">
+                    {sponsorFee
+                      ? 'Fee-bump ile sponsor cüzdanı ücret ödeyecek'
+                      : 'Settle ücretini kendi cüzdanından ödemek için kapalı bırak'}
+                  </div>
+                </div>
+              </div>
+              <div className={`relative w-10 h-6 shrink-0 rounded-full transition-colors ${
+                sponsorFee ? 'bg-birik' : 'bg-white/10'
+              }`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-ink transition-all ${
+                  sponsorFee ? 'left-[18px]' : 'left-0.5'
+                }`} />
+              </div>
+            </button>
+          )}
+
           <div className="relative rounded-3xl">
             {settling && (
               <Glow intensity="subtle" color="success" className="rounded-3xl" />
             )}
-            <button 
-              onClick={handleSettle} 
-              disabled={settling || isOffline} 
+            <button
+              onClick={() => handleSettle({ sponsor: sponsorFee })}
+              disabled={settling || isOffline}
               className={`relative w-full py-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:shadow-[0_4px_24px_rgba(16,185,129,0.4)] hover:-translate-y-px transition-all active:scale-95 flex items-center justify-center gap-2 ${
                 settling
                   ? 'ring-2 ring-emerald-400/50 ring-offset-2 ring-offset-background'

@@ -308,6 +308,10 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   });
 
   const [settling, setSettling] = useState(false);
+  // Fee sponsorship opt-in for the Settle button — wired through to
+  // settleGroupMutation.mutate({ sponsor: true }). Default off so users
+  // see the honest self-paid cost by default.
+  const [sponsorFee, setSponsorFee] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showPayQRIndex, setShowPayQRIndex] = useState<number | null>(null);
@@ -467,7 +471,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
 
 
-  const handleSettle = useCallback(async () => {
+  const handleSettle = useCallback(async (opts?: { sponsor?: boolean }) => {
     if (!group) return;
     setSettling(true);
     setLastTxStatus('signing');
@@ -475,11 +479,13 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     setLastTxError(null);
     setLastFeePaid(null);
     try {
-      const result = await settleGroupMutation.mutateAsync();
+      const result = await settleGroupMutation.mutateAsync(opts);
       setLastTxStatus('confirmed');
       setLastTxHash(result.txHash ?? null);
       setLastFeePaid(
-        estimatedSettleFee ? `~${estimatedSettleFee.xlm} XLM` : null
+        opts?.sponsor
+          ? 'Sponsor tarafından ödendi (gasless)'
+          : estimatedSettleFee ? `~${estimatedSettleFee.xlm} XLM` : null,
       );
       track('group_settled');
       setShowConfetti(true);
@@ -856,7 +862,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                   onRetry={() => {
                     setLastTxStatus(null);
                     setLastTxError(null);
-                    handleSettle();
+                    handleSettle({ sponsor: sponsorFee });
                   }}
                 />
               </div>
@@ -877,6 +883,8 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             estimatedSettleFee={estimatedSettleFee}
             t={t}
             isOffline={isOffline}
+            sponsorFee={sponsorFee}
+            setSponsorFee={setSponsorFee}
           />
           </>
         )}

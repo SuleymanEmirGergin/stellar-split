@@ -33,6 +33,12 @@ _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tok
 
 ![GitHub Actions](docs/screenshots/ci-passing.png)
 
+### Metrics Dashboard — public platform stats
+
+![Platform Metrics](docs/screenshots/metrics-dashboard.png)
+
+_(Live on the Dashboard. Backed by `GET /analytics/summary` — no auth, 60s cache, 30 req/min throttle.)_
+
 ---
 
 ## ✨ Features / Özellikler
@@ -314,6 +320,66 @@ stellar contract deploy \
 | Mobile responsive        | ✅    | Tailwind `sm:`/`md:`/`lg:` + mobile-specific components (Bottom sheet, More tab)     |
 | 8+ commits               | ✅    | 85+                                                                                  |
 | Production README        | ✅    | This document — badges, live link, contract address, mobile screenshots              |
+
+</details>
+
+<details>
+<summary><b>Level 5 — Idea submission</b></summary>
+
+| Gereksinim                        | Durum | Açıklama                                                             |
+| --------------------------------- | ----- | -------------------------------------------------------------------- |
+| Idea draft                        | ✅    | [`docs/LEVEL5_IDEA_SUBMISSION.md`](docs/LEVEL5_IDEA_SUBMISSION.md) — "Multi-currency settle via path payments + auto-yield savings pool" |
+| Advanced-pattern alignment        | ✅    | Builds on existing inter-contract, custom token, savings-pool primitives |
+| Timeline                          | ✅    | 4-week plan in the doc                                               |
+| Submission-form-ready fields      | ✅    | Title, pitch, contract patterns, "why this" framing included          |
+
+</details>
+
+<details open>
+<summary><b>Level 6 — Production readiness + 30+ users + Demo Day</b></summary>
+
+| Gereksinim                        | Durum | Evidence                                                                                            |
+| --------------------------------- | ----- | --------------------------------------------------------------------------------------------------- |
+| **30+ verified active users**     | ⚠️    | [User form](https://forms.gle/oFSNuU6a9NthmfJR7) live · see **Testnet Users** section below         |
+| **Metrics dashboard live**        | ✅    | Public `/analytics/summary` endpoint + `<StatsPanel />` on Dashboard (DAU / WAU / MAU / total volume / 14-day trend) |
+| **Security checklist completed**  | ✅    | [`docs/SECURITY-CHECKLIST.md`](docs/SECURITY-CHECKLIST.md) + [`docs/SECURITY-NOTES.md`](docs/SECURITY-NOTES.md)      |
+| **Monitoring active**             | ✅    | Sentry (`backend/src/common/observability/sentry.ts`) + Prometheus `GET /metrics` + Pino structured logs + `/health/live` + `/health/ready` |
+| **Data indexing implemented**     | ✅    | `SorobanEventPollerService` (5s cron, Redis checkpoint) → Postgres → SSE stream → frontend (see `backend/src/stellar/soroban-event-poller.service.ts`) |
+| **Full documentation**            | ✅    | User guide (`docs/guide/`), architecture (`docs/architecture/`), API spec (`docs/OPEN-API-SPEC.md`), contract API (`docs/CONTRACT-API.md`), security checklist, Swagger UI at `/api/docs` |
+| **Community contribution**        | ⚠️    | Twitter post: _(pending — template in [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md))_      |
+| **Advanced feature (1+)**         | ✅    | **Two** implemented: (1) **Multi-signature Logic** via guardian-based social recovery (`set_guardians` / `initiate_recovery` / `approve_recovery` on contract + `SecurityTab.tsx` UI). (2) **Fee Sponsorship** via Stellar fee-bump (`backend/src/sponsor/*` + `SettleTab` toggle + `signAndSubmit` sponsor opt-in) |
+| **15+ commits**                   | ✅    | 100+ commits on master                                                                              |
+| **Demo Day prepared**             | ⚠️    | Script + structure in [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md) §5 — pitch deck pending |
+
+#### Advanced feature 1 — Multi-sig social recovery
+
+Contract primitives:
+```rust
+// contracts/stellar_split/src/lib.rs
+pub fn set_guardians(env: Env, user: Address, guardians: Vec<Address>, threshold: u32)
+pub fn initiate_recovery(env: Env, target: Address, new_address: Address, initiator: Address)
+pub fn approve_recovery(env: Env, target: Address, guardian: Address)  // M-of-N threshold
+```
+- Test coverage: `test_set_guardians_success.1.json`, `test_initiate_recovery_and_approve.1.json`
+- Frontend UI: [`SecurityTab.tsx`](frontend/src/components/tabs/SecurityTab.tsx) — guardian add/remove, recovery request, M-of-N approval visualization
+- Backend sync: `POST/GET /groups/:groupId/guardians`, pending recovery requests in `backend/src/guardians/`
+
+#### Advanced feature 2 — Fee sponsorship (gasless)
+
+User signs normally; backend wraps the signed inner tx as a Stellar fee-bump and pays the network fee from a sponsor account.
+
+- Backend: [`backend/src/sponsor/sponsor.service.ts`](backend/src/sponsor/sponsor.service.ts) — `wrapAsFeeBump(innerXdr)` using `@stellar/stellar-sdk` `buildFeeBumpTransaction`. Degrades to 503 when `SPONSOR_SECRET_KEY` env var is unset.
+- Endpoint: `POST /sponsor/fee-bump` — public, throttled 10 req/min
+- Frontend: Settle button has a "Gasless — Birik ücreti ödesin" toggle. When on, `settleGroup({ sponsor: true })` routes through `sponsorApi.feeBump()` before submit.
+- Demo: user with zero XLM balance can still settle a group because the fee-bump's outer fee is paid by the sponsor.
+
+#### Data indexing approach
+
+- **Source**: Soroban RPC `getEvents` — polled every 5s by `SorobanEventPollerService` with the last-processed ledger stored in Redis as a checkpoint.
+- **Topic decoding**: raw `scValToNative` → typed event shapes (`expense:added`, `settlement:confirmed`, `group:settled`, `reward:minted`, …). 18 event topics mapped.
+- **Sink**: NestJS `EventsService` fan-outs decoded events onto a per-group SSE stream (`GET /groups/:groupId/events`) + persists critical transitions to Postgres (audit log, settlement status).
+- **Frontend**: `useGroupEvents` hook subscribes via EventSource, drives live notifications + cache invalidation.
+- **Endpoint for external consumers**: SSE stream available at `https://api.stellarsplit.app/groups/:groupId/events` (JWT-gated, group-member only).
 
 </details>
 

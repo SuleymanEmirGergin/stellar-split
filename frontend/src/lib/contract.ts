@@ -202,8 +202,24 @@ function isNonExistentFunctionError(err: unknown): boolean {
   );
 }
 
+/**
+ * Options for signAndSubmit.
+ *
+ * `sponsor: true` routes the signed inner transaction through the backend
+ * `POST /sponsor/fee-bump` endpoint, wrapping it in a Stellar fee-bump tx
+ * so the sponsor account (not the user) pays the network fee. Falls back
+ * to self-paid submission if the backend returns 503 (sponsor key not
+ * configured on this deployment).
+ */
+export interface SubmitOptions {
+  sponsor?: boolean;
+}
+
 // ── Helper: Sign with Freighter and submit ──
-async function signAndSubmit(tx: StellarSdk.Transaction): Promise<rpc.Api.GetSuccessfulTransactionResponse> {
+async function signAndSubmit(
+  tx: StellarSdk.Transaction,
+  opts: SubmitOptions = {},
+): Promise<rpc.Api.GetSuccessfulTransactionResponse> {
   const { signTransaction, getNetworkDetails } = await import('@stellar/freighter-api');
 
   // ── Ağ uyumsuzluğu kontrolü ──
@@ -221,12 +237,6 @@ async function signAndSubmit(tx: StellarSdk.Transaction): Promise<rpc.Api.GetSuc
       throw err;
     }
     // Diğer durumda devam et (eski Freighter versiyonları getNetworkDetails desteklemeyebilir)
-  }
-
-  // Hackathon Wow-Factor: Gasless Tx (Sponsorlu İşlem) Simülasyonu
-  // Kullanıcıya işlem ücretinin protokol tarafından karşılandığı hissini vermek için event fırlatıyoruz.
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('stellarsplit:tx-sponsored'));
   }
 
   const signResult = await signTransaction(tx.toXDR(), {
@@ -256,12 +266,42 @@ async function signAndSubmit(tx: StellarSdk.Transaction): Promise<rpc.Api.GetSuc
     throw new Error(`İmzalama başarısız: ${errorMsg}`);
   }
 
-  const signedTx = StellarSdk.TransactionBuilder.fromXDR(
-    signResult.signedTxXdr,
-    NETWORK_PASSPHRASE
-  ) as StellarSdk.Transaction;
+  let submittedTx: StellarSdk.Transaction | StellarSdk.FeeBumpTransaction =
+    StellarSdk.TransactionBuilder.fromXDR(
+      signResult.signedTxXdr,
+      NETWORK_PASSPHRASE,
+    ) as StellarSdk.Transaction;
 
-  const sendResult = await server.sendTransaction(signedTx);
+  // ── Fee sponsorship (Level 6 advanced feature) ──
+  // If the caller opted in, ask the backend to wrap the signed inner tx
+  // as a fee-bump. The sponsor account pays the fee; the user doesn't need
+  // an XLM balance just to settle. Backend returns 503 if SPONSOR_SECRET_KEY
+  // isn't configured — in that case fall back to self-paid.
+  if (opts.sponsor) {
+    try {
+      const { sponsorApi } = await import('./api');
+      const innerXdr = signResult.signedTxXdr;
+      const resp = await sponsorApi.feeBump(innerXdr);
+      submittedTx = StellarSdk.TransactionBuilder.fromXDR(
+        resp.data.feeBumpXdr,
+        NETWORK_PASSPHRASE,
+      ) as StellarSdk.FeeBumpTransaction;
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('stellarsplit:tx-sponsored', {
+          detail: { sponsor: resp.data.sponsorAccount, network: resp.data.network },
+        }));
+      }
+    } catch (err) {
+      // 503 = sponsor not configured on this deployment → fall back silently
+      // to self-paid. Any other error → rethrow so the user sees it.
+      const msg = err instanceof Error ? err.message : String(err);
+      const is503 = /503|not configured|service unavailable/i.test(msg);
+      if (!is503) throw err;
+      // else: submittedTx stays the self-paid signed inner transaction
+    }
+  }
+
+  const sendResult = await server.sendTransaction(submittedTx);
 
   if (sendResult.status === 'ERROR') {
     throw new Error('İşlem gönderilemedi — lütfen tekrar deneyin.');
@@ -640,10 +680,18 @@ export interface SettleGroupResult {
 
 export async function settleGroup(
   callerAddress: string,
-  groupId: number
+  groupId: number,
+  opts: SubmitOptions = {},
 ): Promise<SettleGroupResult> {
   if (isDemoMode()) {
     await demoDelay(2000);
+    // In demo mode, synthesize the "sponsored" toast so the UX preview still
+    // shows the gasless badge when the user toggles it on.
+    if (opts.sponsor && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('stellarsplit:tx-sponsored', {
+        detail: { sponsor: 'GDEMO...SPONSOR', network: 'testnet' },
+      }));
+    }
     return {
       settlements: [
         { from: callerAddress, to: 'GBR3...DEMO1', amount: 150 },
@@ -660,7 +708,7 @@ export async function settleGroup(
     StellarSdk.Address.fromString(callerAddress).toScVal()
   );
 
-  const result = await signAndSubmit(tx);
+  const result = await signAndSubmit(tx, opts);
   const returnVal = result.returnValue;
   if (!returnVal) throw new Error('No return value');
 
