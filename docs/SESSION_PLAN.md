@@ -29,7 +29,7 @@ Progress işareti:
 - **Süre:** ~3 saat
 - **Conflict:** yok (content-only)
 
-### Session 3 — Twitter/X Thread Drafts (Task 4) `[ ]`
+### Session 3 — Twitter/X Thread Drafts (Task 4) `[x]` — commit TBD
 - **Scope:** 3 hazır tweet thread
 - **Files:** `docs/social/twitter-threads.md` (new)
 - **Deliverable:** Thread 1 (neden Birik), Thread 2 (under the hood), Thread 3 (testnet beta). Her biri 10-15 tweet + görsel + hashtag + mention listesi
@@ -158,7 +158,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 3 (Twitter threads) — sıra sende
+## 🎯 Şu an aktif: Session 4 (Landing canlı metrikler) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -173,3 +173,12 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Dev.to frontmatter + raw.githubusercontent.com absolute image URLs (Medium/Hashnode mirror'ları için)
   - 3 teknik bölüm (min-flow algo / inter-contract SPLT mint / SIWS auth) + testing stratejisi + mobile
   - Publishing notes (Dev.to primary, Medium/Hashnode mirror, tweet thread prep)
+  - **Yayınlandı:** [Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
+
+- **Session 3** (commit TBD) — Twitter/X Thread Playbook
+  - `docs/social/twitter-threads.md` — 3 publish-ready thread
+  - Thread 1 (Why Birik? — 8 tweet, EN + TR mirror 8 tweet)
+  - Thread 2 (Under the hood — 9 tweet, 3 kod snippet'li teknik özet, Dev.to linki wired)
+  - Thread 3 (Testnet beta open — 8 tweet, 20-user hedefli community call, feedback formu linki)
+  - Her tweet char sayımı ≤280 doğrulandı, görsel asset haritası + hashtag/mention cheat sheet + 3-günlük yayın planı + 6 hazır quote-tweet cevabı + engagement tracking tablosu + re-post stratejisi
+  - README quick-links'e Dev.to + Medium linkleri eklendi

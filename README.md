@@ -11,7 +11,7 @@ _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tok
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **Hızlı erişim / Quick links:**
-[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users)
+[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users) · [📰 Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [📝 Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
 
 ---
 
