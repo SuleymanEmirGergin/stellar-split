@@ -42,6 +42,12 @@ export async function seedDemoSession(
       }
       if (cfg.markJoyrideDone) {
         localStorage.setItem('stellarsplit_joyride_done_v2', 'true');
+        // Also skip the NewUserWizard — it mounts at z-[300] and its
+        // backdrop intercepts pointer events on every modal opened below
+        // it, which breaks Playwright .click() on create-group-submit,
+        // tab-recurring, etc. Treating "no joyride" as "also no wizard"
+        // keeps the test environment a pure dashboard.
+        localStorage.setItem('wizard_v1_done', 'true');
       }
       if (cfg.clearGroups) {
         localStorage.removeItem('stellarsplit_groups');
