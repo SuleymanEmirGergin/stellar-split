@@ -94,8 +94,42 @@ Happy-path swap (`settle_group_flex` + gerçek Soroswap pool) **integration test
 | Alt-session | Scope | Status |
 |-------------|-------|--------|
 | **10A** | Contract groundwork: `SwapRouter` DataKey, `set_swap_router`, `settle_group_flex` entrypoint, Soroswap `swap_exact_tokens_for_tokens` invoke, 2 new tests | ✅ **Done** |
-| **10B** | Frontend picker + Reflector price feed preview + slippage UI, `settleGroupFlex` wrapper in `contract.ts`, SettleTab wire | ⏳ Planned |
+| **10B** | Frontend picker + `settleGroup` extension with `targetAsset` param, SettleTab Native/USDC toggle, i18n × 4 dil | ✅ **Done** |
 | **10C** | Testnet deploy + `set_swap_router` + gerçek XLM→USDC swap + README tx hash örneği + screenshot | ⏳ Planned |
+
+---
+
+## 🖥️ Frontend wire (Session 10B)
+
+**`frontend/src/lib/contract.ts`** — `settleGroup` imzası genişledi:
+
+```typescript
+export interface SettleGroupOpts extends SubmitOptions {
+  targetAsset?: string | null;  // SAC address or null for same-currency
+}
+
+export async function settleGroup(
+  callerAddress: string,
+  groupId: number,
+  opts: SettleGroupOpts = {},
+): Promise<SettleGroupResult> { ... }
+```
+
+`opts.targetAsset` set edilirse `settle_group_flex` entrypoint'ine routing yapılır; aksi halde eski `settle_group` çağrılır — backward compatible.
+
+**`frontend/src/components/tabs/SettleTab.tsx`** — settle button'un üstünde "Receive in" picker:
+
+- Native (XLM) / USDC toggle — default native
+- Sadece `currencyLabel === 'XLM' && VITE_USDC_CONTRACT_ID` set iken gösterilir
+- Seçim `handleSettle({ sponsor, targetAsset })` olarak yukarı geçirilir → mutation → contract call
+
+**i18n:** 4 yeni key × 4 dil (tr/en/de/es):
+- `settle.target_currency_label`
+- `settle.target_native`
+- `settle.target_usdc`
+- `settle.target_swap_note`
+
+**Demo mode:** `settleGroup` demo mode'da `stellarsplit:tx-multi-currency` event'i dispatch eder, UX preview için kullanılır; gerçek contract çağrısı yapılmaz.
 
 ---
 

@@ -26,7 +26,7 @@ interface SettleTabProps {
   showPayQRIndex: number | null;
   setShowPayQRIndex: (val: number | null) => void;
   settling: boolean;
-  handleSettle: (opts?: { sponsor?: boolean }) => void;
+  handleSettle: (opts?: { sponsor?: boolean; targetAsset?: string | null }) => void;
   onRefresh?: () => Promise<void>;
   estimatedSettleFee?: EstimatedFee | null;
   t: (key: TranslationKey) => string;
@@ -65,6 +65,12 @@ export default function SettleTab({
   const [simulatingPath, setSimulatingPath] = useState(false);
   const [pathSuccess, setPathSuccess] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // Target asset picker for the multi-currency settle path (Session 10).
+  // `null` → same-currency settle (existing settle_group entrypoint).
+  // Stellar SAC address → settle_group_flex with Soroswap swap.
+  const [targetAsset, setTargetAsset] = useState<string | null>(null);
+  const usdcContractId = (import.meta.env.VITE_USDC_CONTRACT_ID ?? '') as string;
+  const multiCurrencyEnabled = currencyLabel === 'XLM' && usdcContractId.length > 0;
 
   // ── Backend settlement history (JWT mode) ──
   const showBackendHistory = hasJwt && !!groupIdStr;
@@ -258,12 +264,57 @@ export default function SettleTab({
             </button>
           )}
 
+          {/* ── Multi-currency target picker (Session 10B) ── */}
+          {multiCurrencyEnabled && (
+            <div
+              data-testid="settle-target-picker"
+              className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.07] space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                  {t('settle.target_currency_label')}
+                </span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    data-testid="target-asset-native"
+                    onClick={() => setTargetAsset(null)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      targetAsset === null
+                        ? 'bg-birik text-ink'
+                        : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                    }`}
+                  >
+                    {t('settle.target_native')}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="target-asset-usdc"
+                    onClick={() => setTargetAsset(usdcContractId)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                      targetAsset === usdcContractId
+                        ? 'bg-birik text-ink'
+                        : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                    }`}
+                  >
+                    {t('settle.target_usdc')}
+                  </button>
+                </div>
+              </div>
+              {targetAsset === usdcContractId && (
+                <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                  {t('settle.target_swap_note')}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="relative rounded-3xl">
             {settling && (
               <Glow intensity="subtle" color="success" className="rounded-3xl" />
             )}
             <button
-              onClick={() => handleSettle({ sponsor: sponsorFee })}
+              onClick={() => handleSettle({ sponsor: sponsorFee, targetAsset })}
               disabled={settling || isOffline}
               className={`relative w-full py-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:shadow-[0_4px_24px_rgba(16,185,129,0.4)] hover:-translate-y-px transition-all active:scale-95 flex items-center justify-center gap-2 ${
                 settling
