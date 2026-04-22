@@ -31,6 +31,7 @@ const JoinPage = lazy(() => import('./components/JoinPage'));
 const ReputationDashboard = lazy(() => import('./components/ReputationDashboard').then(m => ({ default: m.ReputationDashboard })));
 const SettingsPage = lazy(() => import('./components/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const UseCasesPage = lazy(() => import('./pages/UseCasesPage'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -165,6 +166,7 @@ function AppContent() {
   const isGroup = pathname.startsWith('/group/');
   const isJoin = pathname.startsWith('/join/');
   const isUseCases = pathname === '/use-cases';
+  const isLeaderboard = pathname === '/leaderboard';
   // Landing is a full-bleed marketing page — it must escape the app <main>
   // constraints (max-w-[1200px] + p-6/8) that the in-app surfaces use.
   // Landing renders when there's no wallet AND the route isn't a standalone
@@ -593,6 +595,7 @@ function AppContent() {
               )
             )}
             {isUseCases && <UseCasesPage />}
+            {isLeaderboard && <LeaderboardPage />}
             {pathname === '/dashboard' && walletAddress && (
               <Dashboard walletAddress={walletAddress} onSelectGroup={goToGroup} isDemo={demoMode} />
             )}

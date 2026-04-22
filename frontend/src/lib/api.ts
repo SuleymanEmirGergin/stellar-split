@@ -443,7 +443,29 @@ export interface PublicAnalyticsSummary {
 
 export const analyticsApi = {
   summary: () => api.get<PublicAnalyticsSummary>('/analytics/summary'),
+  leaderboard: (params: { wallet?: string; limit?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.wallet) qs.set('wallet', params.wallet);
+    if (params.limit) qs.set('limit', String(params.limit));
+    const q = qs.toString();
+    return api.get<LeaderboardResponse>(`/analytics/leaderboard${q ? `?${q}` : ''}`);
+  },
 };
+
+// ─── Leaderboard types ─────────────────────────────────────────────────────
+export interface LeaderboardEntry {
+  rank: number;
+  walletAddress: string;
+  settlementsInitiated: number;
+  spltBalance: number;
+  totalVolumeXlm: number;
+}
+
+export interface LeaderboardResponse {
+  top: LeaderboardEntry[];
+  yourRank?: LeaderboardEntry;
+  lastUpdated: string;
+}
 
 // ─── Fee sponsorship (Level 6 advanced feature) ────────────────────────────
 //

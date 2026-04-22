@@ -90,7 +90,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** App.tsx touch → Session 7 ile sırayla
 
-### Session 8 — Leaderboard Page (Task 9) `[ ]`
+### Session 8 — Leaderboard Page (Task 9) `[x]` — commit TBD
 - **Scope:** Public `/leaderboard` — top SPLT holders
 - **Files:**
   - `backend/src/analytics/leaderboard.service.ts` (new)
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 8 (Leaderboard page) — sıra sende
+## 🎯 Şu an aktif: Session 9 (On-chain referral) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,6 +205,18 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
+
+- **Session 8** (commit TBD) — Leaderboard Page (first full-stack session)
+  - **Backend:** `backend/src/analytics/leaderboard.service.ts` + spec (9 tests), new `GET /analytics/leaderboard` endpoint in `analytics.controller.ts` (+3 controller tests), `LeaderboardService` registered in `analytics.module.ts`
+  - Query: Prisma `settlement.groupBy({ by: settledById, where: { status: 'CONFIRMED' }, ... })` sorted by count desc; user table joined for wallet addresses; SPLT balance = settlement count × 100
+  - `yourRank` computed separately when viewer is outside top slice (groupBy + having to count users ahead)
+  - Redis cache 5 min TTL, pool of 50 entries cached to serve varying page sizes without re-query
+  - **Frontend:** `frontend/src/pages/LeaderboardPage.tsx` + test (12 tests), React Query `['analytics', 'leaderboard', wallet]` cache key, medal icons for top 3, responsive table (desktop 12-col grid / mobile stacked), every row links to Stellar Expert account view
+  - `frontend/src/lib/api.ts` — `analyticsApi.leaderboard()` + types (`LeaderboardEntry`, `LeaderboardResponse`)
+  - `frontend/src/App.tsx` — `isLeaderboard` pathname conditional + lazy import (public/auth-exempt)
+  - `frontend/src/components/Landing.tsx` — "Top SPLT holders →" discrete link added alongside the use-cases link (Trophy icon)
+  - `frontend/src/lib/i18n.ts` — 15 leaderboard.\*+nav.leaderboard keys × 4 languages (60 entries)
+  - Verification: backend 20/20 · frontend 912/912 · TS 0 error · ESLint 0 error
 
 - **Session 7** (commit `f17be1b`) — Use Cases Page
   - `frontend/src/pages/UseCasesPage.tsx` (new) — 3 senaryo (Erasmus / Startup team / Tatil), problem × çözüm × screenshot × Stellar Expert tx link

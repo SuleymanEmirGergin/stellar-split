@@ -2,7 +2,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef, type ComponentType, type ReactNode } from 'react';
 import {
   Receipt, Users, Split, Zap, Shield, Link2, QrCode, Eye,
-  Globe, Github, Cpu, Lock, ArrowRight, Plus, Check, ChevronDown,
+  Globe, Github, Cpu, Lock, ArrowRight, Plus, Check, ChevronDown, Trophy,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { usePublicMetrics } from '../hooks/usePublicMetrics';
@@ -137,10 +137,11 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
                   </motion.button>
                 )}
               </div>
-              {/* Discrete link to the public /use-cases page — doesn't fight
-                  the primary CTAs but gives reviewers + social-traffic a
-                  "what's it FOR?" entry point without a wallet. */}
-              <div className="mt-4">
+              {/* Discrete links to public /use-cases and /leaderboard pages —
+                  don't fight the primary CTAs but give reviewers +
+                  social-traffic a "what's it FOR?" + "who uses it?" entry
+                  point without needing a wallet. */}
+              <div className="mt-4 flex flex-wrap gap-4">
                 <a
                   href="/use-cases"
                   data-testid="landing-use-cases-link"
@@ -148,6 +149,14 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
                 >
                   <Users size={12} />
                   Kullanım senaryolarını gör →
+                </a>
+                <a
+                  href="/leaderboard"
+                  data-testid="landing-leaderboard-link"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
+                >
+                  <Trophy size={12} />
+                  Top SPLT holders →
                 </a>
               </div>
             </RiseItem>
