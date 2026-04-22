@@ -206,7 +206,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
 
-- **Session 10B** (commit TBD) — Frontend multi-currency picker + `settleGroup` extension
+- **Session 10B** (commit `33a105d`) — Frontend multi-currency picker + `settleGroup` extension
   - `frontend/src/lib/contract.ts`: `SettleGroupOpts` interface with `targetAsset?: string | null`, conditional routing to `settle_group_flex` entrypoint (Option<Address> XDR encoding via `scvVec([Symbol("Some"), addr]))`), demo mode dispatches `stellarsplit:tx-multi-currency` event for UX preview
   - `frontend/src/hooks/useExpenseMutations.ts`: `useSettleGroupMutation` mutationFn accepts `{ sponsor, targetAsset }` — backward compat preserved
   - `frontend/src/components/GroupDetail.tsx`: `handleSettle` signature extended to forward `targetAsset` to mutation
