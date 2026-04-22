@@ -206,7 +206,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
 
-- **Session 10A** (commit TBD) — Multi-Currency Settle Groundwork
+- **Session 10A** (commit `687e902`) — Multi-Currency Settle Groundwork
   - Contract: `DataKey::SwapRouter`, `get_swap_router`/`set_swap_router_addr` helpers, `set_swap_router(admin, router)` entrypoint
   - Contract: `settle_group_flex(group_id, settler, destination_asset: Option<Address>) -> Vec<Settlement>` — same-asset path identical to settle_group, different-asset path pulls source asset into contract, approves Soroswap router, invokes `swap_exact_tokens_for_tokens`, delivers destination asset to creditor
   - Reward mint uses `get_reward_token()` with fallback to `group.token` (Session 9 forward, backward compatible with pre-Session-9 deploys)
