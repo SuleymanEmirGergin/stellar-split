@@ -1,0 +1,11 @@
+{
+    "action":  "deploy_session9",
+    "timestamp":  "2026-04-22T18:21:03Z",
+    "network":  "testnet",
+    "notes":  "Session 9: register_referral + set_reward_token wired",
+    "contracts":  {
+                      "stellar_split_token":  "CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE",
+                      "stellar_split":  "CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW"
+                  },
+    "deployer":  "GDTIW2V3FKVWX3EHWQX6WDMJBXB6DGWBALJGKZUPPGRGSZQX6DYNRYGB"
+}
