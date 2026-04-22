@@ -36,7 +36,25 @@ Progress işareti:
 - **Süre:** ~2 saat
 - **Conflict:** yok (content-only)
 
-### Session 4 — Landing Canlı Metrikler (Task 2) `[ ]`
+### Session 4A — Typefully Setup Guide (Task 4, ek) `[x]` — commit TBD
+- **Scope:** Bu haftaki 3 thread için Typefully free tier üzerinden "set-and-forget" scheduling rehberi
+- **Files:** `docs/social/TYPEFULLY_SETUP.md` (new)
+- **Deliverable:** 20 dakikalık setup rehberi — hesap oluşturma, X bağlama, thread import (markdown code-block'tan copy-paste), image attachment, scheduling (Strategy A + B), preview, day-of sanity check, troubleshooting
+- **Süre:** ~30 dk (docs-only)
+- **Conflict:** yok
+
+### Session 4B — Twitter Auto-Poster (leaderboard signal) `[ ]`
+- **Scope:** GitHub Actions ile `twitter-threads.md` markdown'dan otomatik thread post + image upload + `in_reply_to_status_id` chain
+- **Files:**
+  - `scripts/post-thread.mjs` (new) — markdown parse, X API v2 client, thread chaining
+  - `scripts/post-thread.test.mjs` (new) — parser + dry-run testleri
+  - `.github/workflows/post-thread.yml` (new) — cron + manual trigger + dry-run toggle
+  - `docs/TWITTER_AUTOMATION.md` (new) — X Developer Portal kurulumu + GitHub Secrets + workflow kullanımı
+- **Deliverable:** GitHub repo'dan scheduled / manual trigger ile X thread post. Dry-run mode test için güvenli. Dedicated `@BirikApp` hesabı gerekli.
+- **Süre:** ~2 saat
+- **Conflict:** yok (yeni dosyalar, kimse dokunmuyor)
+
+### Session 5 — Landing Canlı Metrikler (Task 2) `[ ]`
 - **Scope:** Ana landing page'e 4 public KPI card
 - **Files:**
   - `frontend/src/hooks/usePublicMetrics.ts` (new)
@@ -47,7 +65,7 @@ Progress işareti:
 - **Süre:** ~2 saat
 - **Conflict:** Sadece LandingPage.tsx — Session 6-7 ile çakışmaz
 
-### Session 5 — Lighthouse + PWA Polish (Tasks 7 + 13) `[ ]`
+### Session 6 — Lighthouse + PWA Polish (Tasks 7 + 13) `[ ]`
 - **Scope:** Performance, a11y, SEO, PWA tamamlanması
 - **Files:**
   - `frontend/index.html` (meta tags)
@@ -61,7 +79,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** Session 4 ile çakışabilir (landing touch) → Session 4'ten SONRA
 
-### Session 6 — Use Cases Page (Task 8) `[ ]`
+### Session 7 — Use Cases Page (Task 8) `[ ]`
 - **Scope:** `/use-cases` route — 3 senaryo
 - **Files:**
   - `frontend/src/pages/UseCasesPage.tsx` (new)
@@ -72,7 +90,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** App.tsx touch → Session 7 ile sırayla
 
-### Session 7 — Leaderboard Page (Task 9) `[ ]`
+### Session 8 — Leaderboard Page (Task 9) `[ ]`
 - **Scope:** Public `/leaderboard` — top SPLT holders
 - **Files:**
   - `backend/src/analytics/leaderboard.service.ts` (new)
@@ -85,7 +103,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** App.tsx — Session 6'dan SONRA
 
-### Session 8 — On-Chain Referral Program (Task 10) `[ ]`
+### Session 9 — On-Chain Referral Program (Task 10) `[ ]`
 - **Scope:** Contract'ta `register_referral` entrypoint + frontend wire
 - **Files:**
   - `contracts/stellar_split/src/lib.rs` (new entrypoint)
@@ -95,9 +113,9 @@ Progress işareti:
   - `frontend/src/components/JoinPage.tsx` (?ref= param handling)
 - **Deliverable:** Davet linkine `?ref=` ile gelen kullanıcı katılınca davetçi +5 SPLT alır, contract test + frontend e2e
 - **Süre:** ~1 gün
-- **Conflict:** lib.rs → Session 9, 10 ile sırayla
+- **Conflict:** lib.rs → Session 10, 11 ile sırayla
 
-### Session 9 — Multi-Currency Settle (Task 11, L5 iddiası) `[ ]`
+### Session 10 — Multi-Currency Settle (Task 11, L5 iddiası) `[ ]`
 - **Scope:** `settle_group(destination_asset)` + SAC path_payment_strict_receive invoke
 - **Files:**
   - `contracts/stellar_split/src/lib.rs` (settle_group param + invoke_contract)
@@ -107,9 +125,9 @@ Progress işareti:
   - `docs/MULTI_CURRENCY.md` (new)
 - **Deliverable:** Testnet'te en az 1 başarılı XLM→USDC path-payment settle + README'de tx hash örneği
 - **Süre:** ~3-5 gün
-- **Conflict:** lib.rs → Session 8'den SONRA; Session 10'dan ÖNCE
+- **Conflict:** lib.rs → Session 9'dan SONRA; Session 11'den ÖNCE
 
-### Session 10 — Savings Pool Yield / Blend (Task 12) `[ ]`
+### Session 11 — Savings Pool Yield / Blend (Task 12) `[ ]`
 - **Scope:** `contribute_pool` → Blend deposit, `release_pool` → Blend withdraw + yield dağıtımı
 - **Files:**
   - `contracts/stellar_split/src/lib.rs` (savings_pool fonksiyonları)
@@ -118,9 +136,9 @@ Progress işareti:
   - `docs/YIELD_INTEGRATION.md` (new)
 - **Deliverable:** Testnet'te yield kazandıran savings pool, frontend'de live yield ticker
 - **Süre:** ~3-5 gün
-- **Conflict:** lib.rs → Session 9'dan SONRA
+- **Conflict:** lib.rs → Session 10'dan SONRA
 
-### Session 11 — Mainnet Prep Docs (Task 14) `[ ]`
+### Session 12 — Mainnet Prep Docs (Task 14) `[ ]`
 - **Scope:** Mainnet readiness + roadmap
 - **Files:**
   - `README.md` (Coming to Mainnet bölümü)
@@ -136,10 +154,10 @@ Progress işareti:
 
 | Dosya | Session'lar |
 |-------|-------------|
-| `README.md` | S1, S5, S11 |
-| `frontend/src/App.tsx` | S6, S7 |
-| `frontend/src/components/LandingPage.tsx` | S4, S5 |
-| `contracts/stellar_split/src/lib.rs` | S8, S9, S10 |
+| `README.md` | S1, S6, S12 |
+| `frontend/src/App.tsx` | S7, S8 |
+| `frontend/src/components/LandingPage.tsx` | S5, S6 |
+| `contracts/stellar_split/src/lib.rs` | S9, S10, S11 |
 
 Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla çalıştırılmayacak.
 
@@ -158,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 4 (Landing canlı metrikler) — sıra sende
+## 🎯 Şu an aktif: Session 4B (Twitter auto-poster) — sıra sende (4A docs-only tamamlandı)
 
 ## 📜 Tamamlananlar
 
@@ -182,3 +200,8 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Thread 3 (Testnet beta open — 8 tweet, 20-user hedefli community call, feedback formu linki)
   - Her tweet char sayımı ≤280 doğrulandı, görsel asset haritası + hashtag/mention cheat sheet + 3-günlük yayın planı + 6 hazır quote-tweet cevabı + engagement tracking tablosu + re-post stratejisi
   - README quick-links'e Dev.to + Medium linkleri eklendi
+
+- **Session 4A** (commit TBD) — Typefully Setup Guide
+  - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
+  - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
+  - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
