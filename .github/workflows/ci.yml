@@ -53,11 +53,15 @@ jobs:
           retention-days: 7
 
   # ── Contract Deploy (testnet, master only) ──
+  # Opt-in: only runs when the repo has `ENABLE_CONTRACT_DEPLOY` variable set
+  # to 'true' AND the Stellar secret is configured. The main stellar_split
+  # contract is already deployed on testnet at CBQENHYCVSOK3CHZ...; this job
+  # is only needed when you want CI to redeploy on every master push.
   contract-deploy:
     name: 🚀 Deploy Contracts → Testnet
     runs-on: ubuntu-latest
     needs: [contract-test]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push' && vars.ENABLE_CONTRACT_DEPLOY == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -66,6 +70,11 @@ jobs:
         with:
           name: contract-wasm
           path: wasm
+
+      - name: Install system dependencies for stellar-cli
+        # stellar-cli depends on libdbus (via keyring integration) on Linux;
+        # missing it was making `cargo install stellar-cli` panic during build.
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -372,11 +381,14 @@ jobs:
         run: npm run build
 
   # ── Railway Deploy — Staging (develop branch) ──
+  # Staging deploy — opt-in via RAILWAY_STAGING_SERVICE_ID repo variable.
+  # When the variable is not set (e.g. fresh fork or local dev), the job
+  # skips cleanly instead of failing on an empty --service argument.
   deploy-staging:
     name: Deploy Backend → Railway Staging
     runs-on: ubuntu-latest
     needs: [backend-test, backend-build]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' && vars.RAILWAY_STAGING_SERVICE_ID != ''
     steps:
       - uses: actions/checkout@v4
 
@@ -389,11 +401,13 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   # ── Railway Deploy — Production (master branch) ──
+  # Opt-in via RAILWAY_SERVICE_ID repo variable. When unset, the job skips
+  # cleanly — the existing Railway backend keeps running on its last deploy.
   deploy-railway:
     name: Deploy Backend → Railway
     runs-on: ubuntu-latest
     needs: [backend-test, backend-build]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push' && vars.RAILWAY_SERVICE_ID != ''
     steps:
       - uses: actions/checkout@v4
 
