@@ -1,18 +1,17 @@
 # Birik — Screenshot Checklist
 
-Bu doküman iki kısımdan oluşur:
+Tüm README screenshot'ları **iki Playwright spec** tarafından otomatize edildi:
 
-- **Otomatik screenshot'lar:** Playwright script `frontend/e2e/screenshots.spec.ts` tarafından yakalanır
-- **Manuel screenshot'lar:** Belirli bir on-chain/UI state gerektirdiği için elle alınmalı
+1. `frontend/e2e/screenshots.spec.ts` — viewport/tema matris'i (landing + dashboard, 3 viewport × 2 tema)
+2. `frontend/e2e/screenshots-states.spec.ts` — state-dependent (settle modal, savings roadmap, SPLT reward toast, insights+activity feed, mobile bottom sheet)
 
 ---
 
-## ⚙️ Otomatik screenshot'ları çalıştırma
+## ⚙️ Her iki spec'i birden çalıştır
 
 ```bash
 cd frontend
-# Dev server'ı ayrı terminalde çalıştır (veya Playwright otomatik başlatacak)
-npx playwright test e2e/screenshots.spec.ts --project=chromium --reporter=list
+npx playwright test e2e/screenshots.spec.ts e2e/screenshots-states.spec.ts --project=chromium --reporter=list
 ```
 
 Çıktı: `docs/screenshots/` klasörüne yeni `.png` dosyaları (veya mevcut olanların üzerine).
@@ -34,67 +33,21 @@ npx playwright test e2e/screenshots.spec.ts --project=chromium --reporter=list
 
 ---
 
-## 📸 Manuel screenshot'lar — jüri için kritik state'ler
+## 📸 State-dependent screenshot'lar (hepsi otomatize — `screenshots-states.spec.ts`)
 
-Aşağıdaki 5 screenshot jüri için en değerli olanlar — çünkü Birik'in core value proposition'ını gösteriyorlar. Lütfen sırayla elle yakalayın. İdeal boyut: **1440×900** veya mobile için **390×844**.
+| # | Dosya | Spec test adı | Notlar |
+|---|-------|---------------|--------|
+| A | `settle-modal-minflow.png` | `A — settle-modal-minflow` | Settle tab — min-flow'la kısalmış settlement satırları + "Show payment QR" aksiyonları + fee estimate |
+| B | `savings-roadmap.png` | `B — savings-roadmap` | Demo mode'da `hasJwt===false` olduğundan savings "coming soon" teaser gösterilir. Kontrat entrypoint'leri (`create_savings_pool`, `contribute_pool`, `release_pool`) hazır, UI Q2'de live olacak |
+| C | `splt-reward.png` | `C — splt-reward` | "Mark Group As Settled" CTA + 2 success toast ("Reputation points earned!" + "Settlement completed successfully") |
+| D | `activity-feed.png` | `D — activity-feed` | Insights tab fullPage — 4 stat kartı + pie/bar chart + who-owes-what + member contributions + carbon footprint + Recent Activity feed (Horizon mock) |
+| E | `mobile-bottomsheet.png` | `E — mobile-bottomsheet` | 390×844 iPhone 14 Pro viewport, MORE TABS sheet 8 kategori ile açık |
 
-### 1. Settle Modal — Min-flow optimizasyonu
-**Dosya adı:** `settle-modal-minflow.png`
-**Hikâye:** "10 transfer yerine sadece 3 — on-chain greedy algoritma"
-
-**Adımlar:**
-1. Live demo: https://stellar-split.vercel.app (veya `localhost:5173`)
-2. Demo mode'u aç (`D` tuşu veya landing'deki "Try Demo" butonu)
-3. Yeni grup: *"Settle Demo"*, **6 üye** ekle
-4. 5-6 harcama ekle, farkı kişiler ödesin — kimin kime ne kadar borçlu olduğu karmaşıklaşsın
-5. **Settle** butonuna bas → modal açılır
-6. Modal'da şu iki blok yan yana gözükmeli:
-   - "Before: 10 transfers between 6 members"
-   - "After: 3 transfers (min-flow)"
-7. Screenshot al
-
-### 2. Savings Pool — Funded progress bar
-**Dosya adı:** `savings-pool-funded.png`
-**Hikâye:** "Grup hedefli birikim havuzu — on-chain"
-
-**Adımlar:**
-1. Demo mode'da bir grup aç
-2. Grup detayı içinde **Savings Pool** tab'ına git
-3. "Create Savings Pool" → hedef: 100 USDC, isim: *"İstanbul Trip"*
-4. 2-3 contribute yap (farklı kişilerden)
-5. Progress bar %60-80 dolmuş olsun
-6. Screenshot al
-
-### 3. SPLT Reward Animation
-**Dosya adı:** `splt-reward.png`
-**Hikâye:** "Inter-contract mint — ilk settle'da 100 SPLT ödül"
-
-**Adımlar:**
-1. Demo mode'da bir settle flow'u tamamla
-2. Settle başarılı olduktan sonra sağ üstte "+100 SPLT" toast/rozet çıkar
-3. Bu toast aktifken screenshot al
-4. Ayrıca dashboard'daki **SPLT Balance** widget'ı da gözüksün
-
-### 4. Transaction History — Real settle tx
-**Dosya adı:** `tx-history-settle.png`
-**Hikâye:** "Tüm işlemler Stellar Expert'te doğrulanabilir"
-
-**Adımlar:**
-1. Testnet'te gerçek bir settle yap (demo mode'da DEĞİL)
-2. Settings → Transaction History tab'ına git
-3. Listede en az 3 gerçek tx gözüksün (create_group, add_expense, settle_group)
-4. Her birinin yanında Stellar Expert linki olsun
-5. Screenshot al
-
-### 5. Mobile Bottom Sheet — Action menu
-**Dosya adı:** `mobile-bottomsheet.png`
-**Hikâye:** "Mobile-first responsive UI"
-
-**Adımlar:**
-1. Mobile viewport'ta (DevTools → 390×844 iPhone 14 Pro)
-2. Dashboard'da alttaki **+ (FAB)** butonuna bas
-3. Bottom sheet açılır: "New Group", "Join Group", "New Expense", "Settle"
-4. Bu sheet açıkken screenshot al
+**İpucu — tek testi çalıştırmak:**
+```bash
+cd frontend
+npx playwright test e2e/screenshots-states.spec.ts --project=chromium --grep "settle-modal-minflow"
+```
 
 ---
 
@@ -123,19 +76,17 @@ Eğer ekstra zaman varsa, README'yi daha da güçlendirecek screenshot'lar:
 
 ## ✅ Checklist
 
-### Otomatik
-- [ ] `npx playwright test e2e/screenshots.spec.ts` çalıştırıldı
-- [ ] 10 dosya `docs/screenshots/` altında var
-- [ ] Dosya boyutları makul (her biri <500KB)
+### Spec 1 — viewport + tema matrisi
+- [x] `screenshots.spec.ts` çalıştırıldı (10 dosya)
 
-### Manuel
-- [ ] `settle-modal-minflow.png` alındı
-- [ ] `savings-pool-funded.png` alındı
-- [ ] `splt-reward.png` alındı
-- [ ] `tx-history-settle.png` alındı
-- [ ] `mobile-bottomsheet.png` alındı
+### Spec 2 — state-dependent (A-E)
+- [x] `A settle-modal-minflow.png`
+- [x] `B savings-roadmap.png`
+- [x] `C splt-reward.png`
+- [x] `D activity-feed.png`
+- [x] `E mobile-bottomsheet.png`
 
 ### Post-capture
-- [ ] Screenshot'lar sıkıştırıldı (gerekiyorsa)
-- [ ] README.md güncellendi (yeni screenshot referansları)
+- [ ] Screenshot'lar sıkıştırıldı (gerekiyorsa — opsiyonel, TinyPNG)
+- [x] README.md güncellendi (yeni screenshot referansları)
 - [ ] Git'e commit'lendi

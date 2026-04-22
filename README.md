@@ -49,11 +49,11 @@ Tüm ana akışlar (grup oluşturma, harcama ekleme, settle, savings pool) mobil
 
 Greedy algoritma on-chain çalışır: 6 kişilik bir grupta 10 potansiyel transfer, 3 gerçek transfere indirilir. Kullanıcı tek tıklar → contract hepsini tek transaction'da atomik olarak işler.
 
-#### Savings pool — group-funded target
+#### Savings pool — roadmap teaser (DeFi LP integration coming)
 
-![Savings pool funded](docs/screenshots/savings-pool-funded.png)
+![Savings roadmap](docs/screenshots/savings-roadmap.png)
 
-Grup üyeleri ortak bir hedef için on-chain contribute'lar. Hedefe ulaşılınca `release_pool` ile fonlar pro-rata serbest bırakılır.
+Grup üyeleri ortak bir hedef için on-chain contribute yapacak. Mevcut on-chain entrypoint'ler (`create_savings_pool`, `contribute_pool`, `release_pool`) kontrat tarafında hazır; frontend'te ilk USD/EUR LP vault Q2 entegrasyonu için işaretli.
 
 #### SPLT reward — inter-contract mint
 
@@ -61,11 +61,11 @@ Grup üyeleri ortak bir hedef için on-chain contribute'lar. Hedefe ulaşılınc
 
 Settle'ı başlatan kullanıcıya **100 SPLT** mint edilir — `stellar_split` → `stellar_split_token` inter-contract call. Dashboard'daki SPLT balance widget anında güncellenir.
 
-#### Transaction history — verifiable on Stellar Expert
+#### Insights dashboard + activity feed — verifiable on Stellar Expert
 
-![Tx history](docs/screenshots/tx-history-settle.png)
+![Insights + activity feed](docs/screenshots/activity-feed.png)
 
-Her işlem Stellar Expert'te doğrulanabilir — `create_group`, `add_expense`, `settle_group` operation'ları user'ın kendi cüzdan adresinde izlenebilir.
+Grup başına analytics (harcama dağılımı, member contributions, carbon footprint, geçmiş settle skoru) + Recent Activity bölümünde Horizon üzerinden gelen on-chain operation listesi. Her `invoke_host_function` satırı Stellar Expert linki barındırır.
 
 ### 🏗️ DevOps — CI + Test output
 
@@ -79,7 +79,7 @@ Her işlem Stellar Expert'te doğrulanabilir — `create_group`, `add_expense`, 
 
 _Live on `/dashboard`. Backed by `GET /analytics/summary` — no auth, 60s cache, 30 req/min throttle._
 
-> 📝 Screenshot'ları yenilemek için: `cd frontend && npx playwright test e2e/screenshots.spec.ts`. Manuel adımlar (settle modal, savings pool vb.): [`docs/SCREENSHOT_CHECKLIST.md`](docs/SCREENSHOT_CHECKLIST.md).
+> 📝 Tüm screenshot'lar otomatize edildi — `cd frontend && npx playwright test e2e/screenshots.spec.ts e2e/screenshots-states.spec.ts --project=chromium`. Detay: [`docs/SCREENSHOT_CHECKLIST.md`](docs/SCREENSHOT_CHECKLIST.md).
 
 ---
 
