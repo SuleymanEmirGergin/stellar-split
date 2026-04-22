@@ -202,8 +202,24 @@ function isNonExistentFunctionError(err: unknown): boolean {
   );
 }
 
+/**
+ * Options for signAndSubmit.
+ *
+ * `sponsor: true` routes the signed inner transaction through the backend
+ * `POST /sponsor/fee-bump` endpoint, wrapping it in a Stellar fee-bump tx
+ * so the sponsor account (not the user) pays the network fee. Falls back
+ * to self-paid submission if the backend returns 503 (sponsor key not
+ * configured on this deployment).
+ */
+export interface SubmitOptions {
+  sponsor?: boolean;
+}
+
 // ── Helper: Sign with Freighter and submit ──
-async function signAndSubmit(tx: StellarSdk.Transaction): Promise<rpc.Api.GetSuccessfulTransactionResponse> {
+async function signAndSubmit(
+  tx: StellarSdk.Transaction,
+  opts: SubmitOptions = {},
+): Promise<rpc.Api.GetSuccessfulTransactionResponse> {
   const { signTransaction, getNetworkDetails } = await import('@stellar/freighter-api');
 
   // ── Ağ uyumsuzluğu kontrolü ──
@@ -221,12 +237,6 @@ async function signAndSubmit(tx: StellarSdk.Transaction): Promise<rpc.Api.GetSuc
       throw err;
     }
     // Diğer durumda devam et (eski Freighter versiyonları getNetworkDetails desteklemeyebilir)
-  }
-
-  // Hackathon Wow-Factor: Gasless Tx (Sponsorlu İşlem) Simülasyonu
-  // Kullanıcıya işlem ücretinin protokol tarafından karşılandığı hissini vermek için event fırlatıyoruz.
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('stellarsplit:tx-sponsored'));
   }
 
   const signResult = await signTransaction(tx.toXDR(), {
@@ -256,12 +266,42 @@ async function signAndSubmit(tx: StellarSdk.Transaction): Promise<rpc.Api.GetSuc
     throw new Error(`İmzalama başarısız: ${errorMsg}`);
   }
 
-  const signedTx = StellarSdk.TransactionBuilder.fromXDR(
-    signResult.signedTxXdr,
-    NETWORK_PASSPHRASE
-  ) as StellarSdk.Transaction;
+  let submittedTx: StellarSdk.Transaction | StellarSdk.FeeBumpTransaction =
+    StellarSdk.TransactionBuilder.fromXDR(
+      signResult.signedTxXdr,
+      NETWORK_PASSPHRASE,
+    ) as StellarSdk.Transaction;
 
-  const sendResult = await server.sendTransaction(signedTx);
+  // ── Fee sponsorship (Level 6 advanced feature) ──
+  // If the caller opted in, ask the backend to wrap the signed inner tx
+  // as a fee-bump. The sponsor account pays the fee; the user doesn't need
+  // an XLM balance just to settle. Backend returns 503 if SPONSOR_SECRET_KEY
+  // isn't configured — in that case fall back to self-paid.
+  if (opts.sponsor) {
+    try {
+      const { sponsorApi } = await import('./api');
+      const innerXdr = signResult.signedTxXdr;
+      const resp = await sponsorApi.feeBump(innerXdr);
+      submittedTx = StellarSdk.TransactionBuilder.fromXDR(
+        resp.data.feeBumpXdr,
+        NETWORK_PASSPHRASE,
+      ) as StellarSdk.FeeBumpTransaction;
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('stellarsplit:tx-sponsored', {
+          detail: { sponsor: resp.data.sponsorAccount, network: resp.data.network },
+        }));
+      }
+    } catch (err) {
+      // 503 = sponsor not configured on this deployment → fall back silently
+      // to self-paid. Any other error → rethrow so the user sees it.
+      const msg = err instanceof Error ? err.message : String(err);
+      const is503 = /503|not configured|service unavailable/i.test(msg);
+      if (!is503) throw err;
+      // else: submittedTx stays the self-paid signed inner transaction
+    }
+  }
+
+  const sendResult = await server.sendTransaction(submittedTx);
 
   if (sendResult.status === 'ERROR') {
     throw new Error('İşlem gönderilemedi — lütfen tekrar deneyin.');
@@ -471,6 +511,38 @@ export async function addMember(callerAddress: string, groupId: number, newMembe
   await signAndSubmit(tx);
 }
 
+/**
+ * Davet eden kişiye 5 SPLT mint eder (inter-contract call üzerinden).
+ *
+ * Kontrat idempotency uyguluyor: aynı newcomer için ikinci çağrı panic atar.
+ * Self-referral (inviter === newcomer) da kontrat tarafında reject edilir.
+ *
+ * Bu fonksiyon `newcomer.require_auth()` gerektiriyor, bu yüzden
+ * `callerAddress` mutlaka `newcomer` ile aynı olmalı.
+ *
+ * Demo mode'da no-op — gerçek bir contract çağrısı yapılmaz.
+ */
+export async function registerReferral(
+  callerAddress: string,
+  inviter: string,
+  newcomer: string,
+): Promise<void> {
+  if (isDemoMode()) {
+    await demoDelay(800);
+    return;
+  }
+  if (callerAddress !== newcomer) {
+    throw new Error('register_referral caller must equal newcomer');
+  }
+  const tx = await buildTx(
+    callerAddress,
+    'register_referral',
+    StellarSdk.Address.fromString(inviter).toScVal(),
+    StellarSdk.Address.fromString(newcomer).toScVal(),
+  );
+  await signAndSubmit(tx);
+}
+
 /** Gruptan üye çıkarır. En az 2 üye kalmalı. */
 export async function removeMember(callerAddress: string, groupId: number, memberAddress: string): Promise<void> {
   if (isDemoMode()) {
@@ -640,10 +712,18 @@ export interface SettleGroupResult {
 
 export async function settleGroup(
   callerAddress: string,
-  groupId: number
+  groupId: number,
+  opts: SubmitOptions = {},
 ): Promise<SettleGroupResult> {
   if (isDemoMode()) {
     await demoDelay(2000);
+    // In demo mode, synthesize the "sponsored" toast so the UX preview still
+    // shows the gasless badge when the user toggles it on.
+    if (opts.sponsor && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('stellarsplit:tx-sponsored', {
+        detail: { sponsor: 'GDEMO...SPONSOR', network: 'testnet' },
+      }));
+    }
     return {
       settlements: [
         { from: callerAddress, to: 'GBR3...DEMO1', amount: 150 },
@@ -660,7 +740,7 @@ export async function settleGroup(
     StellarSdk.Address.fromString(callerAddress).toScVal()
   );
 
-  const result = await signAndSubmit(tx);
+  const result = await signAndSubmit(tx, opts);
   const returnVal = result.returnValue;
   if (!returnVal) throw new Error('No return value');
 

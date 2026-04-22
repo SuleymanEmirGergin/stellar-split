@@ -72,8 +72,11 @@ export function useSettleGroupMutation(groupId: number) {
   const queryClient = useQueryClient();
   const callerAddress = useAppStore((state) => state.walletAddress);
 
+  // Accepts an optional `{ sponsor: boolean }` argument so the Settle UI can
+  // opt into fee-bump sponsorship (Level 6 advanced feature). Undefined =
+  // self-paid (default).
   return useMutation({
-    mutationFn: () => settleGroup(callerAddress, groupId),
+    mutationFn: (opts?: { sponsor?: boolean }) => settleGroup(callerAddress, groupId, opts),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
     },

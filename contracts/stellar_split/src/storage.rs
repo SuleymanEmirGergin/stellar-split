@@ -223,3 +223,39 @@ pub fn remove_savings_pool(env: &Env, group_id: u64) {
     let key = DataKey::SavingsPool(group_id);
     env.storage().persistent().remove(&key);
 }
+
+// ── Referral ──
+//
+// Idempotency: one reward per newcomer, ever. The `Referred(newcomer)`
+// key simply records that someone has already claimed a referral for
+// this address; the specific inviter is emitted in the event log and
+// doesn't need a composite storage key.
+
+pub fn is_referred(env: &Env, newcomer: &Address) -> bool {
+    let key = DataKey::Referred(newcomer.clone());
+    env.storage().persistent().get(&key).unwrap_or(false)
+}
+
+pub fn set_referred(env: &Env, newcomer: &Address) {
+    let key = DataKey::Referred(newcomer.clone());
+    env.storage().persistent().set(&key, &true);
+    bump_persistent(env, &key);
+}
+
+// ── Reward Token ──
+//
+// Global SPLT reward token address. Set once after deployment via
+// `set_reward_token` entrypoint. Unit tests intentionally don't set
+// this, so `register_referral` records the referral without hitting
+// invoke_contract — invoke_contract on an unregistered address panics
+// in test environments even with `mock_all_auths()`.
+
+pub fn get_reward_token(env: &Env) -> Option<Address> {
+    let key = DataKey::RewardToken;
+    env.storage().instance().get(&key)
+}
+
+pub fn set_reward_token_addr(env: &Env, token: &Address) {
+    let key = DataKey::RewardToken;
+    env.storage().instance().set(&key, token);
+}

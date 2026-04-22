@@ -41,6 +41,9 @@ vi.mock('./OnRampGuide', () => ({ default: () => null }));
 vi.mock('./Scanner', () => ({ default: () => null }));
 vi.mock('./OnboardingTour', () => ({ default: () => null }));
 vi.mock('./NewUserWizard', () => ({ default: () => null }));
+// StatsPanel uses React Query; the Dashboard test doesn't wrap in
+// QueryClientProvider, so stub it out. Covered by StatsPanel's own tests.
+vi.mock('./StatsPanel', () => ({ StatsPanel: () => null }));
 vi.mock('./EmptyState', () => ({
   default: ({ title, description }: { title: string; description: string }) => (
     <div data-testid="empty-state">

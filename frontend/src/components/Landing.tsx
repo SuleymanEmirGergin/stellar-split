@@ -1,10 +1,12 @@
-import { motion, useInView, useMotionValue, animate, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef, type ComponentType, type ReactNode } from 'react';
 import {
   Receipt, Users, Split, Zap, Shield, Link2, QrCode, Eye,
-  Globe, Github, Cpu, Lock, ArrowRight, Plus, Check, ChevronDown,
+  Globe, Github, Cpu, Lock, ArrowRight, Plus, Check, ChevronDown, Trophy,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
+import { usePublicMetrics } from '../hooks/usePublicMetrics';
+import { KPICard } from './KPICard';
 import Reveal, { Stagger, StaggerItem } from './landing/Reveal';
 import SectionGlow from './landing/SectionGlow';
 import Logo from './Logo';
@@ -135,14 +137,35 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
                   </motion.button>
                 )}
               </div>
+              {/* Discrete links to public /use-cases and /leaderboard pages —
+                  don't fight the primary CTAs but give reviewers +
+                  social-traffic a "what's it FOR?" + "who uses it?" entry
+                  point without needing a wallet. */}
+              <div className="mt-4 flex flex-wrap gap-4">
+                <a
+                  href="/use-cases"
+                  data-testid="landing-use-cases-link"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
+                >
+                  <Users size={12} />
+                  Kullanım senaryolarını gör →
+                </a>
+                <a
+                  href="/leaderboard"
+                  data-testid="landing-leaderboard-link"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
+                >
+                  <Trophy size={12} />
+                  Top SPLT holders →
+                </a>
+              </div>
             </RiseItem>
 
             <RiseItem>
-              <div className="mt-14 grid max-w-md grid-cols-3 gap-3 md:gap-6 border-t border-edge pt-8">
-                <Stat target={10} prefix="" suffix="K+" label="Aktif grup" />
-                <Stat target={0.01} prefix="<" suffix="₺" label="İşlem ücreti" decimals={2} />
-                <Stat target={4.8} prefix="" suffix="★" label="App Store" decimals={1} />
-              </div>
+              {/* Live KPIs — source: GET /analytics/summary (60s cache, 30 req/min).
+                  Shares React Query cache with Dashboard/StatsPanel so cross-
+                  navigation is instant. Error state degrades to "—" tiles. */}
+              <LiveMetricsRow />
             </RiseItem>
           </motion.div>
 
@@ -189,46 +212,49 @@ function RiseItem({ children }: { children: ReactNode }) {
  * Composable with non-numeric prefix/suffix ("<" for "<0,01₺", "K+" for
  * "10K+", "★" for "4.8★"). `decimals` controls fractional precision.
  */
-function Stat({
-  target,
-  prefix = '',
-  suffix = '',
-  label,
-  decimals = 0,
-}: {
-  target: number;
-  prefix?: string;
-  suffix?: string;
-  label: string;
-  decimals?: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  const mv = useMotionValue(0);
-  // Format on every frame so the DOM receives a localized, precision-clamped string.
-  const display = useTransform(mv, (latest) => {
-    const rounded = Number(latest.toFixed(decimals));
-    // Locale TR uses comma as decimal — matches the original copy ("<0,01₺").
-    const formatted = rounded.toLocaleString('tr-TR', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-    return `${prefix}${formatted}${suffix}`;
-  });
-
-  useEffect(() => {
-    if (!inView) return;
-    const controls = animate(mv, target, {
-      duration: 1.8,
-      ease: [0.16, 1, 0.3, 1],
-    });
-    return controls.stop;
-  }, [inView, mv, target]);
+/**
+ * Landing hero live-metrics row.
+ *
+ * 4 KPI cards backed by the public `/analytics/summary` endpoint. Shares
+ * React Query cache key with StatsPanel on the Dashboard so cross-navigation
+ * is instant. Loading → skeletons; fetch-error → muted "—" tiles so the
+ * layout doesn't jump.
+ *
+ * Picked these 4 over the 6 Dashboard tiles because landing needs to fit
+ * in the hero's vertical rhythm — 4 wide-enough cards in a 2×2 (mobile)
+ * or 1×4 (desktop) feels balanced with the mockup column beside it.
+ */
+function LiveMetricsRow() {
+  const { data, isLoading, isError } = usePublicMetrics();
 
   return (
-    <div ref={ref}>
-      <motion.div className="font-display text-3xl text-bone tabular-nums">{display}</motion.div>
-      <div className="mt-1 text-xs uppercase tracking-widest text-bone/50">{label}</div>
+    <div className="mt-14 grid max-w-md grid-cols-2 gap-3 md:max-w-none md:grid-cols-4 md:gap-5 border-t border-edge pt-8">
+      <KPICard
+        label="Toplam grup"
+        value={data?.totalGroups ?? null}
+        loading={isLoading}
+        error={isError}
+      />
+      <KPICard
+        label="Toplam hacim"
+        value={data?.totalVolumeXlm ?? null}
+        suffix=" XLM"
+        compact
+        loading={isLoading}
+        error={isError}
+      />
+      <KPICard
+        label="Settle edildi"
+        value={data?.totalSettled ?? null}
+        loading={isLoading}
+        error={isError}
+      />
+      <KPICard
+        label="Bugün aktif"
+        value={data?.dau ?? null}
+        loading={isLoading}
+        error={isError}
+      />
     </div>
   );
 }

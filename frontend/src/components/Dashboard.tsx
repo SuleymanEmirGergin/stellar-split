@@ -38,6 +38,7 @@ import { useNotificationStore } from '../store/useNotificationStore';
 import { SkeletonShimmer } from './ui/SkeletonShimmer';
 import NewUserWizard from './NewUserWizard'
 import EmptyState from './EmptyState'
+import { StatsPanel } from './StatsPanel'
 
 interface Props {
   walletAddress: string;
@@ -333,6 +334,9 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
       </div>
 
       <UserAnalytics walletAddress={walletAddress} groups={groups} />
+      {/* Public platform metrics — Level 6 "metrics dashboard live" evidence.
+          Pulls GET /analytics/summary; no auth, safe for any viewer. */}
+      <StatsPanel />
       <GlobalImpact />
 
       {/* Quick Stats Grid — each card wears its tone (indigo/purple/amber/emerald)

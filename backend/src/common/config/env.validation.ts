@@ -19,6 +19,7 @@ interface EnvVars {
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_KEY: string;
   VAPID_SUBJECT: string;
+  SPONSOR_SECRET_KEY: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvVars {
@@ -103,6 +104,19 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     if (!vapidSubject) errors.push('  VAPID_SUBJECT — required in production (e.g. mailto:admin@example.com)');
   }
 
+  // SPONSOR_SECRET_KEY — optional. Fee sponsorship ("gasless" UX) is an opt-in
+  // feature; the backend runs fine without it (POST /sponsor/fee-bump returns
+  // 503 when unset). If present, validate shape: Stellar secret keys are
+  // StrKey-encoded Ed25519 seeds that always start with 'S' and are 56 chars.
+  const sponsorSecret = String(config['SPONSOR_SECRET_KEY'] ?? '').trim();
+  if (sponsorSecret) {
+    if (sponsorSecret.length !== 56 || !sponsorSecret.startsWith('S')) {
+      errors.push(
+        `  SPONSOR_SECRET_KEY — must be a 56-char Stellar secret key starting with 'S' (got ${sponsorSecret.length} chars, starts with "${sponsorSecret[0] ?? ''}")`,
+      );
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(
       `\n\n[StellarSplit] Environment validation failed — fix these variables before starting:\n\n` +
@@ -126,5 +140,6 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
     VAPID_PUBLIC_KEY: vapidPublicKey,
     VAPID_PRIVATE_KEY: vapidPrivateKey,
     VAPID_SUBJECT: vapidSubject,
+    SPONSOR_SECRET_KEY: sponsorSecret,
   };
 }

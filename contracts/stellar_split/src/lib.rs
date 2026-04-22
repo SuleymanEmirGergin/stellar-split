@@ -13,6 +13,7 @@ use storage::{
     set_next_expense_id, set_next_group_id,
     get_guardian_config, save_guardian_config, get_recovery_request, save_recovery_request,
     get_savings_pool, save_savings_pool,
+    is_referred, set_referred, get_reward_token, set_reward_token_addr,
 };
 use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault, SavingsPool};
 
@@ -414,6 +415,65 @@ impl StellarSplitContract {
         );
 
         settlements
+    }
+
+    // ─────────────────────────────────────────────
+    //  REFERRAL REWARDS
+    // ─────────────────────────────────────────────
+
+    /// Deployer-tarafı setup: reward token kontrat adresini kaydeder.
+    /// Sonradan `register_referral` bu adrese mint çağrısı gönderir.
+    ///
+    /// Hackathon sürümünde kim çağırabilir kısıtlaması yok (deployer
+    /// dışında kimse çağırmayacağı varsayılıyor). Mainnet için
+    /// `admin.require_auth()` + kayıtlı admin adresi kontrolü eklenir.
+    pub fn set_reward_token(env: Env, admin: Address, token: Address) {
+        admin.require_auth();
+        set_reward_token_addr(&env, &token);
+
+        env.events().publish(
+            (Symbol::new(&env, "reward_token_set"), admin),
+            token,
+        );
+    }
+
+    /// Davet eden kişiye 5 SPLT mint eder (inter-contract call) ve
+    /// `newcomer`'ı "referred" olarak işaretler.
+    ///
+    /// Koşullar:
+    ///   - `newcomer` require_auth vermeli (abuse önlemek için).
+    ///   - `inviter == newcomer` ise panic — self-referral yok.
+    ///   - `newcomer` daha önce referred ise panic — tek defa geçerli.
+    ///
+    /// Eğer `RewardToken` storage'da set edilmemişse mint çağrısı atlanır
+    /// (unit test / ön-setup deployment durumu). Referral kaydı yine de
+    /// tutulur — ikinci çağrıda panic edeceği için idempotency korunur.
+    pub fn register_referral(env: Env, inviter: Address, newcomer: Address) {
+        newcomer.require_auth();
+
+        if inviter == newcomer {
+            panic!("self-referral not allowed");
+        }
+        if is_referred(&env, &newcomer) {
+            panic!("newcomer already referred");
+        }
+
+        set_referred(&env, &newcomer);
+
+        let reward_amount: i128 = 5;
+
+        if let Some(token) = get_reward_token(&env) {
+            env.invoke_contract::<()>(
+                &token,
+                &Symbol::new(&env, "mint"),
+                soroban_sdk::vec![&env, inviter.clone().into_val(&env), reward_amount.into_val(&env)],
+            );
+        }
+
+        env.events().publish(
+            (Symbol::new(&env, "referral_rewarded"), inviter.clone()),
+            (newcomer, reward_amount),
+        );
     }
 
     // ─────────────────────────────────────────────

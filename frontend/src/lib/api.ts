@@ -423,6 +423,67 @@ export interface BackendPaymentRequest {
   groupName?: string;
 }
 
+// ─── Public analytics summary (Level 6 metrics dashboard) ──────────────────
+//
+// Backed by `GET /analytics/summary` — public endpoint, 60s Redis cache on
+// the server, 30 req/min throttle. Anyone can hit it; used by the public
+// StatsPanel on the Dashboard.
+export interface PublicAnalyticsSummary {
+  totalGroups: number;
+  totalMembers: number;
+  totalExpenses: number;
+  totalSettled: number;
+  totalVolumeXlm: number;
+  dau: number;
+  wau: number;
+  mau: number;
+  dauTrend: Array<{ date: string; count: number }>;
+  lastUpdated: string;
+}
+
+export const analyticsApi = {
+  summary: () => api.get<PublicAnalyticsSummary>('/analytics/summary'),
+  leaderboard: (params: { wallet?: string; limit?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.wallet) qs.set('wallet', params.wallet);
+    if (params.limit) qs.set('limit', String(params.limit));
+    const q = qs.toString();
+    return api.get<LeaderboardResponse>(`/analytics/leaderboard${q ? `?${q}` : ''}`);
+  },
+};
+
+// ─── Leaderboard types ─────────────────────────────────────────────────────
+export interface LeaderboardEntry {
+  rank: number;
+  walletAddress: string;
+  settlementsInitiated: number;
+  spltBalance: number;
+  totalVolumeXlm: number;
+}
+
+export interface LeaderboardResponse {
+  top: LeaderboardEntry[];
+  yourRank?: LeaderboardEntry;
+  lastUpdated: string;
+}
+
+// ─── Fee sponsorship (Level 6 advanced feature) ────────────────────────────
+//
+// Wraps a user-signed inner XDR as a Stellar fee-bump transaction. The
+// sponsor account (backend secret) pays the network fee, so the user
+// doesn't need an XLM balance just to settle a group. Backend returns 503
+// if sponsorship isn't configured on this deployment.
+export interface FeeBumpResponse {
+  feeBumpXdr: string;
+  sponsorAccount: string;
+  network: 'testnet' | 'public';
+}
+
+export const sponsorApi = {
+  feeBump: (innerXdr: string) =>
+    api.post<FeeBumpResponse>('/sponsor/fee-bump', { innerXdr }),
+};
+
 export const paymentRequestsApi = {
   create: (payload: {
     groupId: string;
