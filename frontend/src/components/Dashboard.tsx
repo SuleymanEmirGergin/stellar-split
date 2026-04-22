@@ -76,10 +76,19 @@ const itemVars = {
   visible: { opacity: 1, y: 0 }
 };
 
-/** Testnet test adresleri – grup oluştururken "Test adresleriyle doldur" ile kullanılır. */
+/**
+ * Testnet placeholder addresses — used by the "Test adresleriyle doldur"
+ * helper during demo-mode group creation. They are real, valid Stellar
+ * Ed25519 public keys (56 chars, checksum-verified) generated once via
+ * Keypair.random(); in demo mode nothing is broadcast, so no balances or
+ * sig ownership are assumed. If you rotate these, regenerate with:
+ *   node -e "const s=require('@stellar/stellar-sdk');
+ *            for(let i=0;i<2;i++)console.log(s.Keypair.random().publicKey())"
+ * and make sure every character passes `StrKey.isValidEd25519PublicKey`.
+ */
 const TEST_ADDRESSES = [
-  'GDJJRRMBK4IWLEPJGIE6SXD2LP7FILNK6I6NMDPKPWUK4TTE4M7PXVK',
-  'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
+  'GCVKIWTOX7BCKMUJ6LCNIIU467RRBAN52Q6JWTIKJESZP54HI4E72PZ2',
+  'GBPSYSKI3QJ6GJ4UKI233OG27NSTKT555UBJWCVRNIOJO3MRW63IWSGL',
 ];
 
 export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Props) {
@@ -209,11 +218,17 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
         .map((m) => m.trim())
         .filter((m) => m.length > 0);
 
-      for (const addr of rawAddresses) {
-        if (!isValidStellarAddress(addr)) {
-          setError(`Geçersiz Stellar adresi: ${addr}`);
-          setCreating(false);
-          return;
+      // Strict StrKey validation only matters when we're about to broadcast
+      // to the real network. Demo mode never leaves the device, so let
+      // users type anything and still get a working group — otherwise a
+      // single typo makes the whole "try before connecting" experience fail.
+      if (!isDemo) {
+        for (const addr of rawAddresses) {
+          if (!isValidStellarAddress(addr)) {
+            setError(`Geçersiz Stellar adresi: ${addr}`);
+            setCreating(false);
+            return;
+          }
         }
       }
 
@@ -248,7 +263,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
     } finally {
       setCreating(false);
     }
-  }, [walletAddress, newName, newMembers, groups, saveGroups, currency, t]);
+  }, [walletAddress, newName, newMembers, groups, saveGroups, currency, t, isDemo]);
 
   const totalMembers = groups.reduce((s, g) => s + g.memberCount, 0);
   const filteredLocalGroups = groups
