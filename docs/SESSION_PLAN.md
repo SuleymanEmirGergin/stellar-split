@@ -79,7 +79,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** Session 4 ile çakışabilir (landing touch) → Session 4'ten SONRA
 
-### Session 7 — Use Cases Page (Task 8) `[x]` — commit TBD
+### Session 7 — Use Cases Page (Task 8) `[x]` — commit `f17be1b`
 - **Scope:** `/use-cases` route — 3 senaryo
 - **Files:**
   - `frontend/src/pages/UseCasesPage.tsx` (new)
@@ -206,7 +206,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
 
-- **Session 7** (commit TBD) — Use Cases Page
+- **Session 7** (commit `f17be1b`) — Use Cases Page
   - `frontend/src/pages/UseCasesPage.tsx` (new) — 3 senaryo (Erasmus / Startup team / Tatil), problem × çözüm × screenshot × Stellar Expert tx link
   - `frontend/src/pages/UseCasesPage.test.tsx` (new) — 7 Vitest testi (title/subtitle, 3 senaryo kartı, tx link shape, CDN image src, navigation)
   - `frontend/src/App.tsx` — `isUseCases` conditional + lazy import, public route (auth-exempt), existing pathname-pattern routing ile uyumlu
