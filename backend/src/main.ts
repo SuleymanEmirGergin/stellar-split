@@ -151,9 +151,14 @@ Auth endpoints are throttled to **10 requests / 60 s** per IP.`,
     });
   }
 
+  // Bind to 0.0.0.0 so the container's reverse proxy (Railway, Fly, Docker
+  // Compose, K8s ingress, etc.) can reach the app from outside. Default
+  // Nest/Express bind is localhost only — the process is up but the Railway
+  // healthcheck against /health/live gets "service unavailable" because the
+  // listener isn't reachable from the container's external network.
   const port = process.env.PORT ?? 3001;
-  await app.listen(port);
-  app.get(Logger).log(`StellarSplit API listening on port ${port}`);
+  await app.listen(port, '0.0.0.0');
+  app.get(Logger).log(`StellarSplit API listening on 0.0.0.0:${port}`);
 }
 
 bootstrap().catch((err) => {
