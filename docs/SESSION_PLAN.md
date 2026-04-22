@@ -54,7 +54,7 @@ Progress işareti:
 - **Süre:** ~2 saat
 - **Conflict:** yok (yeni dosyalar, kimse dokunmuyor)
 
-### Session 5 — Landing Canlı Metrikler (Task 2) `[ ]`
+### Session 5 — Landing Canlı Metrikler (Task 2) `[x]` — commit TBD
 - **Scope:** Ana landing page'e 4 public KPI card
 - **Files:**
   - `frontend/src/hooks/usePublicMetrics.ts` (new)
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 5 (Landing canlı metrikler) — sıra sende
+## 🎯 Şu an aktif: Session 6 (Lighthouse + PWA polish) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,6 +205,14 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
+
+- **Session 5** (commit TBD) — Landing Live Metrics
+  - `frontend/src/hooks/usePublicMetrics.ts` — React Query hook, shares cache key `['analytics', 'summary']` with StatsPanel so cross-nav is instant
+  - `frontend/src/components/KPICard.tsx` — animated counter card with loading/error states
+  - `frontend/src/components/KPICard.test.tsx` — 10 tests (Vitest) covering ready/loading/error/icon paths
+  - `frontend/src/components/Landing.tsx` — swapped 3 hardcoded stats (10K/₺/★) for `LiveMetricsRow` with 4 live KPIs (groups / volume / settled / dau); removed dead `Stat` function + unused framer-motion imports
+  - Bonus: fixed pre-existing `Dashboard.test.tsx` break (missing StatsPanel mock since L6 commit); suite: 890/890 green (was 885/890 before this session)
+  - TypeScript: 0 error · ESLint: 0 error
 
 - **Session 4B** (commit `f1c1bc4`) — Twitter Auto-Poster
   - `scripts/post-thread.mjs` — markdown parser (`parseThreadsMarkdown`) + X API v2 thread chain poster + dry-run mode
