@@ -47,9 +47,14 @@ async function setLocale(page: Page, lang: 'en' | 'tr' = 'en') {
 }
 
 async function capture(page: Page, filename: string, fullPage = false) {
-  await page.waitForLoadState('networkidle');
-  // Small settle for animations/fonts
-  await page.waitForTimeout(500);
+  // `load` is reliable — fires once the document + subresources finish.
+  // Don't use `networkidle`: Landing's live-metrics fetch (usePublicMetrics
+  // → /analytics/summary) can hang in the test env where the backend isn't
+  // running, and networkidle never fires, timing out at 15s. `load` is
+  // enough for a visually-settled screenshot.
+  await page.waitForLoadState('load');
+  // Slightly longer settle to let font swap + reveal animations finish.
+  await page.waitForTimeout(800);
   await page.screenshot({
     path: path.join(OUT_DIR, filename),
     fullPage,
