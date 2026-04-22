@@ -22,7 +22,7 @@ Progress işareti:
 - **Süre:** ~1 saat
 - **Conflict:** yok
 
-### Session 2 — Blog Post Draft (Task 5) `[ ]`
+### Session 2 — Blog Post Draft (Task 5) `[x]` — commit TBD
 - **Scope:** Dev.to / Medium için tam blog yazısı
 - **Files:** `docs/blog/how-we-built-birik.md` (new)
 - **Deliverable:** Publish-ready markdown — frontmatter, screenshots, architecture diagram referansı
@@ -158,12 +158,18 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 2 (sıra sende — başlamamı söyle)
+## 🎯 Şu an aktif: Session 3 (Twitter threads) — sıra sende
 
 ## 📜 Tamamlananlar
 
-- **Session 1** (`71d6843`) — Screenshot Gallery Expansion
-  - Playwright script `frontend/e2e/screenshots.spec.ts` (10 otomatik screenshot)
-  - Manuel checklist `docs/SCREENSHOT_CHECKLIST.md` (5 state-dependent screenshot)
-  - README Screenshots bölümü: Dark/Light karşılaştırma, Mobile gallery, Key moments (min-flow, savings, SPLT, tx history), DevOps output
-  - TypeScript: 0 error
+- **Session 1** (`71d6843` + `bad0023` + `02190c6`) — Screenshot Gallery Expansion
+  - Playwright script `frontend/e2e/screenshots.spec.ts` (10 otomatik screenshot: viewport × tema matrisi)
+  - Playwright script `frontend/e2e/screenshots-states.spec.ts` (5 state-dependent: settle, savings, splt-reward, activity-feed, mobile-bottomsheet)
+  - README Screenshots bölümü: Dark/Light karşılaştırma, Mobile gallery, Key moments, DevOps output
+  - Tüm 15 screenshot tek komutla yeniden üretilebilir. TypeScript: 0 error
+
+- **Session 2** (commit TBD) — Blog Post Draft
+  - `docs/blog/how-we-built-birik.md` (~2000 kelime, publish-ready)
+  - Dev.to frontmatter + raw.githubusercontent.com absolute image URLs (Medium/Hashnode mirror'ları için)
+  - 3 teknik bölüm (min-flow algo / inter-contract SPLT mint / SIWS auth) + testing stratejisi + mobile
+  - Publishing notes (Dev.to primary, Medium/Hashnode mirror, tweet thread prep)
