@@ -4,15 +4,46 @@
 
 ---
 
-## 📅 Önerilen yayın planı
+## 📅 Yayın planı — prensipler + adapte edilmiş takvim
 
-| Gün | Saat (TR) | Thread | Neden o zaman |
-|-----|-----------|--------|---------------|
-| **Pazartesi** | 20:00 | Thread 1 — Neden Birik? | Haftabaşı, AB/ABD overlap (14:00 ET), hook'lu hikâye en yüksek engagement saatinde |
-| **Salı** | 16:00 | Thread 2 — Under the hood | Dev community aktif saatleri (ABD öğle) — teknik okuyucular |
-| **Perşembe** | 18:00 | Thread 3 — Testnet beta open | Hafta ortası commitment'ı düşer, eyleme geçirici CTA |
+**Prensip:** Gün adı (Pazartesi/Salı) önemli değil — asıl belirleyici faktörler:
 
-Her thread arasında **24-48 saat** bırak. Üst üste thread = overload = unfollow.
+1. **Saat-of-day** >> gün-of-week
+2. **Thread'ler arası 24–48 saat aralık**
+3. **3 thread ~1 hafta içinde yayında olsun** (momentum)
+
+Aşağıdaki takvim **bugün çarşamba başlanırsa** uygun. Hangi günden başlanırsa başlansın, aynı aralık ve saat yapısı geçerlidir.
+
+### Strateji A — Awareness-first (varsayılan)
+İlk thread genel hook + brand, sondaki thread conversion-heavy CTA.
+
+| +Gün | Saat (TR) | Thread | Neden |
+|------|-----------|--------|-------|
+| **Gün 0 (bugün)** | 20:00 | Thread 1 — Why Birik? | Evergreen hook, en geniş reach |
+| **+2 gün** | 16:00 | Thread 2 — Under the hood | ABD dev öğle saati, teknik audience |
+| **+4 gün** | 18:00 | Thread 3 — Testnet beta open | Hafta sonu kişisel vakit, setup + form doldurma oranı yüksek |
+
+### Strateji B — Conversion-first (5+ user bulmak acildiyse)
+MVP submission deadline yakınsa bu sıra; direkt formu öne atar, sonra awareness ile desteklersin.
+
+| +Gün | Saat (TR) | Thread | Neden |
+|------|-----------|--------|-------|
+| **Gün 0 (bugün)** | 20:00 | Thread 3 — Testnet beta open | Direkt CTA, en hızlı form fill'i üretir |
+| **+2 gün** | 20:00 | Thread 1 — Why Birik? | Thread 3 impression'ını brand story ile destekler |
+| **+4 gün** | 18:00 | Thread 2 — Under the hood | Dev community, repo star & long-term interest |
+
+### Saat-of-day cheat sheet
+
+| Hedef kitle | TR saati | Gerekçe |
+|-------------|----------|---------|
+| Türk crypto community | 20:00–22:00 | Mesai sonrası, telefon elinde |
+| ABD dev community | 16:00–18:00 (9–11 ET) | Dev'lerin sabah kahve + Twitter rutini |
+| AB crypto builders | 18:00–20:00 | Avrupa mesai bitişi |
+| Düşük rekabet pencere | 12:30–13:30 | Öğle molası, aynı saatlerde tweet yağmayan bir pencere |
+
+**Kapsayıcı seçim:** `20:00 TR` — Türkiye akşam + ABD öğle + AB akşam başı üçünü aynı anda yakalar.
+
+> ⚠️ Üst üste < 24 saat thread atma. Follower'ın timeline'ı dolar → overload → unfollow.
 
 ---
 
