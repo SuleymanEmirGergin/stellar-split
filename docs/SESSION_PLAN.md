@@ -103,7 +103,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** App.tsx — Session 6'dan SONRA
 
-### Session 9 — On-Chain Referral Program (Task 10) `[x]` — commit TBD
+### Session 9 — On-Chain Referral Program (Task 10) `[x]` — commit `499de87`
 - **Scope:** Contract'ta `register_referral` entrypoint + frontend wire
 - **Files:**
   - `contracts/stellar_split/src/lib.rs` (new entrypoint)
@@ -206,7 +206,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
 
-- **Session 9** (commit TBD) — On-Chain Referral Program (first Rust/Soroban session)
+- **Session 9** (commit `499de87`) — On-Chain Referral Program (first Rust/Soroban session)
   - **Contract:** 2 new entrypoints in `lib.rs`:
     - `set_reward_token(admin, token)` — deployer setup, stores SPLT contract id in instance storage
     - `register_referral(inviter, newcomer)` — requires `newcomer.require_auth()`, rejects self-referral, rejects already-referred newcomer, mints 5 SPLT to inviter via `env.invoke_contract` if reward token is set (graceful skip for unit tests)
