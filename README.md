@@ -17,27 +17,69 @@ _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tok
 
 ## 📸 Screenshots / Ekran Görüntüleri
 
-### Landing
+### 🖥️ Landing — desktop
 
 ![Landing Hero](docs/screenshots/landing.png)
 
-### Dashboard
+### 📊 Dashboard — desktop
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
-### Test Output — 880 frontend + 24 contract tests passing
+### 🌗 Dark / Light mode
 
-![Test Results](docs/screenshots/tests-passing.png)
+| Dark | Light |
+|:----:|:-----:|
+| ![Landing dark](docs/screenshots/landing-desktop-dark.png) | ![Landing light](docs/screenshots/landing-desktop-light.png) |
 
-### CI/CD Pipeline — all green
+Birik her iki tema için optimize edildi — sistem teması otomatik algılanır, kullanıcı tek tıkla değiştirebilir (`stellarsplit_theme` localStorage).
 
-![GitHub Actions](docs/screenshots/ci-passing.png)
+### 📱 Mobile gallery — iPhone 14 Pro (390×844)
 
-### Metrics Dashboard — public platform stats
+| Landing | Dashboard | Bottom sheet |
+|:-------:|:---------:|:------------:|
+| ![Mobile landing](docs/screenshots/landing-mobile-dark.png) | ![Mobile dashboard](docs/screenshots/dashboard-mobile-dark.png) | ![Mobile bottomsheet](docs/screenshots/mobile-bottomsheet.png) |
+
+Tüm ana akışlar (grup oluşturma, harcama ekleme, settle, savings pool) mobile-first tasarlandı. Bottom sheet + FAB patern'i ile dashboard tek elle kullanılabilir.
+
+### ⚡ Key moments — ürünün value proposition'ı
+
+#### Min-flow settlement — "10 transferden 3'e"
+
+![Settle modal min-flow](docs/screenshots/settle-modal-minflow.png)
+
+Greedy algoritma on-chain çalışır: 6 kişilik bir grupta 10 potansiyel transfer, 3 gerçek transfere indirilir. Kullanıcı tek tıklar → contract hepsini tek transaction'da atomik olarak işler.
+
+#### Savings pool — group-funded target
+
+![Savings pool funded](docs/screenshots/savings-pool-funded.png)
+
+Grup üyeleri ortak bir hedef için on-chain contribute'lar. Hedefe ulaşılınca `release_pool` ile fonlar pro-rata serbest bırakılır.
+
+#### SPLT reward — inter-contract mint
+
+![SPLT reward](docs/screenshots/splt-reward.png)
+
+Settle'ı başlatan kullanıcıya **100 SPLT** mint edilir — `stellar_split` → `stellar_split_token` inter-contract call. Dashboard'daki SPLT balance widget anında güncellenir.
+
+#### Transaction history — verifiable on Stellar Expert
+
+![Tx history](docs/screenshots/tx-history-settle.png)
+
+Her işlem Stellar Expert'te doğrulanabilir — `create_group`, `add_expense`, `settle_group` operation'ları user'ın kendi cüzdan adresinde izlenebilir.
+
+### 🏗️ DevOps — CI + Test output
+
+| Tests passing | CI green |
+|:-------------:|:--------:|
+| ![Test Results](docs/screenshots/tests-passing.png) | ![CI](docs/screenshots/ci-passing.png) |
+
+### 📈 Public metrics dashboard
 
 ![Platform Metrics](docs/screenshots/metrics-dashboard.png)
 
-_(Live on the Dashboard. Backed by `GET /analytics/summary` — no auth, 60s cache, 30 req/min throttle.)_
+_Live on `/dashboard`. Backed by `GET /analytics/summary` — no auth, 60s cache, 30 req/min throttle._
+
+> 📝 Screenshot'ları yenilemek için: `cd frontend && npx playwright test e2e/screenshots.spec.ts`. Manuel adımlar (settle modal, savings pool vb.): [`docs/SCREENSHOT_CHECKLIST.md`](docs/SCREENSHOT_CHECKLIST.md).
 
 ---
 
