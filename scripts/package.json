@@ -1,0 +1,17 @@
+{
+  "name": "birik-scripts",
+  "version": "1.0.0",
+  "description": "Operational scripts — currently: Twitter/X thread auto-poster",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "post-thread": "node post-thread.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "twitter-api-v2": "^1.18.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

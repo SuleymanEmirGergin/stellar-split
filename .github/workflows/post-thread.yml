@@ -1,0 +1,69 @@
+name: Post Twitter Thread
+
+# Manual trigger from the Actions tab OR (optional) a scheduled cron.
+# The cron schedule below is commented out on purpose — enable it
+# only once you have verified the manual path works end-to-end.
+on:
+  workflow_dispatch:
+    inputs:
+      thread:
+        description: 'Which thread to post (1, 2, or 3)'
+        required: true
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+      dry_run:
+        description: 'Dry-run only (parse + print, no API calls)'
+        required: true
+        type: boolean
+        default: true
+
+  # Uncomment to enable scheduled posting. Times are UTC.
+  # Example: post Thread 1 every Wednesday at 17:00 UTC (20:00 TR).
+  # schedule:
+  #   - cron: '0 17 * * 3'   # Wed 17:00 UTC = 20:00 TR
+  #   - cron: '0 13 * * 5'   # Fri 13:00 UTC = 16:00 TR
+  #   - cron: '0 15 * * 0'   # Sun 15:00 UTC = 18:00 TR
+
+jobs:
+  post:
+    name: Post thread ${{ inputs.thread }}${{ inputs.dry_run && ' (dry-run)' || '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    # Safety — never post from branches that aren't master,
+    # and only when explicitly triggered.
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'scripts/package.json'
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm install --omit=dev
+
+      - name: Run parser + dry-run tests
+        working-directory: scripts
+        run: npm test
+
+      - name: Post thread
+        working-directory: .
+        env:
+          TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+        run: |
+          node scripts/post-thread.mjs \
+            --thread=${{ inputs.thread }} \
+            ${{ inputs.dry_run && '--dry-run' || '' }}

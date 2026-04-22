@@ -43,7 +43,7 @@ Progress işareti:
 - **Süre:** ~30 dk (docs-only)
 - **Conflict:** yok
 
-### Session 4B — Twitter Auto-Poster (leaderboard signal) `[ ]`
+### Session 4B — Twitter Auto-Poster (leaderboard signal) `[x]` — commit TBD
 - **Scope:** GitHub Actions ile `twitter-threads.md` markdown'dan otomatik thread post + image upload + `in_reply_to_status_id` chain
 - **Files:**
   - `scripts/post-thread.mjs` (new) — markdown parse, X API v2 client, thread chaining
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 4B (Twitter auto-poster) — sıra sende (4A docs-only tamamlandı)
+## 🎯 Şu an aktif: Session 5 (Landing canlı metrikler) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,3 +205,12 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
+
+- **Session 4B** (commit TBD) — Twitter Auto-Poster
+  - `scripts/post-thread.mjs` — markdown parser (`parseThreadsMarkdown`) + X API v2 thread chain poster + dry-run mode
+  - `scripts/post-thread.test.mjs` — 14 test (parser fixtures + real markdown shape + char-limit invariant + image existence + dry-run)
+  - `scripts/package.json` + `scripts/package-lock.json` — `twitter-api-v2` tek dependency, Node ≥20, `node --test` runner
+  - `.github/workflows/post-thread.yml` — workflow_dispatch ile thread seç + dry-run toggle, tests önce koşulur sonra post step
+  - `docs/TWITTER_AUTOMATION.md` — X Developer Portal kurulumu + 4 secret + 6 adımlı operating playbook + 7-madde troubleshooting + security notes
+  - Combined strategy'nin "ay sonuna doğru" ayağı — leaderboard teknik signal + Buffer $5/ay'dan kaçış
+  - Dry-run local'de test edildi: 3 thread (8+9+8=25 tweet), hepsi parsed, image paths resolved
