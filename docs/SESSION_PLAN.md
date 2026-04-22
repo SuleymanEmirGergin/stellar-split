@@ -65,7 +65,7 @@ Progress işareti:
 - **Süre:** ~2 saat
 - **Conflict:** Sadece LandingPage.tsx — Session 6-7 ile çakışmaz
 
-### Session 6 — Lighthouse + PWA Polish (Tasks 7 + 13) `[x]` — commit TBD
+### Session 6 — Lighthouse + PWA Polish (Tasks 7 + 13) `[x]` — commit `c97b922`
 - **Scope:** Performance, a11y, SEO, PWA tamamlanması
 - **Files:**
   - `frontend/index.html` (meta tags)
@@ -206,7 +206,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
 
-- **Session 6** (commit TBD) — Lighthouse + PWA Polish
+- **Session 6** (commit `c97b922`) — Lighthouse + PWA Polish
   - `scripts/generate-pwa-icons.mjs` + `sharp` devdep — favicon.svg'den 6 raster çıktı (icon-192/512, icon-192/512-maskable, apple-touch-icon-180, og-image 1200×630). "Brand asset değişince bir komut, bitti."
   - `frontend/public/manifest.json` rewritten — PNG icons with explicit sizes + `purpose: any` + `purpose: maskable` variants
   - `frontend/vite.config.ts` manifest reconciled — was "StellarSplit" (inherited from template), now "Birik" matching public/manifest.json
