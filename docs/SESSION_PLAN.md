@@ -11,7 +11,7 @@ Progress işareti:
 
 ## 📋 Session sırası
 
-### Session 1 — Screenshot Gallery Expansion (Task 6) `[~]`
+### Session 1 — Screenshot Gallery Expansion (Task 6) `[x]` — commit `71d6843`
 - **Scope:** README screenshot galerisini genişletme — mobile, dark/light, settle modal, savings pool
 - **Files:**
   - `frontend/e2e/screenshots.spec.ts` (new) — Playwright otomatik screenshot script
@@ -158,4 +158,12 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 1
+## 🎯 Şu an aktif: Session 2 (sıra sende — başlamamı söyle)
+
+## 📜 Tamamlananlar
+
+- **Session 1** (`71d6843`) — Screenshot Gallery Expansion
+  - Playwright script `frontend/e2e/screenshots.spec.ts` (10 otomatik screenshot)
+  - Manuel checklist `docs/SCREENSHOT_CHECKLIST.md` (5 state-dependent screenshot)
+  - README Screenshots bölümü: Dark/Light karşılaştırma, Mobile gallery, Key moments (min-flow, savings, SPLT, tx history), DevOps output
+  - TypeScript: 0 error
