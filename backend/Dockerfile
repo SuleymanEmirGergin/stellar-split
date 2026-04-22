@@ -43,7 +43,16 @@ USER appuser
 
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3001/health/live || exit 1
+# Healthcheck uses the same PORT the app listens on (Railway injects PORT;
+# locally defaults to 3001 via the shell fallback). Container-internal, so
+# localhost is fine here — Railway's external healthcheck is separate and
+# hits the 0.0.0.0 bind set up in main.ts.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- "http://localhost:${PORT:-3001}/health/live" || exit 1
 
-CMD ["node", "dist/main.js"]
+# Run migrations on boot, then start the server. Migration failures don't
+# kill the process — the server still comes up (healthcheck only hits memory,
+# not DB), and the ready endpoint at /health/ready surfaces the DB state.
+# Without this chain, a fresh Railway environment crashes on first query
+# because no one ran `prisma migrate deploy` against the injected DATABASE_URL.
+CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js migrate deploy || echo 'migrate failed — continuing'; node dist/main.js"]
