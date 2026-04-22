@@ -405,7 +405,7 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               <div className="relative group">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-indigo-400 transition-colors" />
               <input 
-                className="bg-secondary/50 border border-white/5 rounded-xl pl-9 pr-4 py-2 text-sm outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all w-48 md:w-64" 
+                className="bg-secondary/50 border border-white/5 rounded-xl pl-9 pr-4 py-2 text-sm outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all w-32 sm:w-48 md:w-64" 
                 placeholder={t('dash.search')} 
                 value={search} 
                 onChange={e => setSearch(e.target.value)} 

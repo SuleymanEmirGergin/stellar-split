@@ -515,7 +515,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     <div className="space-y-6">
       <SkeletonShimmer className="h-40 w-full" rounded="3xl" />
       <p className="text-center text-xs font-bold text-muted-foreground">{t('common.loading_group')}</p>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {[1,2,3,4].map(i => <SkeletonShimmer key={i} className="h-10" rounded="xl" />)}
       </div>
       <SkeletonShimmer className="h-64 w-full" rounded="3xl" />
@@ -581,7 +581,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                     value={nameDraft}
                     onChange={(e) => setNameDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Escape') handleRenameCancel(); }}
-                    className="text-2xl font-black tracking-tighter bg-transparent border-b-2 border-primary outline-none px-1 py-0.5 min-w-[160px] max-w-[320px]"
+                    className="text-2xl font-black tracking-tighter bg-transparent border-b-2 border-primary outline-none px-1 py-0.5 min-w-[120px] md:min-w-[160px] max-w-full md:max-w-[320px]"
                     aria-label="Grup adı"
                     maxLength={64}
                   />

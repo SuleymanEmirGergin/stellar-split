@@ -61,12 +61,12 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
     <section className="relative overflow-hidden pt-20 md:pt-28">
       {/* Background gradient blobs */}
       <motion.div
-        className="pointer-events-none absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-birik/20 blur-[120px]"
+        className="pointer-events-none absolute -top-40 right-0 h-[320px] w-[320px] md:h-[600px] md:w-[600px] rounded-full bg-birik/20 blur-[120px]"
         animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
-        className="pointer-events-none absolute top-20 -left-40 h-[400px] w-[400px] rounded-full bg-plum/20 blur-[120px]"
+        className="pointer-events-none absolute top-20 -left-40 h-[220px] w-[220px] md:h-[400px] md:w-[400px] rounded-full bg-plum/20 blur-[120px]"
         animate={{ x: [0, -30, 0], y: [0, 30, 0] }}
         transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -138,7 +138,7 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
             </RiseItem>
 
             <RiseItem>
-              <div className="mt-14 grid max-w-md grid-cols-3 gap-6 border-t border-edge pt-8">
+              <div className="mt-14 grid max-w-md grid-cols-3 gap-3 md:gap-6 border-t border-edge pt-8">
                 <Stat target={10} prefix="" suffix="K+" label="Aktif grup" />
                 <Stat target={0.01} prefix="<" suffix="₺" label="İşlem ücreti" decimals={2} />
                 <Stat target={4.8} prefix="" suffix="★" label="App Store" decimals={1} />
@@ -529,7 +529,7 @@ function GroupExpenseMockup() {
         onMouseLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}
         onBlur={() => setPaused(false)}
-        className="relative mx-auto aspect-[9/18] w-full max-w-[340px] rounded-[44px] border-[10px] border-ink bg-fog p-6 shadow-[0_40px_120px_-20px_rgba(196,255,77,0.25)] overflow-hidden"
+        className="relative mx-auto aspect-[9/18] w-full max-w-[min(88vw,340px)] rounded-[44px] border-[10px] border-ink bg-fog p-6 shadow-[0_40px_120px_-20px_rgba(196,255,77,0.25)] overflow-hidden"
         aria-label="Birik product preview — hover to pause"
       >
         <div className="absolute left-1/2 top-3 h-6 w-24 -translate-x-1/2 rounded-full bg-ink z-10" />
