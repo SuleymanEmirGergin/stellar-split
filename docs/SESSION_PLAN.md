@@ -90,7 +90,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** App.tsx touch → Session 7 ile sırayla
 
-### Session 8 — Leaderboard Page (Task 9) `[x]` — commit TBD
+### Session 8 — Leaderboard Page (Task 9) `[x]` — commit `32ed619`
 - **Scope:** Public `/leaderboard` — top SPLT holders
 - **Files:**
   - `backend/src/analytics/leaderboard.service.ts` (new)
@@ -206,7 +206,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
 
-- **Session 8** (commit TBD) — Leaderboard Page (first full-stack session)
+- **Session 8** (commit `32ed619`) — Leaderboard Page (first full-stack session)
   - **Backend:** `backend/src/analytics/leaderboard.service.ts` + spec (9 tests), new `GET /analytics/leaderboard` endpoint in `analytics.controller.ts` (+3 controller tests), `LeaderboardService` registered in `analytics.module.ts`
   - Query: Prisma `settlement.groupBy({ by: settledById, where: { status: 'CONFIRMED' }, ... })` sorted by count desc; user table joined for wallet addresses; SPLT balance = settlement count × 100
   - `yourRank` computed separately when viewer is outside top slice (groupBy + having to count users ahead)
