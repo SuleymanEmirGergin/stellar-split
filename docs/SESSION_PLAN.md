@@ -54,7 +54,7 @@ Progress işareti:
 - **Süre:** ~2 saat
 - **Conflict:** yok (yeni dosyalar, kimse dokunmuyor)
 
-### Session 5 — Landing Canlı Metrikler (Task 2) `[x]` — commit TBD
+### Session 5 — Landing Canlı Metrikler (Task 2) `[x]` — commit `be0319d`
 - **Scope:** Ana landing page'e 4 public KPI card
 - **Files:**
   - `frontend/src/hooks/usePublicMetrics.ts` (new)
@@ -206,7 +206,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
 
-- **Session 5** (commit TBD) — Landing Live Metrics
+- **Session 5** (commit `be0319d`) — Landing Live Metrics
   - `frontend/src/hooks/usePublicMetrics.ts` — React Query hook, shares cache key `['analytics', 'summary']` with StatsPanel so cross-nav is instant
   - `frontend/src/components/KPICard.tsx` — animated counter card with loading/error states
   - `frontend/src/components/KPICard.test.tsx` — 10 tests (Vitest) covering ready/loading/error/icon paths
