@@ -36,7 +36,7 @@ Progress işareti:
 - **Süre:** ~2 saat
 - **Conflict:** yok (content-only)
 
-### Session 4A — Typefully Setup Guide (Task 4, ek) `[x]` — commit TBD
+### Session 4A — Typefully Setup Guide (Task 4, ek) `[x]` — commit `e8d4ba7`
 - **Scope:** Bu haftaki 3 thread için Typefully free tier üzerinden "set-and-forget" scheduling rehberi
 - **Files:** `docs/social/TYPEFULLY_SETUP.md` (new)
 - **Deliverable:** 20 dakikalık setup rehberi — hesap oluşturma, X bağlama, thread import (markdown code-block'tan copy-paste), image attachment, scheduling (Strategy A + B), preview, day-of sanity check, troubleshooting
@@ -201,7 +201,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Her tweet char sayımı ≤280 doğrulandı, görsel asset haritası + hashtag/mention cheat sheet + 3-günlük yayın planı + 6 hazır quote-tweet cevabı + engagement tracking tablosu + re-post stratejisi
   - README quick-links'e Dev.to + Medium linkleri eklendi
 
-- **Session 4A** (commit TBD) — Typefully Setup Guide
+- **Session 4A** (commit `e8d4ba7`) — Typefully Setup Guide
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
