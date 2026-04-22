@@ -9,3 +9,17 @@
                   },
     "deployer":  "GDTIW2V3FKVWX3EHWQX6WDMJBXB6DGWBALJGKZUPPGRGSZQX6DYNRYGB"
 }
+
+{
+    "action":  "deploy_session10c",
+    "timestamp":  "2026-04-22T19:44:37Z",
+    "network":  "testnet",
+    "notes":  "Session 10C: multi-currency settle wired — set_reward_token + set_swap_router invoked",
+    "contracts":  {
+                      "usdc_sac":  "CB3TLW74NBIOT3BUWOZ3TUM6RFDF6A4GVIRUQRQZABG5KPOUL4JJOV2F",
+                      "soroswap_router":  "CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD",
+                      "stellar_split_token":  "CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE",
+                      "stellar_split":  "CDFK3GRYE2ZRSEE32HIFXNXY5AX3RNMPYXRETYKUNMY36UUAZXM6DDDL"
+                  },
+    "deployer":  "GDTIW2V3FKVWX3EHWQX6WDMJBXB6DGWBALJGKZUPPGRGSZQX6DYNRYGB"
+}
