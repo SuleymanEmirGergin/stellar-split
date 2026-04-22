@@ -11,31 +11,27 @@ _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tok
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **Hızlı erişim / Quick links:**
-[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtube.com/...) _(to be updated)_ · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K)
+[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users)
 
 ---
 
 ## 📸 Screenshots / Ekran Görüntüleri
 
-### Desktop
+### Landing
 
-![Dashboard](docs/screenshots/dashboard.png)
 ![Landing Hero](docs/screenshots/landing.png)
 
-### Mobile
+### Dashboard
 
-![Mobile Dashboard](docs/screenshots/mobile-dashboard.png)
-![Mobile Group Detail](docs/screenshots/mobile-group.png)
+![Dashboard](docs/screenshots/dashboard.png)
 
-### Test Output
+### Test Output — 880 frontend + 24 contract tests passing
 
 ![Test Results](docs/screenshots/tests-passing.png)
 
-### CI/CD Pipeline
+### CI/CD Pipeline — all green
 
 ![GitHub Actions](docs/screenshots/ci-passing.png)
-
-> _Klasörde görseller henüz yoksa, `docs/screenshots/` altına kendi ekran görüntülerinizi koyabilirsiniz._
 
 ---
 
@@ -320,6 +316,65 @@ stellar contract deploy \
 | Production README        | ✅    | This document — badges, live link, contract address, mobile screenshots              |
 
 </details>
+
+---
+
+## 👥 Testnet Users
+
+Birik'i test eden gerçek kullanıcıların Stellar Testnet cüzdan adresleri. Her adres [Stellar Expert](https://stellar.expert/explorer/testnet/) üzerinde doğrulanabilir.
+
+| # | Ad / Rumuz | Stellar Expert linki (Testnet) |
+|---|-----------|--------------------------------|
+| 1 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
+| 2 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
+| 3 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
+| 4 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
+| 5 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
+
+> 📝 Genişletilmiş liste, ortalamalar ve NPS skoru için: [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md)
+
+---
+
+## 💬 User Feedback
+
+MVP'nin gerçek kullanıcı testlerinden alınan geri bildirimler aşağıdaki kaynaklarda toplanır:
+
+| Kaynak | Link |
+|--------|------|
+| **Google Form (feedback toplama)** | _(TBD — form oluşunca buraya eklenecek)_ |
+| **Excel export (tüm yanıtlar)** | [`docs/user-feedback.xlsx`](docs/user-feedback.xlsx) _(dosya eklendiğinde aktif)_ |
+| **Özet doküman (temalar + iterations)** | [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md) |
+| **Form spec (soru içeriği)** | [`docs/GOOGLE_FORM_SPEC.md`](docs/GOOGLE_FORM_SPEC.md) |
+
+Yüksek seviye metrikler (snapshot):
+
+| Metrik | Değer |
+|--------|-------|
+| Toplam respondent | _(TBD)_ |
+| Ortalama rating (1–5) | _(TBD)_ |
+| NPS (0–10) | _(TBD)_ |
+
+---
+
+## 🔄 Next Phase Improvements
+
+Kullanıcı geri bildirimleri doğrultusunda planlanan ve uygulanan iyileştirmeler. Her tamamlanmış maddenin sonunda ilgili git commit link'i yer alır.
+
+### Applied (feedback → commit)
+
+| # | Feedback'ten gelen madde | Yapılan değişiklik | Commit |
+|---|--------------------------|--------------------|--------|
+| 1 | _(örn. "Mobilde + butonu bulunmuyordu")_ | _(örn. "Mobile bottom-sheet'e +Group CTA eklendi")_ | [`(TBD)`](https://github.com/SuleymanEmirGergin/stellar-split/commit/REPLACE_WITH_SHA) |
+
+### Planned (bir sonraki iteration için)
+
+- **Multi-currency settle** — XLM ↔ USDC path payment (feedback: "tek para birimi kısıtlı" — Q9)
+- **Yield on savings pool** — Blend/SoroSwap entegrasyonu (feedback: "bekleyen para boşa duruyor")
+- **Push notification tam entegrasyon** — tx confirm + settle ready (feedback: "uyarı gelmiyor")
+- **Onboarding wizard iyileştirmesi** — cüzdan bağlama adımı için daha net yönlendirme (feedback: "ilk girişte kayboldum")
+- **Discord/Slack webhook preset'leri** — hazır template butonları (feedback: "test ederken webhook kurmak zor")
+
+> Ayrıntılı feedback kırılımı ve tüm iteration commit'leri için: [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md#-iteration--feedbacke-göre-yapılan-değişiklikler)
 
 ---
 
