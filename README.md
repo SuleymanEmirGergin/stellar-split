@@ -159,6 +159,50 @@ Kullanıcı cüzdanını kaybederse, güvendiği guardian'lar imzaladığında e
 - `approve_recovery` — guardian onayı
 - `finalize_recovery` — eşik dolunca sahipliği devret
 
+### 6. Fee Sponsorship — Gasless Settle 🆕
+
+Kullanıcı XLM'siz bile transaction atabiliyor — Birik sponsor hesabıyla Stellar fee-bump transaction'ı sarıyor. Settle flow'u tek tıkla gasless. **Level 6 advanced feature kriteri: "Fee Sponsorship — Gasless transactions using fee bump"** ✅
+
+**Architecture**:
+```
+user signs inner tx (payment, settle, add_expense)
+       ↓
+POST /sponsor/fee-bump  { innerXdr }
+       ↓
+backend (sponsor.service.ts):
+  TransactionBuilder.buildFeeBumpTransaction(sponsorKeypair, fee, innerTx, network)
+  feeBump.sign(sponsor)
+       ↓
+returns { feeBumpXdr, sponsorAccount, network }
+       ↓
+user (or backend) submits feeBumpXdr to Horizon
+       ↓
+user fee = 0 stroops. sponsor pays.
+```
+
+**Components**:
+- Backend: [`backend/src/sponsor/sponsor.service.ts`](backend/src/sponsor/sponsor.service.ts), [`sponsor.controller.ts`](backend/src/sponsor/sponsor.controller.ts)
+- Frontend: `SubmitOptions { sponsor?: boolean }` in [`frontend/src/lib/contract.ts`](frontend/src/lib/contract.ts); Settle tab has a "Sponsor fee" toggle wired to `handleSettle({ sponsor: true })`
+- Env: backend reads `SPONSOR_SECRET_KEY`. If unset, endpoint returns 503 — frontend falls back to user-paid submission gracefully.
+
+**Live testnet proof**:
+
+A real fee-bump transaction, submitted on Stellar testnet using the sponsor wallet:
+
+| Field | Value |
+|---|---|
+| **Tx hash** | [`02c5012c6ec7c2a5168035be9b9d2c6d1adcab1c6d9e82661647dc95ac8a4c74`](https://stellar.expert/explorer/testnet/tx/02c5012c6ec7c2a5168035be9b9d2c6d1adcab1c6d9e82661647dc95ac8a4c74) |
+| **Fee paid by** | `GD5GTFL4TUHOOW5YRPHVEKF7THQLKVJGN4VMOC5CQXKIDYQMGX3LIT5H` ([explorer](https://stellar.expert/explorer/testnet/account/GD5GTFL4TUHOOW5YRPHVEKF7THQLKVJGN4VMOC5CQXKIDYQMGX3LIT5H)) |
+| **User fee** | **0 stroops (sponsored)** |
+| **Inner op** | payment 1 XLM, memo `birik-gasless-demo` |
+
+Reproducible via the demo script:
+```bash
+cd frontend   # for stellar-sdk resolution
+SPONSOR_SECRET=<sponsor_secret> node ../scripts/demo-gasless-settle.cjs
+```
+See [`scripts/demo-gasless-settle.cjs`](scripts/demo-gasless-settle.cjs). This script runs the exact same `buildFeeBumpTransaction` logic as the backend `SponsorService`; any fresh run produces a new testnet tx hash with the same pattern (user pays 0, sponsor pays).
+
 ---
 
 ## 🧪 Testing / Testler
