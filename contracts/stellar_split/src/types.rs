@@ -103,4 +103,5 @@ pub enum DataKey {
     Referred(Address),      // newcomer -> referral claimed flag (idempotency)
     RewardToken,            // Global: SPLT reward token contract id (Option<Address>)
     SwapRouter,             // Global: Soroswap (or compatible) AMM router contract id
+    SwapFactory,            // Global: Soroswap factory contract id (pool discovery + sub-auth)
 }

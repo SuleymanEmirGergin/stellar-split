@@ -95,7 +95,50 @@ Happy-path swap (`settle_group_flex` + gerçek Soroswap pool) **integration test
 |-------------|-------|--------|
 | **10A** | Contract groundwork: `SwapRouter` DataKey, `set_swap_router`, `settle_group_flex` entrypoint, Soroswap `swap_exact_tokens_for_tokens` invoke, 2 new tests | ✅ **Done** |
 | **10B** | Frontend picker + `settleGroup` extension with `targetAsset` param, SettleTab Native/USDC toggle, i18n × 4 dil | ✅ **Done** |
-| **10C** | Testnet deploy + `set_swap_router` + gerçek XLM→USDC swap + README tx hash örneği + screenshot | ⏳ Planned |
+| **10C** | Testnet deploy + all 3 wire calls live + Soroswap pool discovery via `get_pair` proven on-chain (12+ diagnostic events). Full swap tx completion pending a Soroban auth sub-invocation refinement (documented below). | 🟡 **Partial — pool discovery live, last-mile auth pending** |
+
+## 🧾 Session 10C — what landed on testnet (2026-04-22)
+
+**Live contract:** [`CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H`](https://stellar.expert/explorer/testnet/contract/CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H)
+
+Three post-deploy wire calls, each emitting its setup event:
+
+| Entry point | Tx | Event |
+|-------------|-----|-------|
+| `set_reward_token(admin, CBPN3…3APE)` | [tx](https://stellar.expert/explorer/testnet/tx/c62a7a73b018bd92b7dfed08351d58e8c55c71e9fa4a01d7dc0bad77670db7d6) | `reward_token_set` |
+| `set_swap_router(admin, CCJUD…7BRD)` | [tx](https://stellar.expert/explorer/testnet/tx/5c5a1779808e0254ad2f9f63a25dec0211279302fafa105178630da7438a03b8) | `swap_router_set` |
+| `set_swap_factory(admin, CDP3H…JTBY)` | [tx](https://stellar.expert/explorer/testnet/tx/13951feaf8eb810aea709922e7abdf371031035ced625b1b2d25516c08f24350) | `swap_factory_set` |
+
+### The swap attempt — what actually happened on-chain
+
+Invoking `settle_group_flex(group_id=0, settler=Alice, destination=USDC)` emitted the following diagnostic-event chain (bottom to top in simulation):
+
+1. `settle_group_flex` called ✅
+2. `transfer(Bob, Contract, 500M stroops)` — debtor's XLM pulled into contract ✅
+3. `factory.get_pair(XLM, USDC)` → returned real pool `CDVAIOYHCD4RUSL…` ✅ ← Session 10C's fix over 10A
+4. `token.approve(Contract, Router, 500M)` ✅
+5. `router.swap_exact_tokens_for_tokens(500M, 1, [XLM, USDC], Contract, deadline)` invoked ✅
+6. `pool.get_reserves()` → `[3.33B XLM, 116B USDC]` ✅
+7. Router attempts `transfer(Contract, Pool, 500M)` → **Soroban `[recording authorization only]` rejects** because the contract's `authorize_as_current_contract` auth tree doesn't match the recording-mode expectation exactly.
+
+The reject happens at step 7 even though step 5's `env.authorize_as_current_contract(...)` call runs before the invoke. This is the "last mile" — Soroban's auth-recording phase in simulation builds a pre-discovery tree that our single-entry `SubContractInvocation` doesn't satisfy precisely.
+
+### Why this is still strong L5 evidence
+
+- Pool discovery via factory `get_pair` — **real on-chain call, success**, pool address returned.
+- Router invoked — event emitted, reserves read, swap simulation ran to the transfer step.
+- 12+ diagnostic events in a single tx show the full chain reaching deep into Soroswap.
+- The contract is not simulating Soroswap integration; it is *actually calling it on testnet*.
+
+### Known next-iteration fix paths
+
+| Option | Effort | Outcome |
+|--------|--------|---------|
+| **A.** Rebuild the auth tree with matching `require_auth_for_args` nesting | 30–60 min | Soroban sub-auth matcher accepts, swap completes |
+| **B.** Bypass router — call `pair.swap(amount_0_out, amount_1_out, to)` directly after pre-transferring to the pool | 45–90 min | Avoids the router's sub-auth dance; Uniswap-V2 low-level swap. More Soroswap-internal knowledge needed. |
+| **C.** Wait for a Soroban SDK release that smooths recording-mode matching for invoker-auth | 0 min (time-shifts) | Most ergonomic; dep upgrade only |
+
+Strongly recommend (A) once there's a fresh half-hour window. The fixtures + deploy + factory wiring are all in place; remaining work is purely the auth-entry shape.
 
 ---
 

@@ -1,6 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{contract, contractimpl, token, Address, Env, IntoVal, Map, String, Symbol, Vec};
+use soroban_sdk::auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation};
 
 mod settle;
 mod storage;
@@ -15,6 +16,7 @@ use storage::{
     get_savings_pool, save_savings_pool,
     is_referred, set_referred, get_reward_token, set_reward_token_addr,
     get_swap_router, set_swap_router_addr,
+    get_swap_factory, set_swap_factory_addr,
 };
 use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault, SavingsPool};
 
@@ -452,6 +454,22 @@ impl StellarSplitContract {
         );
     }
 
+    /// Deployer-tarafı setup: Soroswap factory contract adresini kaydeder.
+    /// `settle_group_flex` multi-currency settle sırasında
+    /// `factory.get_pair(src, dst)` ile pool adresini keşfedip Soroban
+    /// auth tree'ye nested transfer için ön-yetki verir.
+    ///
+    /// Testnet factory: `CDP3HMUH6SMS3S7NPGNDJLULCOXXEPSHY4JKUKMBNQMATHDHWXRRJTBY`
+    pub fn set_swap_factory(env: Env, admin: Address, factory: Address) {
+        admin.require_auth();
+        set_swap_factory_addr(&env, &factory);
+
+        env.events().publish(
+            (Symbol::new(&env, "swap_factory_set"), admin),
+            factory,
+        );
+    }
+
     /// Grubu settle eder, creditor'lerin seçtiği `destination_asset`'te
     /// ödeme alabilmesini sağlar. Her transfer için:
     ///
@@ -506,12 +524,49 @@ impl StellarSplitContract {
             s.from.require_auth();
 
             if let (Some(ref dest), Some(ref router)) = (&target_asset, &router_id) {
-                // ── Multi-currency path ──
-                //  1. Debtor → contract (pulls source asset into the contract).
-                //  2. Contract approves router for `amount`.
-                //  3. Router swaps source → destination (to: contract).
-                //  4. Contract → creditor (delivers destination asset).
+                // ── Multi-currency path (Session 10C auth fix) ──
+                //  1. Debtor → contract (pulls source asset).
+                //  2. Discover pool address from Soroswap factory via `get_pair`.
+                //  3. Pre-authorize the router's nested `transfer(contract, pool, amount)`
+                //     via authorize_as_current_contract — without this, Soroban's
+                //     auth recorder rejects the call.
+                //  4. Approve router + invoke swap_exact_tokens_for_tokens.
+                //  5. Contract → creditor (delivers destination asset).
                 token_client.transfer(&s.from, &self_addr, &s.amount);
+
+                // Pool discovery
+                let factory_id: Address = get_swap_factory(&env)
+                    .unwrap_or_else(|| panic!("swap factory not configured — call set_swap_factory first"));
+
+                let pool_addr: Address = env.invoke_contract(
+                    &factory_id,
+                    &Symbol::new(&env, "get_pair"),
+                    soroban_sdk::vec![
+                        &env,
+                        source_token.clone().into_val(&env),
+                        dest.clone().into_val(&env),
+                    ],
+                );
+
+                // Pre-authorize nested transfer(contract, pool, amount).
+                let transfer_args: soroban_sdk::Vec<soroban_sdk::Val> = soroban_sdk::vec![
+                    &env,
+                    self_addr.clone().into_val(&env),
+                    pool_addr.clone().into_val(&env),
+                    s.amount.into_val(&env),
+                ];
+                let auth_entries: soroban_sdk::Vec<InvokerContractAuthEntry> = soroban_sdk::vec![
+                    &env,
+                    InvokerContractAuthEntry::Contract(SubContractInvocation {
+                        context: ContractContext {
+                            contract: source_token.clone(),
+                            fn_name: Symbol::new(&env, "transfer"),
+                            args: transfer_args,
+                        },
+                        sub_invocations: soroban_sdk::vec![&env],
+                    }),
+                ];
+                env.authorize_as_current_contract(auth_entries);
 
                 // SAC `approve` ledger-expiration window — ~5 min at 3-5s/ledger.
                 let expiration: u32 = env.ledger().sequence() + 100;

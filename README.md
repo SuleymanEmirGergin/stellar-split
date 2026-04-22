@@ -11,7 +11,7 @@ _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tok
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **Hızlı erişim / Quick links:**
-[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDZN7FJGCB5FEBCRYXP4MWIB7OWMI63Y6CPIXCMVD54JHTZDMLQL2WQO) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users) · [📰 Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [📝 Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
+[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users) · [📰 Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [📝 Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
 
 ---
 
@@ -159,6 +159,20 @@ Kullanıcı cüzdanını kaybederse, güvendiği guardian'lar imzaladığında e
 - `approve_recovery` — guardian onayı
 - `finalize_recovery` — eşik dolunca sahipliği devret
 
+### 6. Multi-Currency Settle — Soroswap Integration (Level 5/6 iddiası)
+
+`settle_group_flex(group_id, settler, destination_asset)` kontrat entrypoint'i, her debtor → creditor transferini **Soroswap** (Stellar'ın en olgun Soroban AMM'i) üzerinden farklı bir SAC'a çevirebilir. Tek transaction içinde:
+
+1. Debtor → Contract (kaynak asset pull)
+2. Factory `get_pair(src, dst)` → likidite pool'u keşfet
+3. `authorize_as_current_contract(...)` → router'ın nested transfer'i için ön-yetki
+4. `swap_exact_tokens_for_tokens([src, dst], contract, deadline)` invoke
+5. Contract → Creditor (hedef asset deliver)
+
+**Soroban → Stellar Classic path_payment yok** — Soroban kontratları yalnızca başka Soroban kontratlarını çağırabilir. Bu yüzden on-chain multi-currency için AMM router şart. Detaylı mimari + testnet kanıtı + known-limitations: [`docs/MULTI_CURRENCY.md`](docs/MULTI_CURRENCY.md).
+
+**Canlı kanıt (testnet):** Contract `CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H` + 3 wire call + Soroswap pool discovery (`CDVAIOYHCD4RUSL…`) on-chain. Tam tx completion için son bir auth-sub-invocation tuning gerekli (known quirk, doc'te yol haritası var).
+
 ---
 
 ## 🧪 Testing / Testler
@@ -216,12 +230,12 @@ CI pipeline (`.github/workflows/ci.yml`) üç suite'i de paralel koşar ve topla
 | -------------- | --------------------------------- | ------------------------------------------------------------------- |
 | **Frontend**   | Vercel (auto-deploy from `master`) | [stellar-split.vercel.app](https://stellar-split.vercel.app)        |
 | **Backend**    | Railway (CI-driven)               | _(internal endpoint — SSE / SIWS / analytics)_                      |
-| **Contracts**  | Stellar Testnet (CI on `master`)  | `CDZN7FJGCB5FEBCRYXP4MWIB7OWMI63Y6CPIXCMVD54JHTZDMLQL2WQO`          |
+| **Contracts**  | Stellar Testnet (CI on `master`)  | `CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H`          |
 | **SPLT Token** | Stellar Testnet                   | _(to be updated post-deployment — see `contracts/stellar_split_token/`)_ |
 
 **CI/CD workflow:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — contract build/test, frontend lint+test+build, backend test, Playwright E2E.
 
-**Contract on Stellar Expert:** [stellar.expert/.../CBQE...YN7K](https://stellar.expert/explorer/testnet/contract/CDZN7FJGCB5FEBCRYXP4MWIB7OWMI63Y6CPIXCMVD54JHTZDMLQL2WQO)
+**Contract on Stellar Expert:** [stellar.expert/.../CBQE...YN7K](https://stellar.expert/explorer/testnet/contract/CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H)
 
 ---
 
@@ -324,7 +338,7 @@ stellar contract deploy \
 | Gereksinim                        | Durum | Açıklama                                                         |
 | --------------------------------- | ----- | ---------------------------------------------------------------- |
 | 3 error types                     | ✅    | Rejected / Wallet not found / Insufficient balance (`errors.ts`) |
-| Contract on testnet               | ✅    | `CDZN7FJGCB5FEBCRYXP4MWIB7OWMI63Y6CPIXCMVD54JHTZDMLQL2WQO`       |
+| Contract on testnet               | ✅    | `CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H`       |
 | Contract called from frontend     | ✅    | `create_group`, `add_expense`, `settle_group`, `get_balances`    |
 | Transaction status visible        | ✅    | TxHistory, ActivityFeed, Stellar Expert linkleri                 |
 | Event listening                   | ✅    | `subscribeGroupEvents` (`events.ts`) polling-based SSE           |

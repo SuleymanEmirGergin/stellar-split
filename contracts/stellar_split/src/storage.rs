@@ -278,3 +278,19 @@ pub fn set_swap_router_addr(env: &Env, router: &Address) {
     let key = DataKey::SwapRouter;
     env.storage().instance().set(&key, router);
 }
+
+// ── Swap Factory (pool discovery + sub-auth) ──
+//
+// settle_group_flex queries `factory.get_pair(src, dst)` to find the
+// actual liquidity pool, then pre-authorizes the router's nested
+// `transfer(contract, pool, amount)` via authorize_as_current_contract.
+
+pub fn get_swap_factory(env: &Env) -> Option<Address> {
+    let key = DataKey::SwapFactory;
+    env.storage().instance().get(&key)
+}
+
+pub fn set_swap_factory_addr(env: &Env, factory: &Address) {
+    let key = DataKey::SwapFactory;
+    env.storage().instance().set(&key, factory);
+}
