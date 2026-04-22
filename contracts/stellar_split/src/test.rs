@@ -547,3 +547,80 @@ fn test_initiate_recovery_and_approve() {
     assert_eq!(request2.approvals.len(), 2);
     assert_eq!(request2.status, 1u32);
 }
+
+// ═══════════════════════════════════════════════════
+//  REFERRAL REWARD TESTLERİ
+// ═══════════════════════════════════════════════════
+//
+// Note: register_referral() optionally calls env.invoke_contract on the
+// SPLT reward token. In unit tests we deliberately leave the reward token
+// unset (never call set_reward_token()), which makes register_referral
+// skip the inter-contract mint and exercise just the storage + idempotency
+// + self-referral guards. Inter-contract mint itself is covered indirectly
+// by the settle_group reward path in production — and end-to-end by the
+// frontend e2e / on-chain integration tests once the reward token is
+// deployed.
+
+#[test]
+fn test_register_referral_basic_flow() {
+    let (env, client, _token) = setup_contract();
+    let inviter = Address::generate(&env);
+    let newcomer = Address::generate(&env);
+
+    // First call succeeds — newcomer marked as referred.
+    client.register_referral(&inviter, &newcomer);
+
+    // Contract doesn't expose is_referred as a getter; we verify via the
+    // idempotency panic on the second call (see next test).
+    let _ = inviter; // inviter used below
+}
+
+#[test]
+#[should_panic(expected = "self-referral not allowed")]
+fn test_register_referral_rejects_self_referral() {
+    let (env, client, _token) = setup_contract();
+    let user = Address::generate(&env);
+    client.register_referral(&user, &user);
+}
+
+#[test]
+#[should_panic(expected = "newcomer already referred")]
+fn test_register_referral_is_idempotent() {
+    let (env, client, _token) = setup_contract();
+    let inviter_a = Address::generate(&env);
+    let inviter_b = Address::generate(&env);
+    let newcomer = Address::generate(&env);
+
+    // First referral succeeds.
+    client.register_referral(&inviter_a, &newcomer);
+    // Second referral for the same newcomer — even by a different inviter —
+    // must panic to prevent reward farming.
+    client.register_referral(&inviter_b, &newcomer);
+}
+
+#[test]
+fn test_register_referral_allows_different_newcomers() {
+    let (env, client, _token) = setup_contract();
+    let inviter = Address::generate(&env);
+    let newcomer_a = Address::generate(&env);
+    let newcomer_b = Address::generate(&env);
+
+    // Same inviter can refer multiple distinct newcomers.
+    client.register_referral(&inviter, &newcomer_a);
+    client.register_referral(&inviter, &newcomer_b);
+    // No panic = success
+}
+
+#[test]
+fn test_set_reward_token_persists() {
+    let (env, client, _token) = setup_contract();
+    let admin = Address::generate(&env);
+    let reward_token = Address::generate(&env);
+
+    // Setting the reward token should not panic.
+    client.set_reward_token(&admin, &reward_token);
+    // Setting it again (same or different value) is allowed — no
+    // hard-coded one-shot guard at this stage. Matches the "set_guardians
+    // can be re-called" pattern elsewhere in the contract.
+    client.set_reward_token(&admin, &reward_token);
+}

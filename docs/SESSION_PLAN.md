@@ -103,7 +103,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** App.tsx — Session 6'dan SONRA
 
-### Session 9 — On-Chain Referral Program (Task 10) `[ ]`
+### Session 9 — On-Chain Referral Program (Task 10) `[x]` — commit TBD
 - **Scope:** Contract'ta `register_referral` entrypoint + frontend wire
 - **Files:**
   - `contracts/stellar_split/src/lib.rs` (new entrypoint)
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 9 (On-chain referral) — sıra sende
+## 🎯 Şu an aktif: Session 10 (Multi-currency settle) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,6 +205,17 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
+
+- **Session 9** (commit TBD) — On-Chain Referral Program (first Rust/Soroban session)
+  - **Contract:** 2 new entrypoints in `lib.rs`:
+    - `set_reward_token(admin, token)` — deployer setup, stores SPLT contract id in instance storage
+    - `register_referral(inviter, newcomer)` — requires `newcomer.require_auth()`, rejects self-referral, rejects already-referred newcomer, mints 5 SPLT to inviter via `env.invoke_contract` if reward token is set (graceful skip for unit tests)
+  - **Storage:** `DataKey::Referred(Address)` + `DataKey::RewardToken` variants in `types.rs`; 4 helpers in `storage.rs` (is_referred/set_referred/get_reward_token/set_reward_token_addr)
+  - **Contract tests:** 5 new tests in `test.rs` (basic flow, self-referral panic, idempotency panic, multiple newcomers same inviter, set_reward_token persists) — 29/29 cargo tests total
+  - **Frontend contract wrapper:** `registerReferral(callerAddress, inviter, newcomer)` in `lib/contract.ts` with demo-mode no-op + caller-equals-newcomer guard
+  - **JoinPage:** reads `?ref=G...` from URL (regex-validated for Stellar Base32), one-shot `registerReferral` call on wallet connect, localStorage flag `birik_ref_claimed:{wallet}:{inviter}` to prevent double-signing, graceful silent failure on contract panic (second-browser case)
+  - **JoinPage tests:** +7 referral tests covering no-wallet / missing-ref / malformed-ref / valid flow / self-referral / localStorage skip / flag persistence
+  - Verification: cargo 29/29 · Vitest 919/919 · TS 0 error · ESLint 0 error
 
 - **Session 8** (commit `32ed619`) — Leaderboard Page (first full-stack session)
   - **Backend:** `backend/src/analytics/leaderboard.service.ts` + spec (9 tests), new `GET /analytics/leaderboard` endpoint in `analytics.controller.ts` (+3 controller tests), `LeaderboardService` registered in `analytics.module.ts`

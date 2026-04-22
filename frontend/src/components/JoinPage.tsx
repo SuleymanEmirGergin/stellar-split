@@ -1,8 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Users, Link as LinkIcon, ArrowRight } from 'lucide-react';
-import { getGroup } from '../lib/contract';
+import { getGroup, registerReferral } from '../lib/contract';
 import { isDemoMode } from '../lib/contract';
 import { useI18n } from '../lib/i18n';
+
+/** Read `?ref=G...` from the current URL, null if missing or obviously invalid. */
+function readReferralParamFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (!ref) return null;
+    // Minimal well-formedness check — a real Stellar public key starts with
+    // 'G' and is 56 chars. Full checksum validation happens inside the
+    // contract call; we just want to skip obviously malformed values here.
+    if (!/^G[A-Z2-7]{55}$/.test(ref)) return null;
+    return ref;
+  } catch {
+    return null;
+  }
+}
+
+/** Local cache key — prevents double-submitting the same (wallet, inviter) pair. */
+function referralStorageKey(wallet: string, inviter: string): string {
+  return `birik_ref_claimed:${wallet}:${inviter}`;
+}
 
 interface Props {
   groupId: number;
@@ -47,6 +69,40 @@ export default function JoinPage({
       cancelled = true;
     };
   }, [walletAddress, groupId]);
+
+  // ── Referral handshake ──
+  //
+  // When the user arrives with `?ref=G...` in the URL AND connects their
+  // wallet, we fire a one-shot `register_referral(inviter, newcomer=me)`
+  // contract call. The contract enforces idempotency globally; this
+  // localStorage flag just prevents the client from asking Freighter to
+  // re-sign a call it already made (which would panic on-chain with
+  // "newcomer already referred" and feel confusing in the UI).
+  useEffect(() => {
+    if (!walletAddress) return;
+    const inviter = readReferralParamFromUrl();
+    if (!inviter || inviter === walletAddress) return; // self-referral
+    const key = referralStorageKey(walletAddress, inviter);
+    try {
+      if (localStorage.getItem(key) === '1') return;
+    } catch {
+      // localStorage disabled → still safe; the contract's own idempotency
+      // guard will reject the second submission.
+    }
+
+    registerReferral(walletAddress, inviter, walletAddress)
+      .then(() => {
+        try { localStorage.setItem(key, '1'); } catch { /* noop */ }
+      })
+      .catch((err) => {
+        // Contract may panic with "newcomer already referred" if the user
+        // previously registered from a different browser. Swallow silently —
+        // they still join the group. Log once for debug visibility.
+        console.warn('[Birik] registerReferral failed:', err instanceof Error ? err.message : err);
+        // Still cache the attempt so we don't retry on every page render.
+        try { localStorage.setItem(key, '1'); } catch { /* noop */ }
+      });
+  }, [walletAddress]);
 
   const displayName = groupName || (loading && walletAddress ? '…' : `Grup #${groupId}`);
   const isDemo = isDemoMode();

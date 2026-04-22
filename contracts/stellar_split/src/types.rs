@@ -100,4 +100,6 @@ pub enum DataKey {
     GroupVault(u64),        // Sadece bir gruba ait Vault
     UserBadges(Address),    // Kullanıcının rozetleri
     SavingsPool(u64),       // group_id -> SavingsPool
+    Referred(Address),      // newcomer -> referral claimed flag (idempotency)
+    RewardToken,            // Global: SPLT reward token contract id (Option<Address>)
 }

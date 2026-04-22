@@ -511,6 +511,38 @@ export async function addMember(callerAddress: string, groupId: number, newMembe
   await signAndSubmit(tx);
 }
 
+/**
+ * Davet eden kişiye 5 SPLT mint eder (inter-contract call üzerinden).
+ *
+ * Kontrat idempotency uyguluyor: aynı newcomer için ikinci çağrı panic atar.
+ * Self-referral (inviter === newcomer) da kontrat tarafında reject edilir.
+ *
+ * Bu fonksiyon `newcomer.require_auth()` gerektiriyor, bu yüzden
+ * `callerAddress` mutlaka `newcomer` ile aynı olmalı.
+ *
+ * Demo mode'da no-op — gerçek bir contract çağrısı yapılmaz.
+ */
+export async function registerReferral(
+  callerAddress: string,
+  inviter: string,
+  newcomer: string,
+): Promise<void> {
+  if (isDemoMode()) {
+    await demoDelay(800);
+    return;
+  }
+  if (callerAddress !== newcomer) {
+    throw new Error('register_referral caller must equal newcomer');
+  }
+  const tx = await buildTx(
+    callerAddress,
+    'register_referral',
+    StellarSdk.Address.fromString(inviter).toScVal(),
+    StellarSdk.Address.fromString(newcomer).toScVal(),
+  );
+  await signAndSubmit(tx);
+}
+
 /** Gruptan üye çıkarır. En az 2 üye kalmalı. */
 export async function removeMember(callerAddress: string, groupId: number, memberAddress: string): Promise<void> {
   if (isDemoMode()) {
