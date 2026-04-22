@@ -23,3 +23,21 @@
                   },
     "deployer":  "GDTIW2V3FKVWX3EHWQX6WDMJBXB6DGWBALJGKZUPPGRGSZQX6DYNRYGB"
 }
+
+{
+  "timestamp": "2026-04-22T19:30:00Z",
+  "network": "testnet",
+  "action": "deploy_session10c",
+  "deployer": "GDTIW2V3FKVWX3EHWQX6WDMJBXB6DGWBALJGKZUPPGRGSZQX6DYNRYGB",
+  "contracts": {
+    "stellar_split": "CDZN7FJGCB5FEBCRYXP4MWIB7OWMI63Y6CPIXCMVD54JHTZDMLQL2WQO",
+    "stellar_split_token": "CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE",
+    "soroswap_router": "CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD",
+    "usdc_sac": "CB3TLW74NBIOT3BUWOZ3TUM6RFDF6A4GVIRUQRQZABG5KPOUL4JJOV2F"
+  },
+  "wire_calls": [
+    "set_reward_token → tx aa0fa93360ee44176e9354dc7849a6ecb548e76c4b3efff3eed02e2a7c976927",
+    "set_swap_router → tx a78bb1ea7e7bcec251a259df162d5e63c6dee512943408366a509e33c0c1711c"
+  ],
+  "notes": "Session 10C: contract redeployed with settle_group_flex + set_swap_router; reward token + Soroswap router wired; ready for live XLM→USDC swap"
+}
