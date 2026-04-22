@@ -259,3 +259,22 @@ pub fn set_reward_token_addr(env: &Env, token: &Address) {
     let key = DataKey::RewardToken;
     env.storage().instance().set(&key, token);
 }
+
+// ── Swap Router ──
+//
+// Address of a SoroSwap-compatible AMM router used by `settle_group_flex`
+// to convert between SAC assets when a group member requests settlement
+// in a different currency than the group's native token. Set once after
+// deployment via `set_swap_router`. Unit tests deliberately leave this
+// unset — multi-currency settlements panic with a clear error and the
+// same-currency path continues to work without the router.
+
+pub fn get_swap_router(env: &Env) -> Option<Address> {
+    let key = DataKey::SwapRouter;
+    env.storage().instance().get(&key)
+}
+
+pub fn set_swap_router_addr(env: &Env, router: &Address) {
+    let key = DataKey::SwapRouter;
+    env.storage().instance().set(&key, router);
+}

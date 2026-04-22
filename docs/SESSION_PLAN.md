@@ -115,7 +115,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** lib.rs → Session 10, 11 ile sırayla
 
-### Session 10 — Multi-Currency Settle (Task 11, L5 iddiası) `[ ]`
+### Session 10 — Multi-Currency Settle (Task 11, L5 iddiası) `[~]` — 10A done, 10B/10C pending
 - **Scope:** `settle_group(destination_asset)` + SAC path_payment_strict_receive invoke
 - **Files:**
   - `contracts/stellar_split/src/lib.rs` (settle_group param + invoke_contract)
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 10 (Multi-currency settle) — sıra sende
+## 🎯 Şu an aktif: Session 10B (Frontend picker + Reflector) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,6 +205,16 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
+
+- **Session 10A** (commit TBD) — Multi-Currency Settle Groundwork
+  - Contract: `DataKey::SwapRouter`, `get_swap_router`/`set_swap_router_addr` helpers, `set_swap_router(admin, router)` entrypoint
+  - Contract: `settle_group_flex(group_id, settler, destination_asset: Option<Address>) -> Vec<Settlement>` — same-asset path identical to settle_group, different-asset path pulls source asset into contract, approves Soroswap router, invokes `swap_exact_tokens_for_tokens`, delivers destination asset to creditor
+  - Reward mint uses `get_reward_token()` with fallback to `group.token` (Session 9 forward, backward compatible with pre-Session-9 deploys)
+  - Events: `group_settled`, `reward_minted`, `multi_currency_settle(src, dst)` on the swap path
+  - 2 new cargo tests: `test_set_swap_router_persists`, `test_settle_group_flex_requires_router_when_destination_differs` (cargo 31/31 green)
+  - `docs/MULTI_CURRENCY.md` — architecture diagram, testnet Soroswap router ID, deploy steps, Session 10 breakdown, slippage/MEV notes
+  - WASM builds clean; ready for testnet deploy in Session 10C
+  - Deliberately **not yet in this alt-session:** frontend picker (10B) + live testnet swap (10C)
 
 - **Session 9** (commit `499de87`) — On-Chain Referral Program (first Rust/Soroban session)
   - **Contract:** 2 new entrypoints in `lib.rs`:
