@@ -574,7 +574,13 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               aria-labelledby="create-group-modal-title"
-              className="bg-card w-full max-w-md border border-white/10 rounded-3xl p-8 relative shadow-2xl overflow-hidden"
+              // `relative z-10` explicitly raises the modal card above the
+              // sibling `absolute inset-0` backdrop. Without z-10 the backdrop
+              // lands on top (CSS stacking: positioned siblings without z-index
+              // fall back to DOM order, and framer-motion's transient transform
+              // was the only thing raising this card before — a coincidence
+              // Playwright caught when its .click() intercepted the backdrop.
+              className="relative z-10 bg-card w-full max-w-md border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
               <div className="absolute -right-12 -top-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
