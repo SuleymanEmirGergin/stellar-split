@@ -341,7 +341,7 @@ MVP'nin gerçek kullanıcı testlerinden alınan geri bildirimler aşağıdaki k
 
 | Kaynak | Link |
 |--------|------|
-| **Google Form (feedback toplama)** | _(TBD — form oluşunca buraya eklenecek)_ |
+| **Google Form (feedback toplama)** | [forms.gle/oFSNuU6a9NthmfJR7](https://forms.gle/oFSNuU6a9NthmfJR7) |
 | **Excel export (tüm yanıtlar)** | [`docs/user-feedback.xlsx`](docs/user-feedback.xlsx) _(dosya eklendiğinde aktif)_ |
 | **Özet doküman (temalar + iterations)** | [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md) |
 | **Form spec (soru içeriği)** | [`docs/GOOGLE_FORM_SPEC.md`](docs/GOOGLE_FORM_SPEC.md) |
