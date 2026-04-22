@@ -22,7 +22,7 @@
 
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
-import { seedDemoSession, ensureDashboardReady, E2E_WALLET } from './utils/session';
+import { seedDemoSession, E2E_WALLET } from './utils/session';
 
 const OUT_DIR = path.join('..', 'docs', 'screenshots');
 
