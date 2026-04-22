@@ -79,7 +79,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** Session 4 ile çakışabilir (landing touch) → Session 4'ten SONRA
 
-### Session 7 — Use Cases Page (Task 8) `[ ]`
+### Session 7 — Use Cases Page (Task 8) `[x]` — commit TBD
 - **Scope:** `/use-cases` route — 3 senaryo
 - **Files:**
   - `frontend/src/pages/UseCasesPage.tsx` (new)
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 7 (Use cases page) — sıra sende
+## 🎯 Şu an aktif: Session 8 (Leaderboard page) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,6 +205,16 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
+
+- **Session 7** (commit TBD) — Use Cases Page
+  - `frontend/src/pages/UseCasesPage.tsx` (new) — 3 senaryo (Erasmus / Startup team / Tatil), problem × çözüm × screenshot × Stellar Expert tx link
+  - `frontend/src/pages/UseCasesPage.test.tsx` (new) — 7 Vitest testi (title/subtitle, 3 senaryo kartı, tx link shape, CDN image src, navigation)
+  - `frontend/src/App.tsx` — `isUseCases` conditional + lazy import, public route (auth-exempt), existing pathname-pattern routing ile uyumlu
+  - `frontend/src/lib/i18n.ts` — 11 use_cases.\*+nav.use_cases key × 4 dil = 44 entry (TR primary, EN/DE/ES mirror)
+  - `frontend/src/components/Landing.tsx` — CTA butonlarının altına discrete "Kullanım senaryolarını gör →" link (mevcut mimari ile uyumlu, primary CTA'ları kirletmez)
+  - Screenshot kaynağı: GitHub raw CDN (duplication yok, build'e yük yok, blog post ile aynı pattern)
+  - Her senaryo için gerçek testnet tx hash'i — Stellar Expert linki jüri için doğrulanabilir kanıt
+  - TS + ESLint clean; Vitest 900/900 green (+7 use-cases)
 
 - **Session 6** (commit `c97b922`) — Lighthouse + PWA Polish
   - `scripts/generate-pwa-icons.mjs` + `sharp` devdep — favicon.svg'den 6 raster çıktı (icon-192/512, icon-192/512-maskable, apple-touch-icon-180, og-image 1200×630). "Brand asset değişince bir komut, bitti."

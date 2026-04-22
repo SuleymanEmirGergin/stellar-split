@@ -137,6 +137,19 @@ function Hero({ onConnect, freighterAvailable, connecting, onTryDemo }: HeroCtaP
                   </motion.button>
                 )}
               </div>
+              {/* Discrete link to the public /use-cases page — doesn't fight
+                  the primary CTAs but gives reviewers + social-traffic a
+                  "what's it FOR?" entry point without a wallet. */}
+              <div className="mt-4">
+                <a
+                  href="/use-cases"
+                  data-testid="landing-use-cases-link"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
+                >
+                  <Users size={12} />
+                  Kullanım senaryolarını gör →
+                </a>
+              </div>
             </RiseItem>
 
             <RiseItem>
