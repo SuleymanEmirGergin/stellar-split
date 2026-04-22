@@ -29,7 +29,7 @@ Progress işareti:
 - **Süre:** ~3 saat
 - **Conflict:** yok (content-only)
 
-### Session 3 — Twitter/X Thread Drafts (Task 4) `[x]` — commit TBD
+### Session 3 — Twitter/X Thread Drafts (Task 4) `[x]` — commit `3a2d9e8`
 - **Scope:** 3 hazır tweet thread
 - **Files:** `docs/social/twitter-threads.md` (new)
 - **Deliverable:** Thread 1 (neden Birik), Thread 2 (under the hood), Thread 3 (testnet beta). Her biri 10-15 tweet + görsel + hashtag + mention listesi
@@ -175,7 +175,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - Publishing notes (Dev.to primary, Medium/Hashnode mirror, tweet thread prep)
   - **Yayınlandı:** [Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
 
-- **Session 3** (commit TBD) — Twitter/X Thread Playbook
+- **Session 3** (commit `3a2d9e8`) — Twitter/X Thread Playbook
   - `docs/social/twitter-threads.md` — 3 publish-ready thread
   - Thread 1 (Why Birik? — 8 tweet, EN + TR mirror 8 tweet)
   - Thread 2 (Under the hood — 9 tweet, 3 kod snippet'li teknik özet, Dev.to linki wired)
