@@ -403,7 +403,7 @@ stellar contract deploy \
 | **Monitoring active**             | ✅    | Sentry (`backend/src/common/observability/sentry.ts`) + Prometheus `GET /metrics` + Pino structured logs + `/health/live` + `/health/ready` |
 | **Data indexing implemented**     | ✅    | `SorobanEventPollerService` (5s cron, Redis checkpoint) → Postgres → SSE stream → frontend (see `backend/src/stellar/soroban-event-poller.service.ts`) |
 | **Full documentation**            | ✅    | User guide (`docs/guide/`), architecture (`docs/architecture/`), API spec (`docs/OPEN-API-SPEC.md`), contract API (`docs/CONTRACT-API.md`), security checklist, Swagger UI at `/api/docs` |
-| **Community contribution**        | ⚠️    | Twitter post: _(pending — template in [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md))_      |
+| **Community contribution**        | ✅    | Twitter launch post: [@supportbirik/status/2046997504768782702](https://x.com/supportbirik/status/2046997504768782702?s=20) — daily build updates in the thread, template kept at [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md) |
 | **Advanced feature (1+)**         | ✅    | **Two** implemented: (1) **Multi-signature Logic** via guardian-based social recovery (`set_guardians` / `initiate_recovery` / `approve_recovery` on contract + `SecurityTab.tsx` UI). (2) **Fee Sponsorship** via Stellar fee-bump (`backend/src/sponsor/*` + `SettleTab` toggle + `signAndSubmit` sponsor opt-in) |
 | **15+ commits**                   | ✅    | 100+ commits on master                                                                              |
 | **Demo Day prepared**             | ✅    | 8-slide pitch deck: [`docs/DEMO_DAY_PITCH.md`](docs/DEMO_DAY_PITCH.md) (problem → solution → live demo → advanced features → metrics → ask + Q&A prep) |
@@ -467,7 +467,7 @@ MVP'nin gerçek kullanıcı testlerinden alınan geri bildirimler aşağıdaki k
 | Kaynak | Link |
 |--------|------|
 | **Google Form (feedback toplama)** | [forms.gle/oFSNuU6a9NthmfJR7](https://forms.gle/oFSNuU6a9NthmfJR7) |
-| **Excel export (tüm yanıtlar)** | [`docs/user-feedback.xlsx`](docs/user-feedback.xlsx) _(dosya eklendiğinde aktif)_ |
+| **Excel export (tüm yanıtlar)** | [`docs/user-feedback.xlsx`](docs/user-feedback.xlsx) |
 | **Özet doküman (temalar + iterations)** | [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md) |
 | **Form spec (soru içeriği)** | [`docs/GOOGLE_FORM_SPEC.md`](docs/GOOGLE_FORM_SPEC.md) |
 
@@ -503,7 +503,7 @@ Kullanıcı geri bildirimleri doğrultusunda planlanan ve uygulanan iyileştirme
 
 | # | Feedback'ten gelen madde | Yapılan değişiklik | Commit |
 |---|--------------------------|--------------------|--------|
-| 1 | _(örn. "Mobilde + butonu bulunmuyordu")_ | _(örn. "Mobile bottom-sheet'e +Group CTA eklendi")_ | [`(TBD)`](https://github.com/SuleymanEmirGergin/stellar-split/commit/REPLACE_WITH_SHA) |
+| 1 | _"UI/UX harika olsa da ana sayfada ufak bir yerde, bütün ekranı kaplamıyor — keşke full ekran olsa"_ (Daghaniyo, 2026-04-24) | In-app `<main>` max-width `1200px → 1600px` + xl/2xl fluid padding; Dashboard/Group/Settings/Reputation wide display'lerde tam viewport kullanıyor. Landing + mobile unchanged. | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
 
 ### Planned (bir sonraki iteration için — 2026-04-24 feedback wave'inden)
 
