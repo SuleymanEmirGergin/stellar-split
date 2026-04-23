@@ -568,13 +568,13 @@ function AppContent() {
       )}
 
       {/* ── Main Content (page transition: fade + 8px depth) ──
-          Landing gets full-bleed (no padding, no max-width) so its marketing
-          sections can use the full viewport. In-app surfaces (Dashboard,
-          Group, Settings, Reputation) stay constrained to 1200px for
-          comfortable line-length + sidebar UX. */}
+          Landing gets full-bleed (no padding, no max-width). In-app surfaces
+          now stretch to 1600px on wide displays so dashboards use the full
+          viewport (user-feedback iteration 2026-04-24: "ana sayfada ufak bir
+          yerde, bütün ekranı kaplamıyor — keşke full ekran olsa"). */}
       <main
         className={`flex-1 w-full overflow-hidden relative z-10 ${
-          isLandingView ? '' : 'p-6 md:p-8 max-w-[1200px] mx-auto'
+          isLandingView ? '' : 'p-6 md:p-8 xl:px-12 2xl:px-16 max-w-[1600px] mx-auto'
         }`}
       >
         <AnimatePresence mode="wait">

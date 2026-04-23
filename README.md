@@ -125,7 +125,8 @@ SEP-41 uyumlu, özel-amaçlı (reward/utility) bir token. Ana kontrattan `mint` 
 
 - **Symbol:** `SPLT`
 - **Name:** StellarSplit Token
-- **Deployed address:** _(to be updated post-deployment)_
+- **Deployed address (Testnet):** [`CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE`](https://stellar.expert/explorer/testnet/contract/CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE)
+- **Wired to main contract via:** `set_reward_token` — tx [`c62a7a73...0db7d6`](https://stellar.expert/explorer/testnet/tx/c62a7a73b018bd92b7dfed08351d58e8c55c71e9fa4a01d7dc0bad77670db7d6)
 
 ### 3. Savings Pool / Birikim Havuzu
 
@@ -231,7 +232,7 @@ CI pipeline (`.github/workflows/ci.yml`) üç suite'i de paralel koşar ve topla
 | **Frontend**   | Vercel (auto-deploy from `master`) | [stellar-split.vercel.app](https://stellar-split.vercel.app)        |
 | **Backend**    | Railway (CI-driven)               | _(internal endpoint — SSE / SIWS / analytics)_                      |
 | **Contracts**  | Stellar Testnet (CI on `master`)  | `CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H`          |
-| **SPLT Token** | Stellar Testnet                   | _(to be updated post-deployment — see `contracts/stellar_split_token/`)_ |
+| **SPLT Token** | Stellar Testnet                   | [`CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE`](https://stellar.expert/explorer/testnet/contract/CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE) |
 
 **CI/CD workflow:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — contract build/test, frontend lint+test+build, backend test, Playwright E2E.
 
@@ -405,7 +406,7 @@ stellar contract deploy \
 | **Community contribution**        | ⚠️    | Twitter post: _(pending — template in [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md))_      |
 | **Advanced feature (1+)**         | ✅    | **Two** implemented: (1) **Multi-signature Logic** via guardian-based social recovery (`set_guardians` / `initiate_recovery` / `approve_recovery` on contract + `SecurityTab.tsx` UI). (2) **Fee Sponsorship** via Stellar fee-bump (`backend/src/sponsor/*` + `SettleTab` toggle + `signAndSubmit` sponsor opt-in) |
 | **15+ commits**                   | ✅    | 100+ commits on master                                                                              |
-| **Demo Day prepared**             | ⚠️    | Script + structure in [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md) §5 — pitch deck pending |
+| **Demo Day prepared**             | ✅    | 8-slide pitch deck: [`docs/DEMO_DAY_PITCH.md`](docs/DEMO_DAY_PITCH.md) (problem → solution → live demo → advanced features → metrics → ask + Q&A prep) |
 
 #### Advanced feature 1 — Multi-sig social recovery
 
@@ -447,11 +448,13 @@ Birik'i test eden gerçek kullanıcıların Stellar Testnet cüzdan adresleri. H
 
 | # | Ad / Rumuz | Stellar Expert linki (Testnet) |
 |---|-----------|--------------------------------|
-| 1 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
-| 2 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
-| 3 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
-| 4 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
-| 5 | _(TBD)_ | [`G...`](https://stellar.expert/explorer/testnet/account/REPLACE_WITH_ADDRESS) |
+| 1 | Tuğba | [`GASWXOC7…PWULLP`](https://stellar.expert/explorer/testnet/account/GASWXOC7I2T7YVJZBIZWGFND55SJGPXOWC7PKNHPWLRNY6236FPWULLP) |
+| 2 | Doğa | [`GBYORHYN…NEMIAF`](https://stellar.expert/explorer/testnet/account/GBYORHYNZPZMEZ2Z7B6SY7DN4PYM3PKJHSCV2IT4CIO5LTXRC4NEMIAF) |
+| 3 | Daghaniyo | [`GAOZA3UD…QRJQI`](https://stellar.expert/explorer/testnet/account/GAOZA3UDJVZCBZWYFBAU7SKF4BJCUJEFOI7SL7Y7W75N5YF64OXQRJQI) |
+| 4 | _(pending — onboarding in progress)_ | _(TBA)_ |
+| 5 | _(pending — onboarding in progress)_ | _(TBA)_ |
+
+> **Canlı durum (2026-04-24):** 3 doğrulanmış testnet kullanıcısı + 10 kişilik onboarding wave yarın (2026-04-25) bekleniyor. Toplam hedef 30+ için ikinci wave 2026-04-28 planlı. Her adres Stellar Expert üzerinden incelenebilir — hesap oluşturma + ilk on-chain etkileşim proofs.
 
 > 📝 Genişletilmiş liste, ortalamalar ve NPS skoru için: [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md)
 
@@ -468,13 +471,27 @@ MVP'nin gerçek kullanıcı testlerinden alınan geri bildirimler aşağıdaki k
 | **Özet doküman (temalar + iterations)** | [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md) |
 | **Form spec (soru içeriği)** | [`docs/GOOGLE_FORM_SPEC.md`](docs/GOOGLE_FORM_SPEC.md) |
 
-Yüksek seviye metrikler (snapshot):
+Yüksek seviye metrikler (snapshot, 2026-04-24):
 
 | Metrik | Değer |
 |--------|-------|
-| Toplam respondent | _(TBD)_ |
-| Ortalama rating (1–5) | _(TBD)_ |
-| NPS (0–10) | _(TBD)_ |
+| Toplam respondent | **3** (canlı Form yanıtı) + 10 kişilik wave bekleniyor |
+| Ortalama rating (1–5) | **5.0 / 5** (3/3 respondent maksimum) |
+| Recommend (1–5) | **4.33 / 5** (5, 4, 4) |
+| Bug report | **0** ("hayır" — hiçbir respondent critical bug bildirmedi) |
+
+### 📝 Öne çıkan feedback temaları
+
+| Respondent | En çok kullandığı akış | Pozitif | Geliştirme önerisi |
+|---|---|---|---|
+| Tuğba | Grup oluşturma / Harcama ekleme / Bakiye | UX şematiği net | "UX bir tık daha açıklayıcı olabilir" |
+| Doğa | Bakiye görüntüleme / QR / link ile davet | "altın hesabı" — onboarding akıcı | — |
+| Daghaniyo | Grup oluşturma / Harcama ekleme | "UX/UI görüntüleri gayet iyiydi" | "Grup kurma işi çok zordu" · "Savings pools gelse süper olur" · "Ana sayfa full ekran olmalı" |
+
+**Üç tematik sinyal:**
+1. **Grup oluşturma akışı** yorumlayıcı (bir kullanıcı "çok zordu" dedi) — form adımlarını azaltma / wizard revize gerekli.
+2. **Ana sayfada tam ekran kullanımı** — viewport daha iyi değerlendirilebilir (max-width constraint gevşetilmeli).
+3. **Savings pool** frontend expose — kontrat entrypoint'leri hazır (`create_savings_pool`, `contribute_pool`), UI henüz öne çıkarılmamış.
 
 ---
 
@@ -488,13 +505,13 @@ Kullanıcı geri bildirimleri doğrultusunda planlanan ve uygulanan iyileştirme
 |---|--------------------------|--------------------|--------|
 | 1 | _(örn. "Mobilde + butonu bulunmuyordu")_ | _(örn. "Mobile bottom-sheet'e +Group CTA eklendi")_ | [`(TBD)`](https://github.com/SuleymanEmirGergin/stellar-split/commit/REPLACE_WITH_SHA) |
 
-### Planned (bir sonraki iteration için)
+### Planned (bir sonraki iteration için — 2026-04-24 feedback wave'inden)
 
-- **Multi-currency settle** — XLM ↔ USDC path payment (feedback: "tek para birimi kısıtlı" — Q9)
-- **Yield on savings pool** — Blend/SoroSwap entegrasyonu (feedback: "bekleyen para boşa duruyor")
-- **Push notification tam entegrasyon** — tx confirm + settle ready (feedback: "uyarı gelmiyor")
-- **Onboarding wizard iyileştirmesi** — cüzdan bağlama adımı için daha net yönlendirme (feedback: "ilk girişte kayboldum")
-- **Discord/Slack webhook preset'leri** — hazır template butonları (feedback: "test ederken webhook kurmak zor")
+- **Grup oluşturma wizard'ı sadeleştirme** — feedback: _"Grup kurma işi çok zordu"_ (Daghaniyo). Step count'u azaltma + validation inline.
+- **Ana sayfa full-width layout** — feedback: _"ana sayfada ufak bir yerde, bütün ekranı kaplamıyor — keşke full ekran olsa"_ (Daghaniyo). `max-w-*` constraint'lerini dashboard üstünde gevşet.
+- **Savings pool UI'ı ana navigasyona çıkarma** — feedback: _"savings pools gelse süper olur"_ (Daghaniyo). Kontrat entrypoint'leri (`create_savings_pool`, `contribute_pool`) hazır, yalnızca frontend expose eksik.
+- **Onboarding micro-copy** — feedback: _"UX bir tık daha açıklayıcı olabilir"_ (Tuğba). CTA'lara tooltip + empty-state açıklama.
+- **Multi-currency settle** — `settle_group_flex` auth-tuning close ederek XLM↔USDC canlı swap.
 
 > Ayrıntılı feedback kırılımı ve tüm iteration commit'leri için: [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md#-iteration--feedbacke-göre-yapılan-değişiklikler)
 
