@@ -11,7 +11,7 @@ _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tok
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **Hızlı erişim / Quick links:**
-[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users) · [📰 Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [📝 Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
+[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users) · [📰 Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [📝 Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
 
 ---
 
@@ -160,19 +160,49 @@ Kullanıcı cüzdanını kaybederse, güvendiği guardian'lar imzaladığında e
 - `approve_recovery` — guardian onayı
 - `finalize_recovery` — eşik dolunca sahipliği devret
 
-### 6. Multi-Currency Settle — Soroswap Integration (Level 5/6 iddiası)
+### 6. Fee Sponsorship — Gasless Settle 🆕
 
-`settle_group_flex(group_id, settler, destination_asset)` kontrat entrypoint'i, her debtor → creditor transferini **Soroswap** (Stellar'ın en olgun Soroban AMM'i) üzerinden farklı bir SAC'a çevirebilir. Tek transaction içinde:
+Kullanıcı XLM'siz bile transaction atabiliyor — Birik sponsor hesabıyla Stellar fee-bump transaction'ı sarıyor. Settle flow'u tek tıkla gasless. **Level 6 advanced feature kriteri: "Fee Sponsorship — Gasless transactions using fee bump"** ✅
 
-1. Debtor → Contract (kaynak asset pull)
-2. Factory `get_pair(src, dst)` → likidite pool'u keşfet
-3. `authorize_as_current_contract(...)` → router'ın nested transfer'i için ön-yetki
-4. `swap_exact_tokens_for_tokens([src, dst], contract, deadline)` invoke
-5. Contract → Creditor (hedef asset deliver)
+**Architecture**:
+```
+user signs inner tx (payment, settle, add_expense)
+       ↓
+POST /sponsor/fee-bump  { innerXdr }
+       ↓
+backend (sponsor.service.ts):
+  TransactionBuilder.buildFeeBumpTransaction(sponsorKeypair, fee, innerTx, network)
+  feeBump.sign(sponsor)
+       ↓
+returns { feeBumpXdr, sponsorAccount, network }
+       ↓
+user (or backend) submits feeBumpXdr to Horizon
+       ↓
+user fee = 0 stroops. sponsor pays.
+```
 
-**Soroban → Stellar Classic path_payment yok** — Soroban kontratları yalnızca başka Soroban kontratlarını çağırabilir. Bu yüzden on-chain multi-currency için AMM router şart. Detaylı mimari + testnet kanıtı + known-limitations: [`docs/MULTI_CURRENCY.md`](docs/MULTI_CURRENCY.md).
+**Components**:
+- Backend: [`backend/src/sponsor/sponsor.service.ts`](backend/src/sponsor/sponsor.service.ts), [`sponsor.controller.ts`](backend/src/sponsor/sponsor.controller.ts)
+- Frontend: `SubmitOptions { sponsor?: boolean }` in [`frontend/src/lib/contract.ts`](frontend/src/lib/contract.ts); Settle tab has a "Sponsor fee" toggle wired to `handleSettle({ sponsor: true })`
+- Env: backend reads `SPONSOR_SECRET_KEY`. If unset, endpoint returns 503 — frontend falls back to user-paid submission gracefully.
 
-**Canlı kanıt (testnet):** Contract `CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H` + 3 wire call + Soroswap pool discovery (`CDVAIOYHCD4RUSL…`) on-chain. Tam tx completion için son bir auth-sub-invocation tuning gerekli (known quirk, doc'te yol haritası var).
+**Live testnet proof**:
+
+A real fee-bump transaction, submitted on Stellar testnet using the sponsor wallet:
+
+| Field | Value |
+|---|---|
+| **Tx hash** | [`02c5012c6ec7c2a5168035be9b9d2c6d1adcab1c6d9e82661647dc95ac8a4c74`](https://stellar.expert/explorer/testnet/tx/02c5012c6ec7c2a5168035be9b9d2c6d1adcab1c6d9e82661647dc95ac8a4c74) |
+| **Fee paid by** | `GD5GTFL4TUHOOW5YRPHVEKF7THQLKVJGN4VMOC5CQXKIDYQMGX3LIT5H` ([explorer](https://stellar.expert/explorer/testnet/account/GD5GTFL4TUHOOW5YRPHVEKF7THQLKVJGN4VMOC5CQXKIDYQMGX3LIT5H)) |
+| **User fee** | **0 stroops (sponsored)** |
+| **Inner op** | payment 1 XLM, memo `birik-gasless-demo` |
+
+Reproducible via the demo script:
+```bash
+cd frontend   # for stellar-sdk resolution
+SPONSOR_SECRET=<sponsor_secret> node ../scripts/demo-gasless-settle.cjs
+```
+See [`scripts/demo-gasless-settle.cjs`](scripts/demo-gasless-settle.cjs).
 
 ---
 
@@ -231,12 +261,12 @@ CI pipeline (`.github/workflows/ci.yml`) üç suite'i de paralel koşar ve topla
 | -------------- | --------------------------------- | ------------------------------------------------------------------- |
 | **Frontend**   | Vercel (auto-deploy from `master`) | [stellar-split.vercel.app](https://stellar-split.vercel.app)        |
 | **Backend**    | Railway (CI-driven)               | _(internal endpoint — SSE / SIWS / analytics)_                      |
-| **Contracts**  | Stellar Testnet (CI on `master`)  | `CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H`          |
+| **Contracts**  | Stellar Testnet (CI on `master`)  | `CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW`          |
 | **SPLT Token** | Stellar Testnet                   | [`CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE`](https://stellar.expert/explorer/testnet/contract/CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE) |
 
 **CI/CD workflow:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — contract build/test, frontend lint+test+build, backend test, Playwright E2E.
 
-**Contract on Stellar Expert:** [stellar.expert/.../CBQE...YN7K](https://stellar.expert/explorer/testnet/contract/CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H)
+**Contract on Stellar Expert:** [stellar.expert/.../CDTQ...LW](https://stellar.expert/explorer/testnet/contract/CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW)
 
 ---
 
@@ -339,7 +369,7 @@ stellar contract deploy \
 | Gereksinim                        | Durum | Açıklama                                                         |
 | --------------------------------- | ----- | ---------------------------------------------------------------- |
 | 3 error types                     | ✅    | Rejected / Wallet not found / Insufficient balance (`errors.ts`) |
-| Contract on testnet               | ✅    | `CDJJ2P7CMEYNZS66QMYGKHP23LUOS5MHJ64N3UVZ2NMUZLJMGSY6ET5H`       |
+| Contract on testnet               | ✅    | `CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW`       |
 | Contract called from frontend     | ✅    | `create_group`, `add_expense`, `settle_group`, `get_balances`    |
 | Transaction status visible        | ✅    | TxHistory, ActivityFeed, Stellar Expert linkleri                 |
 | Event listening                   | ✅    | `subscribeGroupEvents` (`events.ts`) polling-based SSE           |

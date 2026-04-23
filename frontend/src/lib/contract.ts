@@ -710,30 +710,10 @@ export interface SettleGroupResult {
   txHash: string;
 }
 
-/**
- * Extended options for `settleGroup`. Existing callers can keep passing
- * `{ sponsor }`; callers that want on-chain currency conversion pass
- * `{ targetAsset }` with the destination SAC address. When `targetAsset`
- * is set and differs from the group's native currency, the call routes
- * through `settle_group_flex` (Soroswap AMM swap) instead of `settle_group`.
- *
- * See docs/MULTI_CURRENCY.md for the full design and deploy prerequisites.
- */
-export interface SettleGroupOpts extends SubmitOptions {
-  /**
-   * Optional destination SAC address for multi-currency settle. `null` /
-   * `undefined` → same-currency path (existing `settle_group` behaviour).
-   * Any `G...` Stellar address → invokes `settle_group_flex` which runs a
-   * SoroSwap swap inside the contract. Requires `set_swap_router` to have
-   * been wired once after deploy (see Session 10C).
-   */
-  targetAsset?: string | null;
-}
-
 export async function settleGroup(
   callerAddress: string,
   groupId: number,
-  opts: SettleGroupOpts = {},
+  opts: SubmitOptions = {},
 ): Promise<SettleGroupResult> {
   if (isDemoMode()) {
     await demoDelay(2000);
@@ -742,13 +722,6 @@ export async function settleGroup(
     if (opts.sponsor && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('stellarsplit:tx-sponsored', {
         detail: { sponsor: 'GDEMO...SPONSOR', network: 'testnet' },
-      }));
-    }
-    // Broadcast the multi-currency intent for UX previews — actual swap is
-    // a no-op in demo mode, but the toast can surface the destination asset.
-    if (opts.targetAsset && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('stellarsplit:tx-multi-currency', {
-        detail: { targetAsset: opts.targetAsset },
       }));
     }
     return {
@@ -760,29 +733,12 @@ export async function settleGroup(
     };
   }
 
-  // Route selection: targetAsset set → settle_group_flex (Soroswap path),
-  // otherwise the existing settle_group entrypoint. This keeps the same-
-  // currency path unchanged for groups that don't opt into multi-currency.
-  const useFlex = !!opts.targetAsset;
-  const tx = useFlex
-    ? await buildTx(
-        callerAddress,
-        'settle_group_flex',
-        StellarSdk.nativeToScVal(groupId, { type: 'u64' }),
-        StellarSdk.Address.fromString(callerAddress).toScVal(),
-        // Option<Address> encoding — contract expects Some(addr) as a tagged
-        // variant at the XDR level.
-        StellarSdk.xdr.ScVal.scvVec([
-          StellarSdk.xdr.ScVal.scvSymbol('Some'),
-          StellarSdk.Address.fromString(opts.targetAsset as string).toScVal(),
-        ]),
-      )
-    : await buildTx(
-        callerAddress,
-        'settle_group',
-        StellarSdk.nativeToScVal(groupId, { type: 'u64' }),
-        StellarSdk.Address.fromString(callerAddress).toScVal()
-      );
+  const tx = await buildTx(
+    callerAddress,
+    'settle_group',
+    StellarSdk.nativeToScVal(groupId, { type: 'u64' }),
+    StellarSdk.Address.fromString(callerAddress).toScVal()
+  );
 
   const result = await signAndSubmit(tx, opts);
   const returnVal = result.returnValue;

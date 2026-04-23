@@ -471,7 +471,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
 
 
-  const handleSettle = useCallback(async (opts?: { sponsor?: boolean; targetAsset?: string | null }) => {
+  const handleSettle = useCallback(async (opts?: { sponsor?: boolean }) => {
     if (!group) return;
     setSettling(true);
     setLastTxStatus('signing');

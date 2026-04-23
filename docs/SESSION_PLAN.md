@@ -115,7 +115,7 @@ Progress işareti:
 - **Süre:** ~1 gün
 - **Conflict:** lib.rs → Session 10, 11 ile sırayla
 
-### Session 10 — Multi-Currency Settle (Task 11, L5 iddiası) `[~]` — 10A + 10B done, 10C pending
+### Session 10 — Multi-Currency Settle (Task 11, L5 iddiası) `[ ]`
 - **Scope:** `settle_group(destination_asset)` + SAC path_payment_strict_receive invoke
 - **Files:**
   - `contracts/stellar_split/src/lib.rs` (settle_group param + invoke_contract)
@@ -176,7 +176,7 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
 
 ---
 
-## 🎯 Şu an aktif: Session 10C (Testnet deploy + live swap) — sıra sende
+## 🎯 Şu an aktif: Session 10 (Multi-currency settle) — sıra sende
 
 ## 📜 Tamamlananlar
 
@@ -205,26 +205,6 @@ Bu dosyalara dokunan session'lar ardışık sırayla yapılacak. Paralel asla ç
   - `docs/social/TYPEFULLY_SETUP.md` — 20 dakikalık step-by-step
   - Hesap oluşturma → X bağlama → thread import → image attach → schedule (Strategy A + B) → preview → day-of sanity check → troubleshooting → green-light checklist
   - Combined strategy'nin "bu hafta için" ayağı — 3 thread için set-and-forget
-
-- **Session 10B** (commit `33a105d`) — Frontend multi-currency picker + `settleGroup` extension
-  - `frontend/src/lib/contract.ts`: `SettleGroupOpts` interface with `targetAsset?: string | null`, conditional routing to `settle_group_flex` entrypoint (Option<Address> XDR encoding via `scvVec([Symbol("Some"), addr]))`), demo mode dispatches `stellarsplit:tx-multi-currency` event for UX preview
-  - `frontend/src/hooks/useExpenseMutations.ts`: `useSettleGroupMutation` mutationFn accepts `{ sponsor, targetAsset }` — backward compat preserved
-  - `frontend/src/components/GroupDetail.tsx`: `handleSettle` signature extended to forward `targetAsset` to mutation
-  - `frontend/src/components/tabs/SettleTab.tsx`: Native/USDC toggle with `data-testid` hooks, visible only when `currencyLabel === 'XLM' && VITE_USDC_CONTRACT_ID` env set, swap note surfaces when USDC selected
-  - `frontend/src/lib/i18n.ts`: 4 new `settle.target_*` keys × 4 languages (16 entries)
-  - `docs/MULTI_CURRENCY.md`: 10B status updated, frontend wire section added
-  - Verification: TS 0 error, ESLint 0 error (same pre-existing hook-deps warnings), Vitest 919/919 green
-  - **Deployment note:** Picker is dormant until `VITE_USDC_CONTRACT_ID` is set in Vercel AND Session 10C's `set_swap_router` contract call lands on testnet
-
-- **Session 10A** (commit `687e902`) — Multi-Currency Settle Groundwork
-  - Contract: `DataKey::SwapRouter`, `get_swap_router`/`set_swap_router_addr` helpers, `set_swap_router(admin, router)` entrypoint
-  - Contract: `settle_group_flex(group_id, settler, destination_asset: Option<Address>) -> Vec<Settlement>` — same-asset path identical to settle_group, different-asset path pulls source asset into contract, approves Soroswap router, invokes `swap_exact_tokens_for_tokens`, delivers destination asset to creditor
-  - Reward mint uses `get_reward_token()` with fallback to `group.token` (Session 9 forward, backward compatible with pre-Session-9 deploys)
-  - Events: `group_settled`, `reward_minted`, `multi_currency_settle(src, dst)` on the swap path
-  - 2 new cargo tests: `test_set_swap_router_persists`, `test_settle_group_flex_requires_router_when_destination_differs` (cargo 31/31 green)
-  - `docs/MULTI_CURRENCY.md` — architecture diagram, testnet Soroswap router ID, deploy steps, Session 10 breakdown, slippage/MEV notes
-  - WASM builds clean; ready for testnet deploy in Session 10C
-  - Deliberately **not yet in this alt-session:** frontend picker (10B) + live testnet swap (10C)
 
 - **Session 9** (commit `499de87`) — On-Chain Referral Program (first Rust/Soroban session)
   - **Contract:** 2 new entrypoints in `lib.rs`:
