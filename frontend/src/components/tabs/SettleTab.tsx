@@ -26,7 +26,7 @@ interface SettleTabProps {
   showPayQRIndex: number | null;
   setShowPayQRIndex: (val: number | null) => void;
   settling: boolean;
-  handleSettle: (opts?: { sponsor?: boolean }) => void;
+  handleSettle: (opts?: { sponsor?: boolean; targetAsset?: string | null }) => void;
   onRefresh?: () => Promise<void>;
   estimatedSettleFee?: EstimatedFee | null;
   t: (key: TranslationKey) => string;
@@ -65,6 +65,14 @@ export default function SettleTab({
   const [simulatingPath, setSimulatingPath] = useState(false);
   const [pathSuccess, setPathSuccess] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
+  // ── Multi-currency picker state ──
+  // `targetAsset === null` → same-currency (classic settle_group).
+  // A SAC address → routes through settle_group_flex (Soroswap swap).
+  // Surfaced only when meaningful: group currency = XLM + USDC SAC configured.
+  const [targetAsset, setTargetAsset] = useState<string | null>(null);
+  const usdcContractId = (import.meta.env.VITE_USDC_CONTRACT_ID as string | undefined) ?? '';
+  const showTargetPicker = currencyLabel === 'XLM' && !!usdcContractId;
 
   // ── Backend settlement history (JWT mode) ──
   const showBackendHistory = hasJwt && !!groupIdStr;
@@ -213,6 +221,54 @@ export default function SettleTab({
             </p>
           )}
 
+          {/* ── Multi-currency picker (L5 idea → shipped) ──
+              Creditor chooses which SAC they want to receive. When the
+              selection differs from the group's source currency, the
+              settle routes through `settle_group_flex` and Soroswap
+              swaps inside the same transaction. Only renders when the
+              swap is meaningful — group is XLM-native and USDC is wired.
+              Matches SessionPlan 10B spec. */}
+          {showTargetPicker && (
+            <div className="w-full mb-3 rounded-2xl p-3 border border-white/[0.07] bg-white/[0.03]">
+              <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">
+                {t('settle.target_currency_label')}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  data-testid="target-asset-native"
+                  onClick={() => setTargetAsset(null)}
+                  aria-pressed={targetAsset === null}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                    targetAsset === null
+                      ? 'bg-birik/20 text-birik border border-birik/40'
+                      : 'bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.07]'
+                  }`}
+                >
+                  {t('settle.target_native')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="target-asset-usdc"
+                  onClick={() => setTargetAsset(usdcContractId)}
+                  aria-pressed={targetAsset === usdcContractId}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                    targetAsset === usdcContractId
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.07]'
+                  }`}
+                >
+                  {t('settle.target_usdc')}
+                </button>
+              </div>
+              {targetAsset && targetAsset !== usdcContractId ? null : targetAsset === usdcContractId ? (
+                <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                  {t('settle.target_swap_note')}
+                </p>
+              ) : null}
+            </div>
+          )}
+
           {/* ── Fee sponsorship toggle (Level 6 advanced feature) ──
               When on, the backend wraps the signed settle tx in a
               fee-bump — the sponsor account pays the network fee.
@@ -263,7 +319,7 @@ export default function SettleTab({
               <Glow intensity="subtle" color="success" className="rounded-3xl" />
             )}
             <button
-              onClick={() => handleSettle({ sponsor: sponsorFee })}
+              onClick={() => handleSettle({ sponsor: sponsorFee, targetAsset })}
               disabled={settling || isOffline}
               className={`relative w-full py-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:shadow-[0_4px_24px_rgba(16,185,129,0.4)] hover:-translate-y-px transition-all active:scale-95 flex items-center justify-center gap-2 ${
                 settling

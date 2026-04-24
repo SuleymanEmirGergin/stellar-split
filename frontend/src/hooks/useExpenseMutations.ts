@@ -72,11 +72,15 @@ export function useSettleGroupMutation(groupId: number) {
   const queryClient = useQueryClient();
   const callerAddress = useAppStore((state) => state.walletAddress);
 
-  // Accepts an optional `{ sponsor: boolean }` argument so the Settle UI can
-  // opt into fee-bump sponsorship (Level 6 advanced feature). Undefined =
-  // self-paid (default).
+  // Accepts optional `{ sponsor, targetAsset }`:
+  //   - sponsor: true → route through fee-bump (Level 6 advanced feature)
+  //   - targetAsset: SAC address → route through settle_group_flex for
+  //     on-chain Soroswap conversion (see docs/MULTI_CURRENCY.md)
+  // Both default to undefined which preserves the original settle_group
+  // behaviour for callers that pre-date these extensions.
   return useMutation({
-    mutationFn: (opts?: { sponsor?: boolean }) => settleGroup(callerAddress, groupId, opts),
+    mutationFn: (opts?: { sponsor?: boolean; targetAsset?: string | null }) =>
+      settleGroup(callerAddress, groupId, opts),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) });
     },

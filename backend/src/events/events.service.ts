@@ -23,7 +23,12 @@ export interface GroupEvent {
     | 'reward:minted'
     | 'referral:rewarded'
     // ── Admin / config ───────────────────────────────────────────────────
+    | 'admin:initialised'
     | 'admin:reward_token_set'
+    | 'admin:swap_router_set'
+    | 'admin:swap_factory_set'
+    // ── Multi-currency settle (Soroswap) ─────────────────────────────────
+    | 'settle:multi_currency'
     // ── Social recovery ──────────────────────────────────────────────────
     | 'recovery:guardians_set'
     | 'recovery:initiated'

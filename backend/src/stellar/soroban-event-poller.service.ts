@@ -34,8 +34,14 @@ const TOPIC_TO_EVENT: Record<string, import('../events/events.service').GroupEve
   reward_minted:        'reward:minted',
   referral_rewarded:    'referral:rewarded',
 
-  // ── Admin / config (lib.rs: set_reward_token) ─────────────────────────
+  // ── Admin / config (lib.rs: init_admin, set_reward_token, set_swap_*) ──
+  admin_initialised:    'admin:initialised',
   reward_token_set:     'admin:reward_token_set',
+  swap_router_set:      'admin:swap_router_set',
+  swap_factory_set:     'admin:swap_factory_set',
+
+  // ── Multi-currency settle (lib.rs: settle_group_flex) ─────────────────
+  multi_currency_settle:'settle:multi_currency',
 
   // ── Social recovery (lib.rs: set_guardians / initiate / approve) ──────
   guardians_set:        'recovery:guardians_set',

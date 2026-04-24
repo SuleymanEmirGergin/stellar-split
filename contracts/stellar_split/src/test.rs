@@ -665,3 +665,96 @@ fn test_set_reward_token_fails_when_admin_uninitialised() {
     // init_admin was never called — set_reward_token must fail loudly.
     client.set_reward_token(&someone, &reward_token);
 }
+
+// ═══════════════════════════════════════════════════
+//  MULTI-CURRENCY — set_swap_router / set_swap_factory / settle_group_flex
+// ═══════════════════════════════════════════════════
+
+#[test]
+fn test_set_swap_router_persists() {
+    let (env, client, _token) = setup_contract();
+    let admin = Address::generate(&env);
+    let router = Address::generate(&env);
+
+    client.init_admin(&admin);
+    client.set_swap_router(&admin, &router);
+    // Re-set is permitted — same pattern as set_reward_token.
+    client.set_swap_router(&admin, &router);
+}
+
+#[test]
+#[should_panic(expected = "only admin")]
+fn test_set_swap_router_rejects_non_admin() {
+    let (env, client, _token) = setup_contract();
+    let admin = Address::generate(&env);
+    let attacker = Address::generate(&env);
+    let router = Address::generate(&env);
+
+    client.init_admin(&admin);
+    // Attacker can't claim-and-rewrite the router pointer.
+    client.set_swap_router(&attacker, &router);
+}
+
+#[test]
+fn test_set_swap_factory_persists() {
+    let (env, client, _token) = setup_contract();
+    let admin = Address::generate(&env);
+    let factory = Address::generate(&env);
+
+    client.init_admin(&admin);
+    client.set_swap_factory(&admin, &factory);
+    // Re-set is permitted for mainnet redeploy flows.
+    client.set_swap_factory(&admin, &factory);
+}
+
+#[test]
+#[should_panic(expected = "only admin")]
+fn test_set_swap_factory_rejects_non_admin() {
+    let (env, client, _token) = setup_contract();
+    let admin = Address::generate(&env);
+    let attacker = Address::generate(&env);
+    let factory = Address::generate(&env);
+
+    client.init_admin(&admin);
+    client.set_swap_factory(&attacker, &factory);
+}
+
+#[test]
+#[should_panic(expected = "swap router not configured")]
+fn test_settle_group_flex_requires_router_when_destination_differs() {
+    let (env, client, token) = setup_contract();
+
+    // Set up a minimal 2-member group with no expenses — empty settlements
+    // means the for-loop doesn't run, so the "router not configured" panic
+    // is the first failure mode (which is what we want to assert).
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let members = vec![&env, alice.clone(), bob.clone()];
+    let group_id = client.create_group(
+        &alice,
+        &String::from_str(&env, "Flex"),
+        &members,
+        &token,
+    );
+
+    // A different SAC is requested — but set_swap_router was never called,
+    // so the multi-currency path must panic with a clear ops-focused message
+    // rather than unwrapping None somewhere obscure.
+    let different_asset = Address::generate(&env);
+    client.settle_group_flex(
+        &group_id,
+        &alice,
+        &Some(different_asset),
+    );
+}
+
+#[test]
+#[should_panic(expected = "contract not initialised")]
+fn test_set_swap_router_fails_when_admin_uninitialised() {
+    let (env, client, _token) = setup_contract();
+    let someone = Address::generate(&env);
+    let router = Address::generate(&env);
+
+    // init_admin was never called — same-shaped guard as set_reward_token.
+    client.set_swap_router(&someone, &router);
+}

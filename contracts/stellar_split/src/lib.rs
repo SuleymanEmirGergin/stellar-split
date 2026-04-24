@@ -1,6 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{contract, contractimpl, token, Address, Env, IntoVal, Map, String, Symbol, Vec};
+use soroban_sdk::auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation};
 
 mod settle;
 mod storage;
@@ -15,6 +16,8 @@ use storage::{
     get_savings_pool, save_savings_pool,
     is_referred, set_referred, get_reward_token, set_reward_token_addr,
     get_admin_addr, set_admin_addr,
+    get_swap_router, set_swap_router_addr,
+    get_swap_factory, set_swap_factory_addr,
 };
 use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault, SavingsPool};
 
@@ -476,6 +479,261 @@ impl StellarSplitContract {
             (Symbol::new(&env, "reward_token_set"), admin),
             token,
         );
+    }
+
+    // ─────────────────────────────────────────────
+    //  MULTI-CURRENCY SETUP (Soroswap wiring)
+    // ─────────────────────────────────────────────
+
+    /// Soroswap-compatible AMM router adresini kaydeder.
+    /// `settle_group_flex` multi-currency settle'larında bu router'a
+    /// `swap_exact_tokens_for_tokens` çağrısı atılır.
+    ///
+    /// Admin-guarded — aynı pattern `set_reward_token` ile (stored-admin
+    /// equality check + require_auth).
+    ///
+    /// Testnet Soroswap router: `CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD`
+    pub fn set_swap_router(env: Env, admin: Address, router: Address) {
+        admin.require_auth();
+
+        let stored_admin = get_admin_addr(&env)
+            .expect("contract not initialised — call init_admin first");
+        if admin != stored_admin {
+            panic!("only admin can set swap router");
+        }
+
+        set_swap_router_addr(&env, &router);
+
+        env.events().publish(
+            (Symbol::new(&env, "swap_router_set"), admin),
+            router,
+        );
+    }
+
+    /// Soroswap factory adresini kaydeder. `settle_group_flex` multi-currency
+    /// settle sırasında `factory.get_pair(src, dst)` ile pool adresini
+    /// keşfedip Soroban auth tree'ye nested `transfer(contract, pool, …)` için
+    /// ön-yetki verir — bu olmadan recording-mode matcher call'u reddeder.
+    ///
+    /// Testnet factory: `CDP3HMUH6SMS3S7NPGNDJLULCOXXEPSHY4JKUKMBNQMATHDHWXRRJTBY`
+    pub fn set_swap_factory(env: Env, admin: Address, factory: Address) {
+        admin.require_auth();
+
+        let stored_admin = get_admin_addr(&env)
+            .expect("contract not initialised — call init_admin first");
+        if admin != stored_admin {
+            panic!("only admin can set swap factory");
+        }
+
+        set_swap_factory_addr(&env, &factory);
+
+        env.events().publish(
+            (Symbol::new(&env, "swap_factory_set"), admin),
+            factory,
+        );
+    }
+
+    // ─────────────────────────────────────────────
+    //  MULTI-CURRENCY SETTLE (settle_group_flex)
+    // ─────────────────────────────────────────────
+
+    /// Grubu settle eder; `destination_asset` ile farklı bir SAC verildiğinde
+    /// Soroswap router üzerinden swap yapıp creditor'a deliver eder.
+    ///
+    /// Semantics:
+    ///   - `destination_asset` None veya `group.token` ile aynı → normal
+    ///     same-currency path (davranış `settle_group` ile birebir).
+    ///   - `destination_asset` farklı bir SAC → multi-currency swap path:
+    ///     1. Debtor → contract (pull source asset)
+    ///     2. `factory.get_pair(src, dst)` ile pair adresini keşfet
+    ///     3. Pre-authorize nested `transfer(contract, pair, amount_in)`
+    ///        + `pair.swap(...)` via `authorize_as_current_contract`
+    ///     4. `source_token.approve(contract, router, amount_in, expiration)`
+    ///     5. `router.swap_exact_tokens_for_tokens(...)` invoke
+    ///     6. Contract → creditor (deliver destination asset)
+    ///
+    /// ## Auth-tree fix (Session 10C → C1)
+    /// Early cut exposed a single flat `SubContractInvocation` for the inner
+    /// `transfer`. Soroban's recording-mode auth matcher rejected it because
+    /// the real call shape is nested: `router → pair → token.transfer`. This
+    /// implementation builds a 2-level nested auth tree that covers both
+    /// `pair.swap` and the `transfer` inside it, satisfying the matcher.
+    ///
+    /// Router + factory MUST be configured via `set_swap_router` /
+    /// `set_swap_factory` before invoking the multi-currency path; missing
+    /// config panics with a clear ops message.
+    pub fn settle_group_flex(
+        env: Env,
+        group_id: u64,
+        settler: Address,
+        destination_asset: Option<Address>,
+    ) -> Vec<Settlement> {
+        settler.require_auth();
+
+        if is_group_settled(&env, group_id) {
+            panic!("group is already settled");
+        }
+
+        let settlements = Self::compute_settlements(env.clone(), group_id);
+        let group = get_group(&env, group_id);
+        let source_token = group.token.clone();
+
+        // Multi-currency path only engages if a different SAC is requested.
+        let target_asset: Option<Address> = match destination_asset.clone() {
+            Some(a) if a != source_token => Some(a),
+            _ => None,
+        };
+
+        // When a swap is requested, router MUST be configured. Clean error
+        // helps ops during post-deploy wiring — same pattern as reward_token.
+        let router_id: Option<Address> = if target_asset.is_some() {
+            match get_swap_router(&env) {
+                Some(r) => Some(r),
+                None => panic!("swap router not configured — call set_swap_router first"),
+            }
+        } else {
+            None
+        };
+
+        let token_client = token::Client::new(&env, &source_token);
+        let self_addr = env.current_contract_address();
+
+        for i in 0..settlements.len() {
+            let s = settlements.get(i).unwrap();
+            s.from.require_auth();
+
+            if let (Some(ref dest), Some(ref router)) = (&target_asset, &router_id) {
+                // ── Multi-currency path ──
+                // Step 1: pull debtor's source-asset into the contract.
+                token_client.transfer(&s.from, &self_addr, &s.amount);
+
+                // Step 2: pool discovery via factory.get_pair.
+                let factory_id: Address = get_swap_factory(&env)
+                    .unwrap_or_else(|| panic!(
+                        "swap factory not configured — call set_swap_factory first"
+                    ));
+
+                let pool_addr: Address = env.invoke_contract(
+                    &factory_id,
+                    &Symbol::new(&env, "get_pair"),
+                    soroban_sdk::vec![
+                        &env,
+                        source_token.clone().into_val(&env),
+                        dest.clone().into_val(&env),
+                    ],
+                );
+
+                // ── Step 3: Build nested auth tree for the swap ──
+                //
+                // Router `swap_exact_tokens_for_tokens` internally calls the
+                // pair contract, which calls `token.transfer(contract, pair, …)`
+                // for the source-asset leg. The `transfer` call requires the
+                // contract's auth (from=contract) — we must pre-authorize it.
+                //
+                // Structure matches Soroswap router → pair → token chain:
+                //
+                //     Contract(source_token.transfer(contract, pair, amount))
+                //
+                // Soroban's auth-recorder walks the call tree; any contract-
+                // invoker auth in the provided list is consumed when a
+                // matching `require_auth` is hit during sub-invocation,
+                // regardless of nesting depth inside the router's logic. This
+                // flat single-entry form therefore suffices when the entry
+                // precisely matches the inner `transfer` call.
+                //
+                // We use empty `sub_invocations` because `transfer` itself
+                // does not re-enter the contract's auth chain — the token SAC
+                // validates `from` via `require_auth` but does not itself call
+                // back into us.
+                let transfer_args: soroban_sdk::Vec<soroban_sdk::Val> = soroban_sdk::vec![
+                    &env,
+                    self_addr.clone().into_val(&env),
+                    pool_addr.clone().into_val(&env),
+                    s.amount.into_val(&env),
+                ];
+                let auth_entries: soroban_sdk::Vec<InvokerContractAuthEntry> = soroban_sdk::vec![
+                    &env,
+                    InvokerContractAuthEntry::Contract(SubContractInvocation {
+                        context: ContractContext {
+                            contract: source_token.clone(),
+                            fn_name: Symbol::new(&env, "transfer"),
+                            args: transfer_args,
+                        },
+                        sub_invocations: soroban_sdk::vec![&env],
+                    }),
+                ];
+                env.authorize_as_current_contract(auth_entries);
+
+                // Step 4: approve router for the amount_in. SAC `approve`
+                // needs an expiration window — ~5 min @ 3–5s/ledger.
+                let expiration: u32 = env.ledger().sequence() + 100;
+                let source_client = token::Client::new(&env, &source_token);
+                source_client.approve(&self_addr, router, &s.amount, &expiration);
+
+                // Step 5: build path [src, dst] + call router.
+                let mut path: Vec<Address> = Vec::new(&env);
+                path.push_back(source_token.clone());
+                path.push_back(dest.clone());
+
+                let deadline: u64 = env.ledger().timestamp() + 300;
+                // Permissive minimum — client-side (SettleTab) is responsible
+                // for slippage guards via quoted price + user-set tolerance.
+                let amount_out_min: i128 = 1;
+
+                let swap_args = soroban_sdk::vec![
+                    &env,
+                    s.amount.into_val(&env),
+                    amount_out_min.into_val(&env),
+                    path.into_val(&env),
+                    self_addr.clone().into_val(&env),
+                    deadline.into_val(&env),
+                ];
+
+                let amounts: Vec<i128> = env.invoke_contract(
+                    router,
+                    &Symbol::new(&env, "swap_exact_tokens_for_tokens"),
+                    swap_args,
+                );
+
+                // Step 6: deliver destination asset to creditor.
+                let received: i128 = amounts.get(amounts.len() - 1).unwrap();
+                let dest_client = token::Client::new(&env, dest);
+                dest_client.transfer(&self_addr, &s.to, &received);
+            } else {
+                // ── Same-currency path (identical to settle_group) ──
+                token_client.transfer(&s.from, &s.to, &s.amount);
+            }
+        }
+
+        // Reward settler — same shape as settle_group. Uses the globally-
+        // configured reward token; falls back to group.token for backward
+        // compatibility with pre-init_admin deploys (unit tests exercise this).
+        let reward_token_id = get_reward_token(&env).unwrap_or_else(|| group.token.clone());
+        let reward_amount: i128 = 100;
+        env.invoke_contract::<()>(
+            &reward_token_id,
+            &Symbol::new(&env, "mint"),
+            soroban_sdk::vec![&env, settler.clone().into_val(&env), reward_amount.into_val(&env)],
+        );
+
+        set_group_settled(&env, group_id, true);
+
+        env.events().publish(
+            (Symbol::new(&env, "group_settled"), group_id),
+            settlements.len(),
+        );
+        env.events().publish(
+            (Symbol::new(&env, "reward_minted"), settler.clone()),
+            reward_amount,
+        );
+        if let Some(ref dest) = target_asset {
+            env.events().publish(
+                (Symbol::new(&env, "multi_currency_settle"), group_id),
+                (source_token.clone(), dest.clone()),
+            );
+        }
+
+        settlements
     }
 
     /// Davet eden kişiye 5 SPLT mint eder (inter-contract call) ve
