@@ -7,11 +7,57 @@ import { EventsService } from '../events/events.service';
 
 const LAST_LEDGER_KEY = 'soroban:last_ledger';
 
-const TOPIC_TO_EVENT: Record<string, string> = {
-  add_expense: 'expense:added',
-  settle_group: 'settlement:confirmed',
-  add_member: 'member:joined',
-  mint: 'token:minted',
+/**
+ * Maps Soroban contract event topic[0] (Symbol string) → GroupEvent.type.
+ *
+ * Keys are the exact Symbol strings the contracts publish (verified against
+ * contracts/stellar_split/src/lib.rs env.events().publish() call-sites).
+ * Values are the GroupEvent union members declared in events.service.ts.
+ *
+ * Unmapped topics are silently skipped — the poller stays forward-compatible
+ * with future contract upgrades without requiring a deploy.
+ */
+const TOPIC_TO_EVENT: Record<string, import('../events/events.service').GroupEvent['type']> = {
+  // ── Core group lifecycle (lib.rs: create_group, settle_group) ──────────
+  group_created:        'group:created',
+  group_settled:        'group:settled',
+
+  // ── Expenses (lib.rs: add_expense, cancel_last_expense) ───────────────
+  expense_added:        'expense:added',
+  expense_cancelled:    'expense:cancelled',
+
+  // ── Members (lib.rs: add_member, remove_member) ───────────────────────
+  member_added:         'member:joined',
+  member_removed:       'member:left',
+
+  // ── Tokens & rewards (lib.rs: settle_group reward + register_referral) ─
+  reward_minted:        'reward:minted',
+  referral_rewarded:    'referral:rewarded',
+
+  // ── Admin / config (lib.rs: set_reward_token) ─────────────────────────
+  reward_token_set:     'admin:reward_token_set',
+
+  // ── Social recovery (lib.rs: set_guardians / initiate / approve) ──────
+  guardians_set:        'recovery:guardians_set',
+  recovery_initiated:   'recovery:initiated',
+  recovery_approved:    'recovery:approved',
+
+  // ── DeFi vault (lib.rs: stake, withdraw, donate_yield) ────────────────
+  vault_staked:         'vault:staked',
+  vault_withdrawn:      'vault:withdrawn',
+  yield_donated:        'vault:yield_donated',
+
+  // ── Savings pool (lib.rs: create_savings_pool, contribute_pool, …) ────
+  pool_created:         'pool:created',
+  pool_contributed:     'pool:contributed',
+  pool_goal_reached:    'pool:goal_reached',
+  pool_released:        'pool:released',
+
+  // ── Gamification (lib.rs: award_badge) ────────────────────────────────
+  badge_awarded:        'badge:awarded',
+
+  // ── SPLT token contract (stellar_split_token/src/lib.rs: mint) ────────
+  mint:                 'token:minted',
 };
 
 @Injectable()
@@ -98,7 +144,7 @@ export class SorobanEventPollerService {
         }
 
         await this.eventsService.publish({
-          type: eventType as import('../events/events.service').GroupEvent['type'],
+          type: eventType,
           groupId,
           payload: { ...payload, _ledger: ledger, _txHash: event.txHash },
           ts: Date.now(),

@@ -469,7 +469,7 @@ User signs normally; backend wraps the signed inner tx as a Stellar fee-bump and
 #### Data indexing approach
 
 - **Source**: Soroban RPC `getEvents` — polled every 5s by `SorobanEventPollerService` with the last-processed ledger stored in Redis as a checkpoint.
-- **Topic decoding**: raw `scValToNative` → typed event shapes (`expense:added`, `settlement:confirmed`, `group:settled`, `reward:minted`, …). 18 event topics mapped.
+- **Topic decoding**: raw `scValToNative` → typed event shapes (`expense:added`, `group:settled`, `reward:minted`, `vault:staked`, `pool:contributed`, …). **21 event topics** mapped (full list in `soroban-event-poller.service.ts`).
 - **Sink**: NestJS `EventsService` fan-outs decoded events onto a per-group SSE stream (`GET /groups/:groupId/events`) + persists critical transitions to Postgres (audit log, settlement status).
 - **Frontend**: `useGroupEvents` hook subscribes via EventSource, drives live notifications + cache invalidation.
 - **Endpoint for external consumers**: SSE stream available at `https://stellar-split-production.up.railway.app/groups/:groupId/events` (JWT-gated, group-member only).
@@ -555,6 +555,22 @@ Kullanıcı geri bildirimleri doğrultusunda planlanan ve uygulanan iyileştirme
 - **Multi-currency settle** — `settle_group_flex` auth-tuning close ederek XLM↔USDC canlı swap.
 
 > Ayrıntılı feedback kırılımı ve tüm iteration commit'leri için: [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md#-iteration--feedbacke-göre-yapılan-değişiklikler)
+
+---
+
+## ⚠️ Known Limitations
+
+These are documented trade-offs accepted for the hackathon scope. Each item is tracked and prioritised for post-hackathon iteration.
+
+| # | Limitation | Impact | Mitigation / Plan |
+|---|-----------|--------|-------------------|
+| 1 | **`set_reward_token` / `set_swap_router` have no admin guard** — any address can call them on the current contract. | Testnet-only risk; mainnet deploy is gated. | Add `instance storage ADMIN + require_auth()` check before mainnet. |
+| 2 | **`compute_yield` uses integer arithmetic without `checked_*` guards** — theoretical overflow on very large stake amounts over very long periods. | No user-facing impact at testnet scale (amounts < 2^63). | Replace with `checked_mul` / `checked_add`; panic on overflow. Tracked: `B2` on internal roadmap. |
+| 3 | **Multi-currency settle (`settle_group_flex`) is partial** — on-chain pool discovery + router invoke works; one sub-invocation auth nesting call remains untuned. | Live XLM↔USDC swap not yet user-facing; `settle_group` (XLM-only) is fully functional. | Auth-tree fix scoped to Day 3–4 (`C1`). Full details: [`docs/MULTI_CURRENCY.md`](docs/MULTI_CURRENCY.md). |
+| 4 | **SPLT token contract is missing SEP-41 transfer/approve/allowance/burn/name/symbol/decimals** — only `initialize`, `mint`, `balance` are implemented. | SPLT is non-transferable at protocol level; UI balance widget works via `balance` call. | Implement full SEP-41 interface for DEX listing readiness before mainnet. |
+| 5 | **Hardcoded Turkish strings in a few UI components** (`UserAnalytics.tsx`, `OnboardingTour.tsx`) — no i18n system yet. | English-first users see Turkish labels in two panels. | `react-i18next` integration scoped to Day 2 (`B3`). |
+| 6 | **Analytics `/summary` shows zeros on a fresh Railway deploy** until `prisma migrate deploy` is run. | KPI strip on landing page shows `0` for all counters. | User task: run `railway run npx prisma migrate deploy`. Sentry alert on P2021. |
+| 7 | **`SorobanEventPollerService` — events missed if RPC is unavailable during a 5-second window** — the Redis checkpoint only advances on a successful poll. | No data loss; events will be replayed from the last successful ledger on recovery. | Add exponential back-off + alerting for consecutive poll failures. |
 
 ---
 

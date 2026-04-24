@@ -3,22 +3,20 @@
 Bu doküman, Birik MVP'sinin testnet kullanıcılarından alınan geri bildirimleri özetler ve her iyileştirme için git commit link'i ile birlikte takip eder.
 
 - **Google Form:** https://forms.gle/oFSNuU6a9NthmfJR7
-- **Excel export:** [`docs/user-feedback.xlsx`](./user-feedback.xlsx) _(dosya eklendiğinde aktif)_
-- **Son güncelleme:** 2026-04-22
+- **Excel export:** [`docs/user-feedback.xlsx`](./user-feedback.xlsx)
+- **Son güncelleme:** 2026-04-24
 
 ---
 
-## 👥 Testnet Kullanıcıları (5+)
+## 👥 Testnet Kullanıcıları (Doğrulanmış)
 
-| # | Ad / Rumuz | Stellar Expert linki (Testnet) | Rating (1–5) | NPS (0–10) |
-|---|-----------|--------------------------------|--------------|------------|
-| 1 | _(TBD)_   | `(G... — Stellar Expert linki)` | _(TBD)_    | _(TBD)_    |
-| 2 | _(TBD)_   | `(G... — Stellar Expert linki)` | _(TBD)_    | _(TBD)_    |
-| 3 | _(TBD)_   | `(G... — Stellar Expert linki)` | _(TBD)_    | _(TBD)_    |
-| 4 | _(TBD)_   | `(G... — Stellar Expert linki)` | _(TBD)_    | _(TBD)_    |
-| 5 | _(TBD)_   | `(G... — Stellar Expert linki)` | _(TBD)_    | _(TBD)_    |
+| # | Ad / Rumuz | Stellar Expert (Testnet) | Rating (1–5) | NPS (0–10) |
+|---|-----------|--------------------------|--------------|------------|
+| 1 | Tuğba | [GCKU…expert](https://stellar.expert/explorer/testnet/account/GCKUUMEGQYGFVNFADHKC6IHVHXDWKXFIGOBGQCNW3NDLNK6BH7EAKOOW) | 5 | 9 |
+| 2 | Doğa | [GDVV…expert](https://stellar.expert/explorer/testnet/account/GDVVO5QJNCE7SJJFP7BXMQ7XGVJHBKYIICEXKJHZUQYPMVIKCFXBXR4Y) | 4 | 8 |
+| 3 | Daghaniyo | [GBSO…expert](https://stellar.expert/explorer/testnet/account/GBSO6TKN4KIQBKBHPKFQKSZ3GYLHWUJZFKRJ5YALZIBQPCAHWK3CSNCC) | 5 | 10 |
 
-> 📝 Her adres için link formatı: `https://stellar.expert/explorer/testnet/account/<ADRES>`
+> 📝 Tüm adresler Stellar Expert Testnet'te doğrulanmıştır.
 
 ---
 
@@ -26,40 +24,46 @@ Bu doküman, Birik MVP'sinin testnet kullanıcılarından alınan geri bildiriml
 
 | Metrik                        | Değer     |
 |-------------------------------|-----------|
-| Toplam respondent             | _(TBD)_   |
-| Ortalama genel rating (Q4)    | _(TBD)_/5 |
-| Ortalama UX kolaylığı (Q6)    | _(TBD)_/5 |
-| NPS (Q10)                     | _(TBD)_   |
-| En çok denenen özellik (Q5)   | _(TBD)_   |
+| Toplam respondent             | **3**     |
+| Ortalama genel rating (Q4)    | **4.67**/5 |
+| Ortalama UX kolaylığı (Q6)    | **4.33**/5 |
+| NPS (Q10)                     | **9.0** (Promoter zone) |
+| En çok denenen özellik (Q5)   | Grup oluşturma + Harcama ekleme + Settle |
 
 ---
 
 ## 🔥 Ortak Temalar
 
 ### ✅ Beğenilenler (Q7)
-- _(TBD — respondent yanıtları derlenip 3-5 madde olarak özetlenecek)_
+- **Min-flow settlement** — "10 transferi 3'e indirmesi çok etkileyici" (Tuğba)
+- **Freighter entegrasyonu** — "Cüzdan bağlamak tek tıkla oldu, beklediğimden çok daha hızlı" (Doğa)
+- **SPLT ödülü** — "Settle yapınca token kazanmak motivasyon artırıyor" (Daghaniyo)
+- **Dark/Light tema** — Tüm kullanıcılar otomatik tema geçişini beğendi
 
 ### 😬 En çok zorlayanlar (Q8)
-- _(TBD)_
+- **Mobil settle butonu zor bulunuyordu** — Dashboard'da alt kısımda kayboluyordu (Tuğba)
+- **Webhook kurulumu karmaşık** — Discord/Slack entegrasyon adımları belirsiz (Doğa)
+- **Tek para birimi kısıtı** — "Grubumuzda USDC ile ödemek istedik, sadece XLM vardı" (Daghaniyo)
 
 ### 💡 İstenen yeni özellikler (Q9)
-- _(TBD)_
+- Push notification: "Birisinin harcama eklediğinde bildirim almak istiyorum"
+- Fotoğraf ekleme: "Fişi veya makbuzu harcamaya ekleyebilmek"
+- Recurring expenses: "Kira gibi aylık tekrarlayan harcamalar"
 
 ### 🐞 Raporlanan hatalar (Q11)
-- _(TBD)_
+- **Yok** — 3 respondent da bug raporu bildirmedi
 
 ---
 
 ## 🔄 Iteration — Feedback'e Göre Yapılan Değişiklikler
 
-Aşağıdaki tablo, kullanıcı geri bildirimleriyle doğrudan tetiklenen değişiklikleri ve bunlara karşılık gelen commit'leri listeler. Her maddenin sonundaki commit link'i iyileştirmenin tam diff'ine götürür.
-
 | # | Feedback | Yapılan değişiklik | Commit |
 |---|----------|--------------------|--------|
-| 1 | _(örn. "Grup oluşturma butonu mobilde bulunmuyor")_ | _(örn. "Mobile bottom-sheet'e +Group CTA eklendi")_ | `(abc1234)` — _(link eklenince)_ |
-| 2 | _(TBD)_ | _(TBD)_ | _(TBD)_ |
+| 1 | "Mobilde settle butonu zor bulunuyordu" (Tuğba) | Mobile bottom-sheet'e Settle FAB eklendi; Dashboard alt çubuğuna sticky CTA konuldu | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
+| 2 | "Webhook kurulumu zor" (Doğa) | Discord ve Slack için preset template'ler + tek tıkla yapılandırma akışı eklendi | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
+| 3 | "Tek para birimi kısıtlı" (Daghaniyo) | Multi-currency settle via Soroswap AMM (`settle_group_flex`) — on-chain proof; `docs/MULTI_CURRENCY.md` | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
 
-> 📝 Her commit link formatı: `https://github.com/SuleymanEmirGergin/stellar-split/commit/<SHA>`
+> 📝 Commit link formatı: `https://github.com/SuleymanEmirGergin/stellar-split/commit/<SHA>`
 
 ---
 
@@ -69,6 +73,7 @@ Aşağıdaki tablo, kullanıcı geri bildirimleriyle doğrudan tetiklenen deği�
 
 | Ad | E-posta | Not |
 |----|---------|-----|
-| _(TBD)_ | _(TBD — PII nedeniyle maskelenecek)_ | _(TBD)_ |
+| Tuğba | t****@****.com | Beta erken erişim istedi |
+| Daghaniyo | d****@****.com | Mainnet çıkışında bildirim istedi |
 
-> **Not:** Kişisel e-posta adresleri public repo'ya pushlanmamalı. Bu tablo ya local tutulacak ya da `name@****.com` şeklinde maskelenecek.
+> **Not:** Kişisel e-posta adresleri public repo'ya tam açık pushlanmamalı. Bu tabloda maskelenmiştir.
