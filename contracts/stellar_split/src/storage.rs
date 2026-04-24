@@ -287,6 +287,10 @@ pub fn set_admin_addr(env: &Env, admin: &Address) {
 // unset — multi-currency settlements panic with a clear error and the
 // same-currency path continues to work without the router.
 
+/// Reserved for forward-compat (router-based hop in a future iteration).
+/// Path B's direct-pair swap does not read this value; the setter is kept
+/// so post-deploy wiring stays available for an alt-AMM / multi-hop path.
+#[allow(dead_code)]
 pub fn get_swap_router(env: &Env) -> Option<Address> {
     let key = DataKey::SwapRouter;
     env.storage().instance().get(&key)
