@@ -73,7 +73,10 @@ describe('SorobanEventPollerService', () => {
     expect(publishSpy).not.toHaveBeenCalled();
   });
 
-  it('should map add_expense topic to expense:added and publish', async () => {
+  it('should map expense_added topic to expense:added and publish', async () => {
+    // Contract emits the Symbol `expense_added` (see contracts/stellar_split/
+    // src/lib.rs add_expense entrypoint); the poller maps it to the
+    // GroupEvent 'expense:added' type.
     mockRedisGet.mockResolvedValue('1000');
     mockGetEvents.mockResolvedValue({
       events: [
@@ -81,7 +84,7 @@ describe('SorobanEventPollerService', () => {
           ledger: 1001,
           contractId: 'CTEST',
           txHash: 'abc123',
-          topic: ['add_expense', 'group-42'],
+          topic: ['expense_added', 'group-42'],
           value: {},
         },
       ],
@@ -138,8 +141,8 @@ describe('SorobanEventPollerService', () => {
     mockRedisGet.mockResolvedValue('500');
     mockGetEvents.mockResolvedValue({
       events: [
-        { ledger: 502, contractId: 'C1', txHash: 'a', topic: ['add_member', 'g1'], value: {} },
-        { ledger: 501, contractId: 'C1', txHash: 'b', topic: ['settle_group', 'g2'], value: {} },
+        { ledger: 502, contractId: 'C1', txHash: 'a', topic: ['member_added', 'g1'], value: {} },
+        { ledger: 501, contractId: 'C1', txHash: 'b', topic: ['group_settled', 'g2'], value: {} },
       ],
     });
 
