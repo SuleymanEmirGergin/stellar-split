@@ -77,7 +77,13 @@ Grup başına analytics (harcama dağılımı, member contributions, carbon foot
 
 ![Platform Metrics](docs/screenshots/metrics-dashboard.png)
 
-_Live on `/dashboard`. Backed by `GET /analytics/summary` — no auth, 60s cache, 30 req/min throttle._
+_Landing hero KPIs (Toplam grup / Toplam hacim / Settle edildi / Bugün aktif) — public, no auth, backed by `GET /analytics/summary` (60s cache, 30 req/min throttle). Auto-regenerated via `node frontend/scripts/capture-metrics-dashboard.mjs`._
+
+### 🔭 In-app monitoring dashboard — live Dashboard with StatsPanel
+
+![Monitoring Dashboard](docs/screenshots/monitoring-dashboard.png)
+
+_Authenticated `/dashboard` view (wallet-connected). Top bar: real-time XLM price + TESTNET badge + XLM/SPLT balances. Body: StatsPanel with **Küresel Ağ Etkisi** (toplam tasarruf, filomuzun avantajı, aktif gruplar, CO₂ tasarrufu) + 4 ops KPI cards (ort. kesinlik ~5s, işlem ücreti $0.00005). Sentry (`SENTRY_DSN` configured), Prometheus `/metrics`, Pino structured logs + `/health/live|ready` covered in [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md#monitoring) and [`backend/src/instrument.ts`](backend/src/instrument.ts)._
 
 > 📝 Tüm screenshot'lar otomatize edildi — `cd frontend && npx playwright test e2e/screenshots.spec.ts e2e/screenshots-states.spec.ts --project=chromium`. Detay: [`docs/SCREENSHOT_CHECKLIST.md`](docs/SCREENSHOT_CHECKLIST.md).
 
@@ -430,7 +436,7 @@ stellar contract deploy \
 | **30+ verified active users**     | ⚠️    | [User form](https://forms.gle/oFSNuU6a9NthmfJR7) live · see **Testnet Users** section below         |
 | **Metrics dashboard live**        | ✅    | Public `/analytics/summary` endpoint + `<StatsPanel />` on Dashboard (DAU / WAU / MAU / total volume / 14-day trend) |
 | **Security checklist completed**  | ✅    | [`docs/SECURITY-CHECKLIST.md`](docs/SECURITY-CHECKLIST.md) + [`docs/SECURITY-NOTES.md`](docs/SECURITY-NOTES.md)      |
-| **Monitoring active**             | ✅    | Sentry (`backend/src/common/observability/sentry.ts`) + Prometheus `GET /metrics` + Pino structured logs + `/health/live` + `/health/ready` |
+| **Monitoring active**             | ✅    | Sentry (DSN wired in [`backend/src/instrument.ts`](backend/src/instrument.ts) — loaded as the first side-effect in `main.ts` per SDK v8 best-practice) + Prometheus `GET /metrics` + Pino structured logs + `/health/live` + `/health/ready`. Screenshot: [`docs/screenshots/monitoring-dashboard.png`](docs/screenshots/monitoring-dashboard.png) |
 | **Data indexing implemented**     | ✅    | `SorobanEventPollerService` (5s cron, Redis checkpoint) → Postgres → SSE stream → frontend (see `backend/src/stellar/soroban-event-poller.service.ts`) |
 | **Full documentation**            | ✅    | User guide (`docs/guide/`), architecture (`docs/architecture/`), API spec (`docs/OPEN-API-SPEC.md`), contract API (`docs/CONTRACT-API.md`), security checklist, Swagger UI at `/api/docs` |
 | **Community contribution**        | ✅    | Twitter launch post: [@supportbirik/status/2046997504768782702](https://x.com/supportbirik/status/2046997504768782702?s=20) — daily build updates in the thread, template kept at [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md) |
