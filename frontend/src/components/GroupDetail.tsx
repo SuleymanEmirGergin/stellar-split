@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3,
@@ -27,18 +27,18 @@ import {
   X,
   MoreHorizontal,
 } from 'lucide-react';
-import { estimateSettleGroupFee, type EstimatedFee } from '../lib/contract';
 import ErrorBoundary from './ErrorBoundary';
-import { useGroup, useGroupExpenses, useBalances, useGroupSettlements, groupKeys } from '../hooks/useGroupQuery';
+import { useGroup, useGroupExpenses, useBalances, useGroupSettlements } from '../hooks/useGroupQuery';
 import { useAddExpenseMutation, useCancelExpenseMutation, useSettleGroupMutation, useAddMemberMutation, useRemoveMemberMutation } from '../hooks/useExpenseMutations';
 import { useSecurityData } from '../hooks/useSecurityData';
 import { useGovernanceData } from '../hooks/useGovernanceData';
 import { useRecurringData } from '../hooks/useRecurringData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useQueryClient } from '@tanstack/react-query';
-import { server, CONTRACT_ID } from '../lib/stellar';
-import { subscribeGroupEvents } from '../lib/events';
-import { useGroupEvents } from '../hooks/useGroupEvents';
+import { useExpenseHandlers } from '../hooks/useExpenseHandlers';
+import { useMemberHandlers } from '../hooks/useMemberHandlers';
+import { useSettleHandler } from '../hooks/useSettleHandler';
+import { useGroupRealtime } from '../hooks/useGroupRealtime';
 import {
   useBackendExpenses,
   useBackendBalances,
@@ -47,11 +47,9 @@ import {
   useBackendGroup,
   useUpdateGroupMutation,
   useDeleteGroupMutation,
-  backendGroupKeys,
 } from '../hooks/useBackendGroups';
 import { getAccessToken } from '../lib/api';
-import { StrKey } from '@stellar/stellar-sdk';
-import { translateError, type Lang } from '../lib/errors';
+import { type Lang } from '../lib/errors';
 import Confetti from './Confetti';
 import QRCode from './QRCode';
 import { SkeletonShimmer } from './ui/SkeletonShimmer';
@@ -129,80 +127,14 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     ? new Map((backendBalancesRaw.data ?? []).map((b) => [b.userId, b.balance]))
     : balances;
 
-  // SSE: invalidate the caches relevant to each event type + announce with a
-  // per-event toast so users see WHAT happened (not just "group updated").
-  const [realtimeConnected, setRealtimeConnected] = useState(false);
-  useGroupEvents(isDemo ? null : groupIdStr, (event) => {
-    setRealtimeConnected(true);
-
-    const payload = (event.payload ?? {}) as {
-      actorName?: string;
-      actor?: string;
-      label?: string;
-      amount?: number;
-      currency?: string;
-    };
-    const actor =
-      payload.actorName ??
-      (typeof payload.actor === 'string' && payload.actor.length > 10
-        ? `${payload.actor.slice(0, 4)}…${payload.actor.slice(-4)}`
-        : payload.actor);
-    const amountStr =
-      payload.amount != null ? ` (${payload.amount} ${payload.currency ?? 'XLM'})` : '';
-    const labelStr = payload.label ? `: ${payload.label}` : '';
-
-    switch (event.type) {
-      case 'expense:added':
-      case 'expense:cancelled':
-      case 'recurring:triggered': {
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.expenses(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.settlementPlan(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.audit(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.analytics(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
-        if (event.type === 'recurring:triggered') {
-          queryClient.invalidateQueries({ queryKey: backendGroupKeys.recurring(groupIdStr) });
-          addToast(`Otomatik harcama eklendi${labelStr}${amountStr}`, 'info');
-        } else if (event.type === 'expense:cancelled') {
-          addToast(`${actor ?? 'Bir üye'} harcamayı iptal etti${labelStr}`, 'info');
-        } else {
-          addToast(`${actor ?? 'Bir üye'} harcama ekledi${labelStr}${amountStr}`, 'info');
-        }
-        break;
-      }
-      case 'settlement:confirmed':
-      case 'settlement:failed': {
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.settlements(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.settlementPlan(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.audit(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
-        if (event.type === 'settlement:confirmed') {
-          addToast(`Settle onaylandı${amountStr} · Stellar'da kapandı`, 'success');
-        } else {
-          addToast(`Settle başarısız${labelStr}`, 'error');
-        }
-        break;
-      }
-      case 'member:joined':
-      case 'member:left': {
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.detail(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.balances(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: backendGroupKeys.audit(groupIdStr) });
-        queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
-        addToast(
-          event.type === 'member:joined'
-            ? `${actor ?? 'Yeni bir üye'} gruba katıldı`
-            : `${actor ?? 'Bir üye'} gruptan ayrıldı`,
-          event.type === 'member:joined' ? 'success' : 'info',
-        );
-        break;
-      }
-      case 'heartbeat':
-        // no-op — keeps the connection alive; no toast, no invalidation
-        break;
-    }
+  // SSE event subscription + Soroban contract polling (extracted to hook)
+  const { realtimeConnected } = useGroupRealtime({
+    groupIdStr,
+    numericGroupId,
+    isDemo: isDemo ?? false,
+    hasJwt,
+    addToast,
+    t,
   });
 
   // ── Group edit / delete (creator-only) ──────────────────────────────────
@@ -228,10 +160,10 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     }
     try {
       await updateGroupMutation.mutateAsync({ name: trimmed });
-      addToast('Grup adı güncellendi', 'success');
+      addToast(t('group.rename_success'), 'success');
       setIsEditingName(false);
     } catch (err) {
-      addToast(err instanceof Error ? err.message : 'Güncelleme başarısız', 'error');
+      addToast(err instanceof Error ? err.message : t('group.rename_failed'), 'error');
     }
   };
   const handleRenameCancel = () => {
@@ -241,26 +173,61 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const handleDeleteConfirm = async () => {
     try {
       await deleteGroupMutation.mutateAsync();
-      addToast('Grup silindi', 'success');
+      addToast(t('group.delete_success'), 'success');
       setShowDeleteConfirm(false);
       onBack();
     } catch (err) {
-      addToast(err instanceof Error ? err.message : 'Silme başarısız', 'error');
+      addToast(err instanceof Error ? err.message : t('group.delete_failed'), 'error');
     }
   };
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [contacts] = useState<Record<string, string>>(() => addressBook.getAll());
 
-  const [showAdd, setShowAdd] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [addExpenseError, setAddExpenseError] = useState<string | null>(null);
-  const [newMemberInput, setNewMemberInput] = useState('');
-  const [addingMember, setAddingMember] = useState(false);
-  const [removingMember, setRemovingMember] = useState<string | null>(null);
-  const [expAmount, setExpAmount] = useState('');
-  const [expDesc, setExpDesc] = useState('');
-  const [expCategory, setExpCategory] = useState<string>('');
-  // AI category suggestion (Demo Day feature): debounced, local, offline.
+  // ── Mutations — must come before hooks that depend on them ────────────────
+  const queryClient = useQueryClient();
+  const addExpenseMutation = useAddExpenseMutation(numericGroupId);
+  const cancelExpenseMutation = useCancelExpenseMutation(numericGroupId);
+  const addMemberMutation = useAddMemberMutation(numericGroupId);
+  const removeMemberMutation = useRemoveMemberMutation(numericGroupId);
+  const settleGroupMutation = useSettleGroupMutation(numericGroupId);
+
+  // ── Webhook prefs — needed by useExpenseHandlers below ───────────────────
+  type WebhookNotifyPref = 'all' | 'mine' | 'off';
+  const [webhookUrl, setWebhookUrl] = useLocalStorage<string>(`webhook_${groupId}`, '');
+  const [webhookNotifyPref, setWebhookNotifyPref] = useLocalStorage<WebhookNotifyPref>(`webhook_pref_${groupId}`, 'all');
+  const [webhookNotifySettlement, setWebhookNotifySettlement] = useLocalStorage<boolean>(`webhook_settlement_${groupId}`, true);
+
+  // ── Expense form handlers (extracted hook) ────────────────────────────────
+  const {
+    showAdd, setShowAdd,
+    expAmount, setExpAmount,
+    expDesc, setExpDesc,
+    expCategory, setExpCategory,
+    expReceipt, setExpReceipt,
+    adding,
+    cancelling,
+    uploading, setUploading,
+    aiScanning, setAiScanning,
+    ocrResult, setOcrResult,
+    selectedOcrItems, setSelectedOcrItems,
+    addExpenseError, setAddExpenseError,
+    viewingReceipt, setViewingReceipt,
+    handleAddExpense,
+    handleCancelLastExpense,
+  } = useExpenseHandlers({ walletAddress, group, addExpenseMutation, cancelExpenseMutation, webhookUrl, webhookNotifyPref, t, addToast, langKey });
+
+  // ── Member handlers (extracted hook) ─────────────────────────────────────
+  const { newMemberInput, setNewMemberInput, addingMember, removingMember, handleAddMember, handleRemoveMember } =
+    useMemberHandlers({ group, addMemberMutation, removeMemberMutation, t, addToast, langKey });
+
+  // ── Settle handlers (extracted hook) ──────────────────────────────────────
+  const {
+    settling, sponsorFee, setSponsorFee, showConfetti,
+    estimatedSettleFee, lastTxStatus, setLastTxStatus, lastTxHash,
+    lastTxError, setLastTxError, lastFeePaid, handleSettle,
+  } = useSettleHandler({ group, walletAddress, numericGroupId, groupId, settleGroupMutation, t, addToast, langKey, tab, settlementsCount: settlements.length });
+
+  // ── AI category suggestion (Demo Day feature): debounced, local, offline ──
   const [debouncedDesc, setDebouncedDesc] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -294,22 +261,9 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     return c;
   }, [categorySuggestion]);
   const [filterCategory, setFilterCategory] = useState<string>('');
-  const [adding, setAdding] = useState(false);
-  const [expReceipt, setExpReceipt] = useState<string>('');
-
-  const [estimatedSettleFee, setEstimatedSettleFee] = useState<EstimatedFee | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
-  type WebhookNotifyPref = 'all' | 'mine' | 'off';
-  const [webhookUrl, setWebhookUrl] = useLocalStorage<string>(`webhook_${groupId}`, '');
-  const [webhookNotifyPref, setWebhookNotifyPref] = useLocalStorage<WebhookNotifyPref>(`webhook_pref_${groupId}`, 'all');
-  const [webhookNotifySettlement, setWebhookNotifySettlement] = useLocalStorage<boolean>(`webhook_settlement_${groupId}`, true);
   const [liveApy, setLiveApy] = useState<number | null>(null);
   const [showAddSub, setShowAddSub] = useState(false);
   const [showVisualGraph, setShowVisualGraph] = useState(false);
-  const [aiScanning, setAiScanning] = useState(false);
-  const [ocrResult, setOcrResult] = useState<ScannedData | null>(null);
-  const [selectedOcrItems, setSelectedOcrItems] = useState<number[]>([]);
   const [filterSearch, setFilterSearch] = useState('');
 
   const { activeRecovery, guardianConfig, loadSecurityData } = useSecurityData(walletAddress, numericGroupId);
@@ -341,25 +295,17 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     loading,
   });
 
-  const [settling, setSettling] = useState(false);
-  // Fee sponsorship opt-in for the Settle button — wired through to
-  // settleGroupMutation.mutate({ sponsor: true }). Default off so users
-  // see the honest self-paid cost by default.
-  const [sponsorFee, setSponsorFee] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showPayQRIndex, setShowPayQRIndex] = useState<number | null>(null);
-  const [lastTxStatus, setLastTxStatus] = useState<TxStatus | null>(null);
-  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
-  const [lastTxError, setLastTxError] = useState<string | null>(null);
-  const [lastFeePaid, setLastFeePaid] = useState<string | null>(null);
 
+  // Open "Add Expense" modal from external trigger (e.g., FAB button)
   useEffect(() => {
     const handler = () => { setAddExpenseError(null); setShowAdd(true); };
-    window.addEventListener('stellarsplit:new-expense', handler);
-    return () => window.removeEventListener('stellarsplit:new-expense', handler);
-  }, []);
+    window.addEventListener('stellarsplit:new-expense', handler as EventListener);
+    return () => window.removeEventListener('stellarsplit:new-expense', handler as EventListener);
+  }, [setAddExpenseError, setShowAdd]);
 
+  // Close modals on Escape key
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
@@ -370,25 +316,6 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showAdd, showAddPropose, showAddSub]);
-
-  const queryClient = useQueryClient();
-  const addExpenseMutation = useAddExpenseMutation(numericGroupId);
-  const cancelExpenseMutation = useCancelExpenseMutation(numericGroupId);
-  const addMemberMutation = useAddMemberMutation(numericGroupId);
-  const removeMemberMutation = useRemoveMemberMutation(numericGroupId);
-  const settleGroupMutation = useSettleGroupMutation(numericGroupId);
-
-
-
-  // Event polling: refresh group when Soroban contract events fire.
-  // Skipped when JWT is available because backend SSE (useGroupEvents above) already covers these events.
-  useEffect(() => {
-    if (isDemo || hasJwt) return;
-    const cleanup = subscribeGroupEvents(server, CONTRACT_ID, numericGroupId, () => {
-      queryClient.invalidateQueries({ queryKey: groupKeys.detail(numericGroupId) });
-    });
-    return cleanup;
-  }, [groupId, isDemo, hasJwt, queryClient]);
 
   useEffect(() => {
     let cancelled = false;
@@ -409,147 +336,6 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
       type: 'settlement',
     });
   }, [groupId, group, webhookUrl, webhookNotifySettlement, settlements.length, t]);
-
-  const handleAddExpense = useCallback(async () => {
-    const amountXlm = parseFloat(expAmount);
-    if (!Number.isFinite(amountXlm) || amountXlm <= 0 || !expDesc.trim() || !group) return;
-    const amountStroops = Math.round(amountXlm * 10_000_000);
-    setAdding(true);
-    setAddExpenseError(null);
-    try {
-      const splitAmong = group.members;
-      await addExpenseMutation.mutateAsync({
-        payer: walletAddress, 
-        amount: amountStroops, 
-        splitAmong, 
-        description: expDesc.trim(), 
-        category: expCategory, 
-        attachmentUrl: expReceipt
-      });
-      track('expense_added');
-      if (webhookUrl && webhookNotifyPref !== 'off') {
-        sendWebhookNotification(webhookUrl, { description: expDesc.trim(), amount: amountStroops, payer: walletAddress, groupName: group.name });
-      }
-      
-      requestNotificationPermission().then(granted => {
-        if (granted) sendLocalNotification(t('group.new_expense'), `${expDesc.trim()} eklendi.`);
-      });
-      useNotificationStore.getState().add({ title: t('group.new_expense'), body: `${expDesc.trim()} — ${amountXlm.toFixed(2)} XLM`, type: 'expense' });
-
-      setShowAdd(false);
-      setExpAmount('');
-      setExpDesc('');
-      setExpCategory('');
-      setExpReceipt('');
-      setAddExpenseError(null);
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : 'Harcama eklenemedi';
-      const msg = translateError(raw, langKey);
-      setAddExpenseError(msg);
-      addToast(msg, 'error');
-    } finally {
-      setAdding(false);
-    }
-  }, [walletAddress, group, expAmount, expDesc, expCategory, expReceipt, webhookUrl, webhookNotifyPref, addToast, langKey, addExpenseMutation, t]);
-
-  const handleCancelLastExpense = useCallback(async () => {
-    setCancelling(true);
-    try {
-      await cancelExpenseMutation.mutateAsync();
-      addToast(t('group.expense_cancelled'), 'success');
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : 'Harcama iptal edilemedi';
-      addToast(translateError(raw, langKey), 'error');
-    } finally {
-      setCancelling(false);
-    }
-  }, [addToast, t, langKey, cancelExpenseMutation]);
-
-  const handleAddMember = useCallback(async () => {
-    const addr = newMemberInput.trim();
-    if (!addr || !group) return;
-    try {
-      if (!StrKey.isValidEd25519PublicKey(addr)) {
-        addToast(t('group.invalid_address'), 'error');
-        return;
-      }
-      if (group.members.includes(addr)) {
-        addToast(t('group.already_member'), 'error');
-        return;
-      }
-      setAddingMember(true);
-      await addMemberMutation.mutateAsync(addr);
-      addToast(t('group.member_added'), 'success');
-      setNewMemberInput('');
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : 'Üye eklenemedi';
-      addToast(translateError(raw, langKey), 'error');
-    } finally {
-      setAddingMember(false);
-    }
-  }, [group, newMemberInput, addToast, t, langKey, addMemberMutation]);
-
-  const handleRemoveMember = useCallback(async (memberAddress: string) => {
-    if (!group || group.members.length <= 2) return;
-    setRemovingMember(memberAddress);
-    try {
-      await removeMemberMutation.mutateAsync(memberAddress);
-      addToast(t('group.member_removed'), 'success');
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : 'Üye çıkarılamadı';
-      addToast(translateError(raw, langKey), 'error');
-    } finally {
-      setRemovingMember(null);
-    }
-  }, [group, addToast, t, langKey, removeMemberMutation]);
-
-
-
-  const handleSettle = useCallback(async (opts?: { sponsor?: boolean; targetAsset?: string | null }) => {
-    if (!group) return;
-    setSettling(true);
-    setLastTxStatus('signing');
-    setLastTxHash(null);
-    setLastTxError(null);
-    setLastFeePaid(null);
-    try {
-      const result = await settleGroupMutation.mutateAsync(opts);
-      setLastTxStatus('confirmed');
-      setLastTxHash(result.txHash ?? null);
-      setLastFeePaid(
-        opts?.sponsor
-          ? 'Sponsor tarafından ödendi (gasless)'
-          : estimatedSettleFee ? `~${estimatedSettleFee.xlm} XLM` : null,
-      );
-      track('group_settled');
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 4000);
-      addToast(t('group.settled_success'), 'success');
-      addToast(t('group.reward_earned'), 'success');
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : 'Takas başarısız';
-      const msg = translateError(raw, langKey);
-      setLastTxStatus('failed');
-      setLastTxError(msg);
-      addToast(msg, 'error');
-    } finally {
-      setSettling(false);
-    }
-  }, [group, addToast, langKey, settleGroupMutation, t, estimatedSettleFee]);
-
-  // Estimate settle fee when on Settle tab with settlements
-  useEffect(() => {
-    if (tab !== 'settle' || settlements.length === 0 || !walletAddress) {
-      setEstimatedSettleFee(null);
-      return;
-    }
-    let cancelled = false;
-    estimateSettleGroupFee(walletAddress, numericGroupId)
-      .then((fee) => { if (!cancelled) setEstimatedSettleFee(fee); })
-      .catch(() => { if (!cancelled) setEstimatedSettleFee(null); });
-    return () => { cancelled = true; };
-  }, [tab, settlements.length, walletAddress, groupId]);
-
 
   if (loading) return (
     <div className="space-y-6">
@@ -586,7 +372,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
     { key: 'defi', label: t('group.tab_defi'), icon: DollarSign },
     { key: 'social', label: t('group.tab_social'), icon: Share2 },
     { key: 'governance', label: t('group.tab_governance'), icon: Users },
-    { key: 'security', label: 'Safety', icon: Shield },
+    { key: 'security', label: t('group.tab_security'), icon: Shield },
     { key: 'gallery', label: t('group.tab_gallery'), icon: ImageIcon },
     { key: 'audit', label: t('group.tab_audit'), icon: Clock },
     { key: 'settings', label: t('group.tab_settings'), icon: Settings },
@@ -622,15 +408,15 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                     onChange={(e) => setNameDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Escape') handleRenameCancel(); }}
                     className="text-2xl font-black tracking-tighter bg-transparent border-b-2 border-primary outline-none px-1 py-0.5 min-w-[120px] md:min-w-[160px] max-w-full md:max-w-[320px]"
-                    aria-label="Grup adı"
+                    aria-label={t('group.group_name')}
                     maxLength={64}
                   />
                   <button
                     type="submit"
                     disabled={updateGroupMutation.isPending}
                     className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-all"
-                    aria-label="Kaydet"
-                    title="Kaydet"
+                    aria-label={t('common.save')}
+                    title={t('common.save')}
                   >
                     <Check size={16} strokeWidth={3} />
                   </button>
@@ -639,8 +425,8 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                     onClick={handleRenameCancel}
                     disabled={updateGroupMutation.isPending}
                     className="w-8 h-8 flex items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
-                    aria-label="İptal"
-                    title="İptal (Esc)"
+                    aria-label={t('common.cancel')}
+                    title={`${t('common.cancel')} (Esc)`}
                   >
                     <X size={16} />
                   </button>
@@ -744,7 +530,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
             {
-              label: 'Toplam Harcama',
+              label: t('group.total_expenses_label'),
               value: activeExpenses.length > 0
                 ? `${(activeExpenses.reduce((s, e) => {
                     const amt = typeof e.amount === 'string' ? parseFloat(e.amount) : e.amount / 10_000_000
@@ -754,14 +540,14 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
               color: 'text-foreground',
             },
             {
-              label: 'Harcama Sayısı',
+              label: t('group.expense_count_label'),
               value: String(activeExpenses.length),
               color: 'text-foreground',
             },
             {
               label: (() => {
                 const b = activeBalances.get(walletAddress) ?? 0
-                return b >= 0 ? 'Alacaklısın' : 'Borçlusun'
+                return b >= 0 ? t('group.you_are_creditor') : t('group.you_are_debtor')
               })(),
               value: (() => {
                 const b = activeBalances.get(walletAddress) ?? 0
@@ -1411,7 +1197,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
             className="max-w-full max-h-[80vh] rounded-3xl shadow-2xl border border-white/10" 
             alt={t('group.receipt')} 
           />
-          <button className="mt-8 px-6 py-3 bg-white/10 rounded-xl font-bold text-white hover:bg-white/20 transition-all">Close Viewer</button>
+          <button className="mt-8 px-6 py-3 bg-white/10 rounded-xl font-bold text-white hover:bg-white/20 transition-all">{t('common.close')}</button>
         </div>
       )}
 
@@ -1496,7 +1282,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                     {/* Header row */}
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                        More tabs
+                        {t('group.more_tabs')}
                       </h3>
                       <button
                         type="button"
@@ -1561,11 +1347,11 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                 <AlertTriangle size={20} className="text-rose-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 id="delete-group-title" className="font-black text-lg">Grubu sil?</h3>
+                <h3 id="delete-group-title" className="font-black text-lg">{t('group.delete_confirm_title')}</h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  <span className="font-bold text-foreground">{group.name}</span> grubu
-                  ve içindeki tüm harcama, ödeme ve mesaj geçmişi kalıcı olarak silinecek.
-                  <span className="block mt-1 text-rose-400/90 font-bold">Bu işlem geri alınamaz.</span>
+                  <span className="font-bold text-foreground">{group.name}</span>{' '}
+                  {t('group.delete_confirm_desc')}
+                  <span className="block mt-1 text-rose-400/90 font-bold">{t('group.delete_confirm_irreversible')}</span>
                 </p>
               </div>
             </div>
@@ -1576,7 +1362,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                 disabled={deleteGroupMutation.isPending}
                 className="px-4 py-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground hover:bg-white/10 font-bold text-sm transition-all disabled:opacity-50"
               >
-                İptal
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1585,7 +1371,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                 className="px-4 py-2 rounded-xl bg-rose-500 text-white hover:bg-rose-400 font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 <Trash2 size={14} />
-                {deleteGroupMutation.isPending ? 'Siliniyor…' : 'Evet, sil'}
+                {deleteGroupMutation.isPending ? t('group.deleting') : t('group.delete_confirm_yes')}
               </button>
             </div>
           </div>

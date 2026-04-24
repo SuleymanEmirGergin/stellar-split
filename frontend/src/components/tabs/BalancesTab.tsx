@@ -158,6 +158,7 @@ const BalancesTab = memo(function BalancesTab({
               <div className="flex-1 relative">
                 <input
                   type="text"
+                  aria-label={t('group.new_member_placeholder')}
                   placeholder={t('group.new_member_placeholder')}
                   value={newMemberInput}
                   onChange={e => setNewMemberInput(e.target.value)}

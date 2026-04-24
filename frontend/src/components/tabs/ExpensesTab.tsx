@@ -171,6 +171,7 @@ export default memo(function ExpensesTab({
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
             <input
+              aria-label={t('group.search')}
               className="w-full bg-secondary/50 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:border-indigo-500/50 transition-all outline-none"
               placeholder={t('group.search')}
               value={filterSearch}
@@ -181,6 +182,7 @@ export default memo(function ExpensesTab({
           <div className="relative sm:w-[200px]">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <select
+              aria-label={t('group.filter_by_category')}
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
               className="w-full pl-12 pr-10 py-4 bg-secondary/30 border border-white/5 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium appearance-none"
