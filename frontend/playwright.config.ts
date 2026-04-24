@@ -22,5 +22,10 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    // Multi-currency E2E: inject testnet USDC SAC address so the
+    // "Receive in USDC" picker renders in SettleTab during CI runs.
+    env: {
+      VITE_USDC_CONTRACT_ID: process.env.VITE_USDC_CONTRACT_ID || 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA',
+    },
   },
 });
