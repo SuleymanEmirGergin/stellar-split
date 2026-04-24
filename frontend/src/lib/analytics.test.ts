@@ -8,7 +8,8 @@ beforeEach(() => {
 describe('getAnalyticsCounts', () => {
   it('returns zero counts when storage is empty', () => {
     const counts = getAnalyticsCounts();
-    expect(counts).toEqual({ group_created: 0, expense_added: 0, group_settled: 0 });
+    // Use objectContaining — catalog may grow but core three must always be 0
+    expect(counts).toMatchObject({ group_created: 0, expense_added: 0, group_settled: 0 });
   });
 
   it('returns persisted counts', () => {
@@ -16,12 +17,12 @@ describe('getAnalyticsCounts', () => {
       'stellarsplit_analytics',
       JSON.stringify({ group_created: 3, expense_added: 7, group_settled: 1 }),
     );
-    expect(getAnalyticsCounts()).toEqual({ group_created: 3, expense_added: 7, group_settled: 1 });
+    expect(getAnalyticsCounts()).toMatchObject({ group_created: 3, expense_added: 7, group_settled: 1 });
   });
 
   it('returns zero counts when localStorage value is invalid JSON', () => {
     localStorage.setItem('stellarsplit_analytics', 'not-json');
-    expect(getAnalyticsCounts()).toEqual({ group_created: 0, expense_added: 0, group_settled: 0 });
+    expect(getAnalyticsCounts()).toMatchObject({ group_created: 0, expense_added: 0, group_settled: 0 });
   });
 });
 
@@ -47,10 +48,12 @@ describe('track', () => {
     track('expense_added');
     track('expense_added');
     track('group_settled');
+    track('wallet_connected');
     const counts = getAnalyticsCounts();
     expect(counts.group_created).toBe(1);
     expect(counts.expense_added).toBe(2);
     expect(counts.group_settled).toBe(1);
+    expect(counts.wallet_connected).toBe(1);
   });
 
   it('does not throw when localStorage is unavailable', () => {
