@@ -2,11 +2,15 @@
  * Birik Backend API client.
  *
  * - Base URL: VITE_API_URL (defaults to http://localhost:3001)
+ * - API version: /api/v1 (URI versioning, added automatically)
  * - Auth: Bearer JWT (access token) + HttpOnly refresh cookie
  * - Auto-refresh: on 401, attempts one silent token refresh then retries
  */
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+// Raw host — the version prefix is baked in so callers use plain paths (/groups).
+const _HOST = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+// Strip trailing slash from env var in case it was set with one.
+const BASE_URL = `${_HOST.replace(/\/$/, '')}/api/v1`;
 
 // ─── Token store (in-memory only — never persist access token) ───────────────
 let accessToken: string | null = null;

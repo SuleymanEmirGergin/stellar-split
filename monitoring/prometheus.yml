@@ -2,6 +2,16 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Alert rules — evaluated every `evaluation_interval`
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+# Alertmanager — configure in docker-compose or Railway via ALERTMANAGER_URL
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
 scrape_configs:
   - job_name: stellarsplit-api
     metrics_path: /metrics

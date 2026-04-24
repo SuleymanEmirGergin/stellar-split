@@ -4,7 +4,7 @@
 import './instrument';
 
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType, RequestMethod } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
@@ -68,6 +68,23 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
   });
 
+  // API versioning — URI-based: /api/v1/groups, /api/v2/groups …
+  // Health (/health/live, /health/ready) and Metrics (/metrics) are excluded
+  // from the global prefix so Railway health checks and Prometheus scraping
+  // continue to work without config changes.
+  app.setGlobalPrefix('api', {
+    exclude: [
+      { path: 'health', method: RequestMethod.ALL },
+      { path: 'health/(.*)', method: RequestMethod.ALL },
+      { path: 'metrics', method: RequestMethod.ALL },
+    ],
+  });
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+    prefix: 'v',
+  });
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
@@ -118,8 +135,8 @@ Auth endpoints are throttled to **10 requests / 60 s** per IP.`,
       .setVersion('1.0')
       .setContact('StellarSplit', 'https://github.com/SuleymanEmirGergin/stellar-split', '')
       .setLicense('MIT', 'https://opensource.org/licenses/MIT')
-      .addServer('http://localhost:3001', 'Local development')
-      .addServer('https://api.stellarsplit.app', 'Production')
+      .addServer('http://localhost:3001/api/v1', 'Local development')
+      .addServer('https://api.stellarsplit.app/api/v1', 'Production')
       .addBearerAuth(
         {
           type: 'http',
@@ -141,7 +158,8 @@ Auth endpoints are throttled to **10 requests / 60 s** per IP.`,
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document, {
+    // With setGlobalPrefix('api'), NestJS serves Swagger at /api/docs automatically
+    SwaggerModule.setup('docs', app, document, {
       swaggerOptions: {
         persistAuthorization: true,
         tagsSorter: 'alpha',
