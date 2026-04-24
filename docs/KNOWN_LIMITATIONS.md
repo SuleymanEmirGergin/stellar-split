@@ -10,6 +10,43 @@
 
 ## 🐛 Active Bugs
 
+### BUG-STALE-CHUNK — Lazy chunk 404 after mid-session redeploy ✅ **FIXED**
+
+**Observed 2026-04-24** during automated smoke test, right after we pushed a
+new commit while the browser tab was open.
+
+**Symptom:**
+- User opens a page using React.lazy (e.g. `/group/:id`, `/referral`,
+  `/settings`).
+- Vercel had deployed a new build since the tab was loaded.
+- Browser tries `import('/assets/GroupDetail-<oldhash>.js')` → server returns
+  404 because the new deploy has a fresh chunk map.
+- React Suspense bubbles up `TypeError: Failed to fetch dynamically imported
+  module`; the ErrorBoundary caught it and showed "Something went wrong".
+
+**Console evidence:**
+```
+[ERROR] TypeError: Failed to fetch dynamically imported module:
+        https://stellar-split.vercel.app/assets/GroupDetail-D1SacDOj.js
+[ERROR] [Birik] ErrorBoundary caught: TypeError: Failed to fetch dynamically imported module
+```
+
+**Fix (shipped 2026-04-24):** `ErrorBoundary.tsx` now detects lazy-chunk errors
+(Vite, Safari, Webpack variants, `ChunkLoadError` by name) and auto-reloads
+the page with a `sessionStorage`-backed 30-second debounce to prevent
+infinite reload loops on genuinely-broken deploys. During the reload it
+shows a soft "Updating to latest version" UI with a spinner instead of the
+generic "Something went wrong" panel. Full coverage: 13 unit tests in
+`ErrorBoundary.test.tsx`.
+
+**Severity before fix:** Medium-high (demo-day risk — a last-minute redeploy
+would have broken judges' already-open tabs).
+
+**Severity after fix:** Negligible — the auto-reload is silent from the
+user's perspective and the debounce prevents loops.
+
+---
+
 ### BUG-DEMO-01 — Demo mode group detail navigation redirects to dashboard
 
 **Observed 2026-04-24 during automated smoke test.**
