@@ -78,6 +78,9 @@ export default function PaymentRequestModal({
 
         {/* Modal */}
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-request-modal-title"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -92,7 +95,7 @@ export default function PaymentRequestModal({
                 <HandCoins className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <h2 className="font-black text-base tracking-tight">
+                <h2 id="payment-request-modal-title" className="font-black text-base tracking-tight">
                   {t('pay_req.modal_title')}
                 </h2>
                 <p className="text-[10px] text-muted-foreground font-mono mt-0.5">

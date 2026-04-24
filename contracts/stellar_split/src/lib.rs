@@ -14,6 +14,7 @@ use storage::{
     get_guardian_config, save_guardian_config, get_recovery_request, save_recovery_request,
     get_savings_pool, save_savings_pool,
     is_referred, set_referred, get_reward_token, set_reward_token_addr,
+    get_admin_addr, set_admin_addr,
 };
 use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault, SavingsPool};
 
@@ -421,14 +422,54 @@ impl StellarSplitContract {
     //  REFERRAL REWARDS
     // ─────────────────────────────────────────────
 
-    /// Deployer-tarafı setup: reward token kontrat adresini kaydeder.
-    /// Sonradan `register_referral` bu adrese mint çağrısı gönderir.
+    // ─────────────────────────────────────────────
+    //  ADMIN INIT (one-shot)
+    // ─────────────────────────────────────────────
+
+    /// Kontrat admin adresini bir kere set eder. Sonraki çağrılar panic.
+    /// `set_reward_token` (ve ileride eklenecek admin-only entrypoint'ler) bu
+    /// adresi referans alır. Tipik akış: deploy → `init_admin(deployer)`.
     ///
-    /// Hackathon sürümünde kim çağırabilir kısıtlaması yok (deployer
-    /// dışında kimse çağırmayacağı varsayılıyor). Mainnet için
-    /// `admin.require_auth()` + kayıtlı admin adresi kontrolü eklenir.
+    /// `admin.require_auth()` — istenmeden üçüncü bir taraf tarafından set
+    /// edilmesini engeller (on-chain replay + front-run koruması).
+    pub fn init_admin(env: Env, admin: Address) {
+        admin.require_auth();
+
+        if get_admin_addr(&env).is_some() {
+            panic!("admin already initialised");
+        }
+
+        set_admin_addr(&env, &admin);
+
+        env.events().publish(
+            (Symbol::new(&env, "admin_initialised"), admin.clone()),
+            admin,
+        );
+    }
+
+    /// Kayıtlı admin adresini döner (testler + UI için).
+    pub fn get_admin(env: Env) -> Option<Address> {
+        get_admin_addr(&env)
+    }
+
+    /// Reward token contract adresini kaydeder.
+    ///
+    /// Güvenlik:
+    ///   - `admin.require_auth()` — imza zorunlu.
+    ///   - Stored admin kontrolü — çağıran adres kontrat admin'i olmak
+    ///     zorunda. Aksi halde "only admin" panic.
+    ///   - `init_admin` önceden çağrılmış olmalı; değilse "not initialised"
+    ///     panic. Bu `None` unwrap'inden daha net bir hata mesajıdır.
     pub fn set_reward_token(env: Env, admin: Address, token: Address) {
         admin.require_auth();
+
+        // ── Admin guard ──
+        let stored_admin = get_admin_addr(&env)
+            .expect("contract not initialised — call init_admin first");
+        if admin != stored_admin {
+            panic!("only admin can set reward token");
+        }
+
         set_reward_token_addr(&env, &token);
 
         env.events().publish(
@@ -644,8 +685,12 @@ impl StellarSplitContract {
 
         let mut vault = storage::get_vault(&env, group_id);
         vault = Self::compute_yield(&env, vault);
-        
-        vault.total_staked += amount;
+
+        // ── Overflow-safe: vault.total_staked + amount ──
+        vault.total_staked = vault
+            .total_staked
+            .checked_add(amount)
+            .expect("stake: total_staked overflow");
         vault.active = true;
         storage::save_vault(&env, group_id, &vault);
 
@@ -672,8 +717,13 @@ impl StellarSplitContract {
 
         let mut vault = storage::get_vault(&env, group_id);
         vault = Self::compute_yield(&env, vault);
-        
-        if vault.total_staked + vault.yield_earned < amount {
+
+        // ── Overflow-safe balance check ──
+        let total_balance = vault
+            .total_staked
+            .checked_add(vault.yield_earned)
+            .expect("withdraw: vault balance overflow");
+        if total_balance < amount {
             panic!("insufficient vault balance");
         }
 
@@ -681,11 +731,19 @@ impl StellarSplitContract {
         token_client.transfer(&env.current_contract_address(), &caller, &amount);
 
         if vault.yield_earned >= amount {
-            vault.yield_earned -= amount;
+            vault.yield_earned = vault
+                .yield_earned
+                .checked_sub(amount)
+                .expect("withdraw: yield_earned underflow");
         } else {
-            let remainder = amount - vault.yield_earned;
+            let remainder = amount
+                .checked_sub(vault.yield_earned)
+                .expect("withdraw: remainder underflow");
             vault.yield_earned = 0;
-            vault.total_staked -= remainder;
+            vault.total_staked = vault
+                .total_staked
+                .checked_sub(remainder)
+                .expect("withdraw: total_staked underflow");
         }
 
         if vault.total_staked == 0 {
@@ -726,9 +784,15 @@ impl StellarSplitContract {
         let token_client = token::Client::new(&env, &group.token);
         token_client.transfer(&env.current_contract_address(), &donation_address, &amount);
 
-        // Deduct from yield earned
-        vault.yield_earned -= amount;
-        vault.total_donated += amount;
+        // Deduct from yield earned (checked — caller-supplied amount).
+        vault.yield_earned = vault
+            .yield_earned
+            .checked_sub(amount)
+            .expect("donate_yield: yield_earned underflow");
+        vault.total_donated = vault
+            .total_donated
+            .checked_add(amount)
+            .expect("donate_yield: total_donated overflow");
 
         storage::save_vault(&env, group_id, &vault);
 
@@ -748,12 +812,32 @@ impl StellarSplitContract {
         let now = env.ledger().timestamp();
         let diff_secs = now.saturating_sub(vault.last_update);
         if diff_secs > 0 {
-            // Mock APY: 7.5%
-            // yield = total_staked * 7.5 / 100 * (diff_secs / 31_536_000)
-            // yield = total_staked * 75 * diff_secs / (1000 * 31_536_000)
-            let yearly_secs = 31_536_000_u64;
-            let yield_new = (vault.total_staked * 75_i128 * (diff_secs as i128)) / (1000_i128 * (yearly_secs as i128));
-            vault.yield_earned += yield_new;
+            // Mock APY: 7.5% → yield = total_staked * 75 * diff_secs / (1000 * 31_536_000)
+            //
+            // Overflow posture: each intermediate product is `checked_mul`'d so
+            // a pathological combination of very large stake + very long idle
+            // window fails loudly instead of wrapping. Divisor is a non-zero
+            // constant so `checked_div` cannot `None`, but we still use it for
+            // uniformity.
+            let yearly_secs: i128 = 31_536_000;
+            let diff_i128 = diff_secs as i128;
+
+            let numerator = vault
+                .total_staked
+                .checked_mul(75_i128)
+                .and_then(|x| x.checked_mul(diff_i128))
+                .expect("compute_yield: numerator overflow");
+            let denominator: i128 = 1000_i128
+                .checked_mul(yearly_secs)
+                .expect("compute_yield: denominator overflow");
+            let yield_new = numerator
+                .checked_div(denominator)
+                .expect("compute_yield: division failed");
+
+            vault.yield_earned = vault
+                .yield_earned
+                .checked_add(yield_new)
+                .expect("compute_yield: yield_earned overflow");
             vault.last_update = now;
         }
         vault
@@ -893,7 +977,10 @@ impl StellarSplitContract {
         let token_client = token::Client::new(&env, &group.token);
         token_client.transfer(&contributor, &env.current_contract_address(), &amount);
 
-        pool.current_amount += amount;
+        pool.current_amount = pool
+            .current_amount
+            .checked_add(amount)
+            .expect("contribute_pool: current_amount overflow");
 
         // Hedef tutuldu mu? Otomatik complete.
         if pool.current_amount >= pool.goal_amount {
@@ -957,10 +1044,15 @@ impl StellarSplitContract {
             return 0;
         }
 
-        // Üyelere eşit dağıt
+        // Üyelere eşit dağıt — member_count is u32 upgraded to i128; positive and bounded.
         let member_count = group.members.len() as i128;
-        let share = total / member_count;
-        let remainder = total - (share * member_count);
+        let share = total.checked_div(member_count).expect("release_pool: share div failed");
+        let distributed = share
+            .checked_mul(member_count)
+            .expect("release_pool: distributed overflow");
+        let remainder = total
+            .checked_sub(distributed)
+            .expect("release_pool: remainder underflow");
 
         let token_client = token::Client::new(&env, &group.token);
 
@@ -969,7 +1061,9 @@ impl StellarSplitContract {
             let mut member_share = share;
             // Kalan stroops'u ilk üyeye ver
             if i == 0 {
-                member_share += remainder;
+                member_share = member_share
+                    .checked_add(remainder)
+                    .expect("release_pool: member_share overflow");
             }
             if member_share > 0 {
                 token_client.transfer(&env.current_contract_address(), &member, &member_share);

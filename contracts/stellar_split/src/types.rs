@@ -102,4 +102,5 @@ pub enum DataKey {
     SavingsPool(u64),       // group_id -> SavingsPool
     Referred(Address),      // newcomer -> referral claimed flag (idempotency)
     RewardToken,            // Global: SPLT reward token contract id (Option<Address>)
+    Admin,                  // Global: contract admin address (set once via init_admin)
 }

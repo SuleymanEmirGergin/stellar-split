@@ -617,10 +617,51 @@ fn test_set_reward_token_persists() {
     let admin = Address::generate(&env);
     let reward_token = Address::generate(&env);
 
+    // Admin must be initialised before set_reward_token is callable.
+    client.init_admin(&admin);
+
     // Setting the reward token should not panic.
     client.set_reward_token(&admin, &reward_token);
     // Setting it again (same or different value) is allowed — no
     // hard-coded one-shot guard at this stage. Matches the "set_guardians
     // can be re-called" pattern elsewhere in the contract.
     client.set_reward_token(&admin, &reward_token);
+}
+
+#[test]
+#[should_panic(expected = "only admin")]
+fn test_set_reward_token_rejects_non_admin() {
+    let (env, client, _token) = setup_contract();
+    let admin = Address::generate(&env);
+    let attacker = Address::generate(&env);
+    let reward_token = Address::generate(&env);
+
+    client.init_admin(&admin);
+
+    // A non-admin address cannot call set_reward_token, even with a valid
+    // `require_auth` signature — the stored-admin equality check panics.
+    client.set_reward_token(&attacker, &reward_token);
+}
+
+#[test]
+#[should_panic(expected = "admin already initialised")]
+fn test_init_admin_is_one_shot() {
+    let (env, client, _token) = setup_contract();
+    let admin_a = Address::generate(&env);
+    let admin_b = Address::generate(&env);
+
+    client.init_admin(&admin_a);
+    // Second call panics — prevents admin takeover via a replay.
+    client.init_admin(&admin_b);
+}
+
+#[test]
+#[should_panic(expected = "contract not initialised")]
+fn test_set_reward_token_fails_when_admin_uninitialised() {
+    let (env, client, _token) = setup_contract();
+    let someone = Address::generate(&env);
+    let reward_token = Address::generate(&env);
+
+    // init_admin was never called — set_reward_token must fail loudly.
+    client.set_reward_token(&someone, &reward_token);
 }

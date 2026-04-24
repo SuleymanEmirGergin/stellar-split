@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import Joyride, { STATUS } from 'react-joyride';
 import type { CallBackProps } from 'react-joyride';
+import { useI18n } from '../lib/i18n';
 
 const STORAGE_KEY = 'stellarsplit_joyride_done_v2';
 
 export default function OnboardingTour() {
+  const { t, lang } = useI18n();
   const [run, setRun] = useState(false);
 
   useEffect(() => {
@@ -22,29 +24,33 @@ export default function OnboardingTour() {
     }
   };
 
+  // Note: step content is re-evaluated on every render (which happens when
+  // `lang` changes because `useI18n()` subscribes to `stellarsplit:lang-updated`).
+  // So mid-tour language switches flip step text naturally.
   const steps = [
     {
       target: 'body',
-      content: 'Birik\'e hoş geldiniz! Uygulamanın Hackathon jürisine özel hazırladığımız "Wow-Factor" özelliklerini keşfetmek için tura başlayalım.',
+      content: t('tour.welcome'),
       placement: 'center' as const,
       disableBeacon: true,
     },
     {
       target: '[data-testid="create-group-btn"]',
-      content: 'Öncelikle buradan yeni bir grup oluşturabilir (XLM veya USDC seçeneğiyle) ve arkadaşlarınızı davet edebilirsiniz.',
+      content: t('tour.create_group'),
     },
     {
       target: '[data-testid="ai-scan-btn"]',
-      content: 'Fiş/Makbuz okuma ekranımız Tesseract.js ile tamamen cihazınızda (lokal) çalışır! Gizliliğinizi korur ve tutarı otomatik çeker.',
+      content: t('tour.ai_scan'),
     },
     {
       target: '#user-analytics-panel',
-      content: 'Burada kazandığınız NFT Başarımlarını (Gamification), grubun bonkörü rozetlerini ve DeFi kasalarındaki pasif getiri payınızı anlık görebilirsiniz.',
+      content: t('tour.analytics_panel'),
     }
   ];
 
   return (
     <Joyride
+      key={lang}  // force remount on language change so react-joyride picks up new locale
       steps={steps}
       run={run}
       continuous
@@ -68,11 +74,11 @@ export default function OnboardingTour() {
         },
       }}
       locale={{
-        back: 'Geri',
-        close: 'Kapat',
-        last: 'Bitir',
-        next: 'İleri',
-        skip: 'Atla'
+        back: t('tour.back'),
+        close: t('tour.close'),
+        last: t('tour.last'),
+        next: t('tour.next'),
+        skip: t('tour.skip'),
       }}
     />
   );
