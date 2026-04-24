@@ -4,7 +4,11 @@ import { rpc } from '@stellar/stellar-sdk';
 // ── Environment-based configuration ──
 const SOROBAN_RPC_URL = import.meta.env.VITE_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
 const NETWORK_PASSPHRASE = import.meta.env.VITE_NETWORK_PASSPHRASE || StellarSdk.Networks.TESTNET;
-const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || 'CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K';
+// Fallback points at the Path-B live-swap testnet contract deployed
+// 2026-04-24. Override in deployment environments via VITE_CONTRACT_ID.
+// Redeploys should bump this and keep the prior address pinned in
+// docs/DEPLOYMENT.md for audit trail. See docs/MULTI_CURRENCY.md.
+const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || 'CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF';
 const HORIZON_URL = import.meta.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
 
 const server = new rpc.Server(SOROBAN_RPC_URL);

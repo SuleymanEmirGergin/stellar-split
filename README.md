@@ -11,7 +11,7 @@ _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tok
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **Hızlı erişim / Quick links:**
-[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users) · [📰 Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [📝 Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
+[🌐 Live Demo](https://stellar-split.vercel.app) · [📹 Demo Video](https://youtu.be/ZmqJI9Y7UTc) · [📝 Contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF) · [📋 Feedback Form](#-user-feedback) · [👥 Testnet Users](#-testnet-users) · [📰 Dev.to](https://dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog) · [📝 Medium](https://medium.com/@Plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-31c1ab3a0447)
 
 ---
 
@@ -267,12 +267,12 @@ CI pipeline (`.github/workflows/ci.yml`) üç suite'i de paralel koşar ve topla
 | -------------- | --------------------------------- | ------------------------------------------------------------------- |
 | **Frontend**   | Vercel (auto-deploy from `master`) | [stellar-split.vercel.app](https://stellar-split.vercel.app)        |
 | **Backend**    | Railway (sincere-blessing project) | [`stellar-split-production.up.railway.app`](https://stellar-split-production.up.railway.app/health/live) — health / metrics / SSE / SIWS / analytics |
-| **Contracts**  | Stellar Testnet (CI on `master`)  | `CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW`          |
+| **Contracts**  | Stellar Testnet (CI on `master`)  | `CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF`          |
 | **SPLT Token** | Stellar Testnet                   | [`CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE`](https://stellar.expert/explorer/testnet/contract/CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE) |
 
 **CI/CD workflow:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — contract build/test, frontend lint+test+build, backend test, Playwright E2E.
 
-**Contract on Stellar Expert:** [stellar.expert/.../CDTQ...LW](https://stellar.expert/explorer/testnet/contract/CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW)
+**Contract on Stellar Expert:** [stellar.expert/.../CDTQ...LW](https://stellar.expert/explorer/testnet/contract/CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF)
 
 ---
 
@@ -375,7 +375,7 @@ stellar contract deploy \
 | Gereksinim                        | Durum | Açıklama                                                         |
 | --------------------------------- | ----- | ---------------------------------------------------------------- |
 | 3 error types                     | ✅    | Rejected / Wallet not found / Insufficient balance (`errors.ts`) |
-| Contract on testnet               | ✅    | `CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW`       |
+| Contract on testnet               | ✅    | `CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF`       |
 | Contract called from frontend     | ✅    | `create_group`, `add_expense`, `settle_group`, `get_balances`    |
 | Transaction status visible        | ✅    | TxHistory, ActivityFeed, Stellar Expert linkleri                 |
 | Event listening                   | ✅    | `subscribeGroupEvents` (`events.ts`) polling-based SSE           |
