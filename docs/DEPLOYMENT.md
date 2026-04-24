@@ -15,7 +15,7 @@ gerçekten üretime hazır mı?" sorusuna net cevap alabilmeli.
 | **Backend API** | Railway            | [`stellar-split-production.up.railway.app`](https://stellar-split-production.up.railway.app)        |
 | **Postgres**    | Railway (internal) | provisioned inside `sincere-blessing` project                                                        |
 | **Redis**       | Railway (internal) | provisioned inside `sincere-blessing` project                                                        |
-| **Main contract** | Stellar Testnet  | `CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW`                                          |
+| **Main contract** | Stellar Testnet  | `CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF`                                          |
 | **SPLT token**  | Stellar Testnet    | `CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE`                                          |
 | **Error tracking** | Sentry (de.sentry.io project `4511206380404816`) | DSN configured in `backend/src/instrument.ts` (loaded as very first import in `main.ts`) |
 
@@ -57,7 +57,7 @@ REDIS_URL=<Railway Redis plugin injects>
 JWT_SECRET=<64+ char random string>
 STELLAR_NETWORK=testnet
 SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
-SOROBAN_CONTRACT_ID=CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW
+SOROBAN_CONTRACT_ID=CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF
 VAPID_PUBLIC_KEY=<`npx web-push generate-vapid-keys` çıktısı — satır 1>
 VAPID_PRIVATE_KEY=<`npx web-push generate-vapid-keys` çıktısı — satır 2>
 VAPID_SUBJECT=mailto:admin@birik.app
