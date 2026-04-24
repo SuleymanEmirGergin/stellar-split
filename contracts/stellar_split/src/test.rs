@@ -720,13 +720,13 @@ fn test_set_swap_factory_rejects_non_admin() {
 }
 
 #[test]
-#[should_panic(expected = "swap router not configured")]
-fn test_settle_group_flex_requires_router_when_destination_differs() {
+#[should_panic(expected = "swap factory not configured")]
+fn test_settle_group_flex_requires_factory_when_destination_differs() {
     let (env, client, token) = setup_contract();
 
-    // Set up a minimal 2-member group with no expenses — empty settlements
-    // means the for-loop doesn't run, so the "router not configured" panic
-    // is the first failure mode (which is what we want to assert).
+    // Path B uses factory.get_pair for pool discovery — router isn't on the
+    // hot path anymore. The guard is: no factory wired → panic before any
+    // settlement loop runs (ops-friendly message).
     let alice = Address::generate(&env);
     let bob = Address::generate(&env);
     let members = vec![&env, alice.clone(), bob.clone()];
@@ -737,9 +737,6 @@ fn test_settle_group_flex_requires_router_when_destination_differs() {
         &token,
     );
 
-    // A different SAC is requested — but set_swap_router was never called,
-    // so the multi-currency path must panic with a clear ops-focused message
-    // rather than unwrapping None somewhere obscure.
     let different_asset = Address::generate(&env);
     client.settle_group_flex(
         &group_id,

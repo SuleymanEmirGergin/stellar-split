@@ -1,7 +1,8 @@
 #![no_std]
 
 use soroban_sdk::{contract, contractimpl, token, Address, Env, IntoVal, Map, String, Symbol, Vec};
-use soroban_sdk::auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation};
+// Path B (direct pair.swap) replaced the router-based auth-tree approach, so
+// no `authorize_as_current_contract` imports are needed.
 
 mod settle;
 mod storage;
@@ -16,7 +17,10 @@ use storage::{
     get_savings_pool, save_savings_pool,
     is_referred, set_referred, get_reward_token, set_reward_token_addr,
     get_admin_addr, set_admin_addr,
-    get_swap_router, set_swap_router_addr,
+    // `get_swap_router` intentionally not imported on Path B — only the
+    // setter is used so post-deploy wiring stays available for a future
+    // router-based hop (silenced via `#[allow(dead_code)]` on the getter).
+    set_swap_router_addr,
     get_swap_factory, set_swap_factory_addr,
 };
 use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault, SavingsPool};
@@ -538,7 +542,8 @@ impl StellarSplitContract {
     // ─────────────────────────────────────────────
 
     /// Grubu settle eder; `destination_asset` ile farklı bir SAC verildiğinde
-    /// Soroswap router üzerinden swap yapıp creditor'a deliver eder.
+    /// Soroswap pair'i üzerinden **doğrudan** swap yapıp creditor'a deliver eder
+    /// (Path B — router bypass).
     ///
     /// Semantics:
     ///   - `destination_asset` None veya `group.token` ile aynı → normal
@@ -546,22 +551,32 @@ impl StellarSplitContract {
     ///   - `destination_asset` farklı bir SAC → multi-currency swap path:
     ///     1. Debtor → contract (pull source asset)
     ///     2. `factory.get_pair(src, dst)` ile pair adresini keşfet
-    ///     3. Pre-authorize nested `transfer(contract, pair, amount_in)`
-    ///        + `pair.swap(...)` via `authorize_as_current_contract`
-    ///     4. `source_token.approve(contract, router, amount_in, expiration)`
-    ///     5. `router.swap_exact_tokens_for_tokens(...)` invoke
-    ///     6. Contract → creditor (deliver destination asset)
+    ///     3. `pair.token_0()` + `pair.get_reserves()` → doğru reserve_in / reserve_out
+    ///     4. Constant-product + 0.3% fee ile amount_out hesapla
+    ///     5. `source_token.transfer(contract → pair, amount_in)` — contract
+    ///        doğrudan caller, sub-auth gerekmez
+    ///     6. `pair.swap(amount_0_out, amount_1_out, to=creditor)` — contract
+    ///        doğrudan caller, swap içindeki `token.transfer(pair, creditor, …)`
+    ///        pair'in kendi auth'u ile yürür
     ///
-    /// ## Auth-tree fix (Session 10C → C1)
-    /// Early cut exposed a single flat `SubContractInvocation` for the inner
-    /// `transfer`. Soroban's recording-mode auth matcher rejected it because
-    /// the real call shape is nested: `router → pair → token.transfer`. This
-    /// implementation builds a 2-level nested auth tree that covers both
-    /// `pair.swap` and the `transfer` inside it, satisfying the matcher.
+    /// ## Neden Path B (router bypass)
+    /// Önceki C1 girişiminde (router + `authorize_as_current_contract` +
+    /// nested SubContractInvocation) Soroban'ın recording-mode matcher'ı
+    /// Soroswap router'ının iç çağrı şekliyle eşleşmedi (2026-04-24 testnet
+    /// deploy'da 18-event diagnostic zinciri + "[recording authorization
+    /// only] encountered unauthorized call" reject ile doğrulandı).
     ///
-    /// Router + factory MUST be configured via `set_swap_router` /
-    /// `set_swap_factory` before invoking the multi-currency path; missing
-    /// config panics with a clear ops message.
+    /// Path B bu sorunu tamamen atlar: her çağrıyı contract **doğrudan**
+    /// yapar, dolayısıyla hiç `authorize_as_current_contract` gerekmez —
+    /// Soroban invoker'ı caller'ı otomatik otorize eder.
+    ///
+    /// ## Router hala yapılandırılmalı mı?
+    /// Hayır — Path B router'a hiç bakmaz; sadece factory + pair üzerinden
+    /// çalışır. `set_swap_router` entrypoint'i retained — ileride farklı
+    /// router'a geçiş / slippage quote için faydalı.
+    ///
+    /// Factory MUST be configured via `set_swap_factory` before invoking
+    /// the multi-currency path; missing config panics with a clear ops msg.
     pub fn settle_group_flex(
         env: Env,
         group_id: u64,
@@ -584,16 +599,12 @@ impl StellarSplitContract {
             _ => None,
         };
 
-        // When a swap is requested, router MUST be configured. Clean error
-        // helps ops during post-deploy wiring — same pattern as reward_token.
-        let router_id: Option<Address> = if target_asset.is_some() {
-            match get_swap_router(&env) {
-                Some(r) => Some(r),
-                None => panic!("swap router not configured — call set_swap_router first"),
-            }
-        } else {
-            None
-        };
+        // Path B requires factory (pool discovery + token_0 query). Router is
+        // NOT needed on this path — kept only for forward-compat with router-
+        // based quotes / alt AMMs in a future iteration.
+        if target_asset.is_some() && get_swap_factory(&env).is_none() {
+            panic!("swap factory not configured — call set_swap_factory first");
+        }
 
         let token_client = token::Client::new(&env, &source_token);
         let self_addr = env.current_contract_address();
@@ -602,17 +613,14 @@ impl StellarSplitContract {
             let s = settlements.get(i).unwrap();
             s.from.require_auth();
 
-            if let (Some(ref dest), Some(ref router)) = (&target_asset, &router_id) {
-                // ── Multi-currency path ──
+            if let Some(ref dest) = target_asset {
+                // ── Path B: router bypass via direct pair.swap ──
+
                 // Step 1: pull debtor's source-asset into the contract.
                 token_client.transfer(&s.from, &self_addr, &s.amount);
 
                 // Step 2: pool discovery via factory.get_pair.
-                let factory_id: Address = get_swap_factory(&env)
-                    .unwrap_or_else(|| panic!(
-                        "swap factory not configured — call set_swap_factory first"
-                    ));
-
+                let factory_id: Address = get_swap_factory(&env).unwrap();
                 let pool_addr: Address = env.invoke_contract(
                     &factory_id,
                     &Symbol::new(&env, "get_pair"),
@@ -623,82 +631,79 @@ impl StellarSplitContract {
                     ],
                 );
 
-                // ── Step 3: Build nested auth tree for the swap ──
-                //
-                // Router `swap_exact_tokens_for_tokens` internally calls the
-                // pair contract, which calls `token.transfer(contract, pair, …)`
-                // for the source-asset leg. The `transfer` call requires the
-                // contract's auth (from=contract) — we must pre-authorize it.
-                //
-                // Structure matches Soroswap router → pair → token chain:
-                //
-                //     Contract(source_token.transfer(contract, pair, amount))
-                //
-                // Soroban's auth-recorder walks the call tree; any contract-
-                // invoker auth in the provided list is consumed when a
-                // matching `require_auth` is hit during sub-invocation,
-                // regardless of nesting depth inside the router's logic. This
-                // flat single-entry form therefore suffices when the entry
-                // precisely matches the inner `transfer` call.
-                //
-                // We use empty `sub_invocations` because `transfer` itself
-                // does not re-enter the contract's auth chain — the token SAC
-                // validates `from` via `require_auth` but does not itself call
-                // back into us.
-                let transfer_args: soroban_sdk::Vec<soroban_sdk::Val> = soroban_sdk::vec![
-                    &env,
-                    self_addr.clone().into_val(&env),
-                    pool_addr.clone().into_val(&env),
-                    s.amount.into_val(&env),
-                ];
-                let auth_entries: soroban_sdk::Vec<InvokerContractAuthEntry> = soroban_sdk::vec![
-                    &env,
-                    InvokerContractAuthEntry::Contract(SubContractInvocation {
-                        context: ContractContext {
-                            contract: source_token.clone(),
-                            fn_name: Symbol::new(&env, "transfer"),
-                            args: transfer_args,
-                        },
-                        sub_invocations: soroban_sdk::vec![&env],
-                    }),
-                ];
-                env.authorize_as_current_contract(auth_entries);
+                // Step 3: figure out reserve ordering by asking the pair
+                // which token it stored as token_0. Pairs sort tokens
+                // lexicographically on creation, so the answer is stable.
+                let token_0: Address = env.invoke_contract(
+                    &pool_addr,
+                    &Symbol::new(&env, "token_0"),
+                    soroban_sdk::vec![&env],
+                );
+                let reserves: Vec<i128> = env.invoke_contract(
+                    &pool_addr,
+                    &Symbol::new(&env, "get_reserves"),
+                    soroban_sdk::vec![&env],
+                );
+                let reserve_0 = reserves.get(0).unwrap();
+                let reserve_1 = reserves.get(1).unwrap();
+                let source_is_token_0 = token_0 == source_token;
+                let (reserve_in, reserve_out) = if source_is_token_0 {
+                    (reserve_0, reserve_1)
+                } else {
+                    (reserve_1, reserve_0)
+                };
 
-                // Step 4: approve router for the amount_in. SAC `approve`
-                // needs an expiration window — ~5 min @ 3–5s/ledger.
-                let expiration: u32 = env.ledger().sequence() + 100;
-                let source_client = token::Client::new(&env, &source_token);
-                source_client.approve(&self_addr, router, &s.amount, &expiration);
+                // Step 4: constant-product + 0.3% fee (Uniswap-V2 standard).
+                //   amount_out = (amount_in * 997 * reserve_out)
+                //              / (reserve_in * 1000 + amount_in * 997)
+                // All checked to fail loudly on any arithmetic edge case.
+                let amount_in_with_fee = s.amount
+                    .checked_mul(997_i128)
+                    .expect("path B: amount_in_with_fee overflow");
+                let numerator = amount_in_with_fee
+                    .checked_mul(reserve_out)
+                    .expect("path B: numerator overflow");
+                let denominator = reserve_in
+                    .checked_mul(1000_i128)
+                    .and_then(|x| x.checked_add(amount_in_with_fee))
+                    .expect("path B: denominator overflow");
+                let amount_out = numerator
+                    .checked_div(denominator)
+                    .expect("path B: amount_out div failed");
+                if amount_out <= 0 {
+                    panic!("path B: computed amount_out is non-positive");
+                }
 
-                // Step 5: build path [src, dst] + call router.
-                let mut path: Vec<Address> = Vec::new(&env);
-                path.push_back(source_token.clone());
-                path.push_back(dest.clone());
+                // Step 5: send source tokens directly to the pair. Contract
+                // is the direct caller here — no `authorize_as_current_
+                // contract` dance needed, Soroban auto-auths the invoker.
+                token_client.transfer(&self_addr, &pool_addr, &s.amount);
 
-                let deadline: u64 = env.ledger().timestamp() + 300;
-                // Permissive minimum — client-side (SettleTab) is responsible
-                // for slippage guards via quoted price + user-set tolerance.
-                let amount_out_min: i128 = 1;
-
-                let swap_args = soroban_sdk::vec![
-                    &env,
-                    s.amount.into_val(&env),
-                    amount_out_min.into_val(&env),
-                    path.into_val(&env),
-                    self_addr.clone().into_val(&env),
-                    deadline.into_val(&env),
-                ];
-
-                let amounts: Vec<i128> = env.invoke_contract(
-                    router,
-                    &Symbol::new(&env, "swap_exact_tokens_for_tokens"),
-                    swap_args,
+                // Step 6: call pair.swap(amount_0_out, amount_1_out, to).
+                // Exactly one of the two amounts is zero — the non-zero
+                // amount is the side we WANT to receive (destination).
+                let (amount_0_out, amount_1_out): (i128, i128) = if source_is_token_0 {
+                    (0_i128, amount_out)
+                } else {
+                    (amount_out, 0_i128)
+                };
+                env.invoke_contract::<()>(
+                    &pool_addr,
+                    &Symbol::new(&env, "swap"),
+                    soroban_sdk::vec![
+                        &env,
+                        amount_0_out.into_val(&env),
+                        amount_1_out.into_val(&env),
+                        s.to.clone().into_val(&env),
+                    ],
                 );
 
-                // Step 6: deliver destination asset to creditor.
-                let received: i128 = amounts.get(amounts.len() - 1).unwrap();
-                let dest_client = token::Client::new(&env, dest);
-                dest_client.transfer(&self_addr, &s.to, &received);
+                // Step 7: emit per-settlement diagnostic so operators can
+                // correlate amount_in / amount_out / pool on Stellar Expert.
+                env.events().publish(
+                    (Symbol::new(&env, "pair_swap"), group_id),
+                    (pool_addr.clone(), s.amount, amount_out),
+                );
             } else {
                 // ── Same-currency path (identical to settle_group) ──
                 token_client.transfer(&s.from, &s.to, &s.amount);
@@ -708,9 +713,16 @@ impl StellarSplitContract {
         // Reward settler — same shape as settle_group. Uses the globally-
         // configured reward token; falls back to group.token for backward
         // compatibility with pre-init_admin deploys (unit tests exercise this).
+        //
+        // ⚠️ Best-effort: SPLT token contracts deployed with a different admin
+        // than this contract will fail on `admin.require_auth()` inside mint.
+        // We treat reward mint as a nice-to-have — a swap that delivered USDC
+        // to the creditor shouldn't be rolled back because a cosmetic reward
+        // leg failed. `try_invoke_contract` returns Ok/Err and we emit either
+        // `reward_minted` or `reward_mint_failed` accordingly.
         let reward_token_id = get_reward_token(&env).unwrap_or_else(|| group.token.clone());
         let reward_amount: i128 = 100;
-        env.invoke_contract::<()>(
+        let mint_result = env.try_invoke_contract::<(), soroban_sdk::Error>(
             &reward_token_id,
             &Symbol::new(&env, "mint"),
             soroban_sdk::vec![&env, settler.clone().into_val(&env), reward_amount.into_val(&env)],
@@ -722,10 +734,22 @@ impl StellarSplitContract {
             (Symbol::new(&env, "group_settled"), group_id),
             settlements.len(),
         );
-        env.events().publish(
-            (Symbol::new(&env, "reward_minted"), settler.clone()),
-            reward_amount,
-        );
+        match mint_result {
+            Ok(Ok(())) => {
+                env.events().publish(
+                    (Symbol::new(&env, "reward_minted"), settler.clone()),
+                    reward_amount,
+                );
+            }
+            _ => {
+                // Cosmetic reward leg failed (usually SPLT admin mismatch).
+                // Don't poison the whole settle — log and move on.
+                env.events().publish(
+                    (Symbol::new(&env, "reward_mint_failed"), settler.clone()),
+                    reward_amount,
+                );
+            }
+        }
         if let Some(ref dest) = target_asset {
             env.events().publish(
                 (Symbol::new(&env, "multi_currency_settle"), group_id),
