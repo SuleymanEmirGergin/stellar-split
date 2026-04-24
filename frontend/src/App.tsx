@@ -23,12 +23,16 @@ import { maskAddress } from './lib/format';
 import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
 import { BalanceMetric } from './components/ui/BalanceMetric';
+import { FeedbackWidget } from './components/FeedbackWidget';
+import { useFlag } from './lib/featureFlags';
+import { track } from './lib/analytics';
 // Route-level code splitting: these components are only loaded when their route is visited
 const Landing = lazy(() => import('./components/Landing'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const GroupDetail = lazy(() => import('./components/GroupDetail'));
 const JoinPage = lazy(() => import('./components/JoinPage'));
 const ReputationDashboard = lazy(() => import('./components/ReputationDashboard').then(m => ({ default: m.ReputationDashboard })));
+const ReferralDashboard = lazy(() => import('./components/ReferralDashboard').then(m => ({ default: m.ReferralDashboard })));
 const SettingsPage = lazy(() => import('./components/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const UseCasesPage = lazy(() => import('./pages/UseCasesPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
@@ -159,10 +163,15 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Feature flags
+  const feedbackEnabled = useFlag('FEEDBACK_WIDGET');
+  const referralEnabled = useFlag('REFERRAL_UI');
+
   const pathname = location.pathname;
   const isDashboard = pathname === '/dashboard';
   const isReputation = pathname === '/reputation';
   const isSettings = pathname === '/settings';
+  const isReferral = pathname === '/referral';
   const isGroup = pathname.startsWith('/group/');
   const isJoin = pathname.startsWith('/join/');
   const isUseCases = pathname === '/use-cases';
@@ -172,7 +181,7 @@ function AppContent() {
   // Landing renders when there's no wallet AND the route isn't a standalone
   // page (join links still show Landing's CTA shell but constrained is OK there).
   const isLandingView =
-    !walletAddress && !isJoin && (pathname === '/' || isDashboard || isGroup || isReputation);
+    !walletAddress && !isJoin && (pathname === '/' || isDashboard || isGroup || isReputation || isReferral);
   const joinGroupId = isJoin ? parseInt(pathname.replace(/^\/join\//, ''), 10) : null;
   const hasValidJoinGroupId = joinGroupId !== null && !Number.isNaN(joinGroupId);
   // Support both numeric (Soroban) and string UUID (backend) group IDs
@@ -222,6 +231,14 @@ function AppContent() {
     if (twImage && ogImageUrl) twImage.setAttribute('content', ogImageUrl);
   }, [pathname, isGroup, isJoin, hasValidGroupId, hasValidJoinGroupId, groupId, joinGroupId]);
 
+  // Track referral link visits on first load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('ref')) {
+      track('referral_link_visited', { code: params.get('ref') });
+    }
+  }, []);
+
   useEffect(() => {
     isFreighterInstalled().then(setFreighterAvailable);
     getFreighterAddress().then(async (addr) => {
@@ -267,10 +284,10 @@ function AppContent() {
   }, [walletAddress, pathname, navigate]);
 
   useEffect(() => {
-    if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId) || isReputation || isSettings) && !isJoin) {
+    if (!walletAddress && (isDashboard || (isGroup && hasValidGroupId) || isReputation || isSettings || isReferral) && !isJoin) {
       navigate('/', { replace: true });
     }
-  }, [walletAddress, pathname, isDashboard, isGroup, hasValidGroupId, isJoin, isReputation, isSettings, navigate]);
+  }, [walletAddress, pathname, isDashboard, isGroup, hasValidGroupId, isJoin, isReputation, isSettings, isReferral, navigate]);
 
   useEffect(() => {
     if (walletAddress && isGroup && !hasValidGroupId) {
@@ -326,6 +343,7 @@ function AppContent() {
           navigate('/dashboard');
         }
         addToast(t('common.connected'), 'success');
+        track('wallet_connected');
       }
     } catch (err) {
       console.error('Freighter connection error:', err);
@@ -364,6 +382,9 @@ function AppContent() {
         case 'r':
           if (walletAddress) navigate('/reputation');
           break;
+        case 'f':
+          if (walletAddress && referralEnabled) { navigate('/referral'); track('referral_tab_opened'); }
+          break;
         case 's':
           if (walletAddress) navigate('/settings');
           break;
@@ -379,7 +400,7 @@ function AppContent() {
           break;
         }
         case '?':
-          addToast('⎯ N = Yeni Grup · E = Harcama · R = Reputasyon · S = Ayarlar · D = Demo', 'info');
+          addToast('⎯ N = Yeni Grup · E = Harcama · R = Reputasyon · F = Referral · S = Ayarlar · D = Demo', 'info');
           break;
       }
     };
@@ -489,7 +510,7 @@ function AppContent() {
 
               {walletAddress && (
                 <button
-                  onClick={() => navigate('/settings')}
+                  onClick={() => { navigate('/settings'); track('settings_opened'); }}
                   className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
                     isSettings ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80 hover:bg-white/[0.06]'
                   }`}
@@ -602,6 +623,12 @@ function AppContent() {
             {isReputation && walletAddress && (
               <ReputationDashboard walletAddress={walletAddress} isDemo={demoMode} onBack={() => navigate('/dashboard')} />
             )}
+            {isReferral && walletAddress && referralEnabled && (
+              <ReferralDashboard walletAddress={walletAddress} />
+            )}
+            {isReferral && (!walletAddress || !referralEnabled) && (
+              <Landing onConnect={handleConnect} onPasskey={toggleDemoMode} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />
+            )}
             {isSettings && walletAddress && (
               <SettingsPage
                 dark={dark}
@@ -681,6 +708,11 @@ function AppContent() {
             />
           </div>
         </div>
+      )}
+
+      {/* Feedback widget — shown to authenticated users when feature flag is on */}
+      {walletAddress && feedbackEnabled && (
+        <FeedbackWidget walletAddress={walletAddress} />
       )}
 
       <Footer />
