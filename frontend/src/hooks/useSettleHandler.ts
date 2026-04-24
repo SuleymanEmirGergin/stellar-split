@@ -5,8 +5,10 @@ import type { TranslationKey } from '../lib/i18n';
 import { track } from '../lib/analytics';
 import type { TxStatus } from '../components/ui/TxStatusTimeline';
 
+export type SettleOpts = { sponsor?: boolean; targetAsset?: string | null };
+
 interface SettleMutation {
-  mutateAsync: () => Promise<{ txHash?: string }>;
+  mutateAsync: (opts?: SettleOpts) => Promise<{ txHash?: string }>;
 }
 
 type Tab = 'expenses' | 'balances' | 'settle' | 'insights' | 'savings' | 'social' | 'recurring' | 'defi' | 'security' | 'governance' | 'gallery' | 'audit';
@@ -29,6 +31,7 @@ export function useSettleHandler({
   settleGroupMutation, t, addToast, langKey, tab, settlementsCount,
 }: UseSettleHandlerProps) {
   const [settling, setSettling] = useState(false);
+  const [sponsorFee, setSponsorFee] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [estimatedSettleFee, setEstimatedSettleFee] = useState<EstimatedFee | null>(null);
   const [lastTxStatus, setLastTxStatus] = useState<TxStatus | null>(null);
@@ -36,7 +39,7 @@ export function useSettleHandler({
   const [lastTxError, setLastTxError] = useState<string | null>(null);
   const [lastFeePaid, setLastFeePaid] = useState<string | null>(null);
 
-  const handleSettle = useCallback(async () => {
+  const handleSettle = useCallback(async (opts?: SettleOpts) => {
     if (!group) return;
     setSettling(true);
     setLastTxStatus('signing');
@@ -44,17 +47,21 @@ export function useSettleHandler({
     setLastTxError(null);
     setLastFeePaid(null);
     try {
-      const result = await settleGroupMutation.mutateAsync();
+      const result = await settleGroupMutation.mutateAsync(opts);
       setLastTxStatus('confirmed');
       setLastTxHash(result.txHash ?? null);
-      setLastFeePaid(estimatedSettleFee ? `~${estimatedSettleFee.xlm} XLM` : null);
+      setLastFeePaid(
+        opts?.sponsor
+          ? t('group.fee_sponsor_paid')
+          : estimatedSettleFee ? `~${estimatedSettleFee.xlm} XLM` : null,
+      );
       track('group_settled');
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 4000);
       addToast(t('group.settled_success'), 'success');
       addToast(t('group.reward_earned'), 'success');
     } catch (err) {
-      const raw = err instanceof Error ? err.message : 'Takas başarısız';
+      const raw = err instanceof Error ? err.message : t('group.settle_failed');
       const msg = translateError(raw, langKey);
       setLastTxStatus('failed');
       setLastTxError(msg);
@@ -78,6 +85,7 @@ export function useSettleHandler({
 
   return {
     settling,
+    sponsorFee, setSponsorFee,
     showConfetti,
     estimatedSettleFee,
     lastTxStatus, setLastTxStatus,

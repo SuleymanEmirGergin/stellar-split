@@ -111,6 +111,51 @@ describe('useSettleHandler', () => {
     });
   });
 
+  describe('opts passthrough', () => {
+    it('passes opts.sponsor to mutateAsync', async () => {
+      const settleFn = vi.fn().mockResolvedValue({ txHash: 'abc' });
+      const props = makeProps({ settleGroupMutation: { mutateAsync: settleFn }, addToast: vi.fn() });
+      const { result } = renderHook(() => useSettleHandler(props));
+
+      await act(async () => { await result.current.handleSettle({ sponsor: true }); });
+
+      expect(settleFn).toHaveBeenCalledWith({ sponsor: true });
+    });
+
+    it('passes opts.targetAsset to mutateAsync', async () => {
+      const settleFn = vi.fn().mockResolvedValue({ txHash: 'abc' });
+      const props = makeProps({ settleGroupMutation: { mutateAsync: settleFn }, addToast: vi.fn() });
+      const { result } = renderHook(() => useSettleHandler(props));
+      const targetAsset = 'CSABC...';
+
+      await act(async () => { await result.current.handleSettle({ targetAsset }); });
+
+      expect(settleFn).toHaveBeenCalledWith({ targetAsset });
+    });
+
+    it('sets lastFeePaid to t("group.fee_sponsor_paid") when sponsor=true', async () => {
+      const props = makeProps({ addToast: vi.fn() });
+      const { result } = renderHook(() => useSettleHandler(props));
+
+      await act(async () => { await result.current.handleSettle({ sponsor: true }); });
+
+      expect(result.current.lastFeePaid).toBe('group.fee_sponsor_paid');
+    });
+  });
+
+  describe('sponsorFee state', () => {
+    it('starts as false', () => {
+      const { result } = renderHook(() => useSettleHandler(makeProps()));
+      expect(result.current.sponsorFee).toBe(false);
+    });
+
+    it('setSponsorFee toggles sponsorFee', () => {
+      const { result } = renderHook(() => useSettleHandler(makeProps()));
+      act(() => { result.current.setSponsorFee(true); });
+      expect(result.current.sponsorFee).toBe(true);
+    });
+  });
+
   describe('setLastTxStatus / setLastTxError', () => {
     it('exposes setLastTxStatus to reset status', async () => {
       const props = makeProps();
