@@ -2,6 +2,18 @@
 <html lang="tr" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      FOUC prevention: set dark background immediately, before any JS or CSS loads.
+      This prevents the white flash that appears while Vite bundles hydrate.
+      Must be the very first thing in <head>.
+    -->
+    <style>
+      /* Block-paint baseline — sets bg before any React/Tailwind CSS loads */
+      :root, html { background-color: #0A0A0A; color-scheme: dark; }
+      body { margin: 0; background-color: #0A0A0A; }
+      /* Ensure #root fills the screen during hydration */
+      #root { min-height: 100dvh; }
+    </style>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />

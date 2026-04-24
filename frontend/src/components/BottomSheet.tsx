@@ -9,12 +9,17 @@ interface BottomSheetProps {
 }
 
 export default function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
-  // Lock body scroll when open
+  // Lock body scroll + Escape handler when open
   useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden'
-    else document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
-  }, [open])
+    if (!open) return;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, onClose])
 
   return (
     <AnimatePresence>
@@ -40,6 +45,9 @@ export default function BottomSheet({ open, onClose, title, children }: BottomSh
             onDragEnd={(_, info) => {
               if (info.velocity.y > 300 || info.offset.y > 150) onClose()
             }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? 'bottom-sheet-title' : undefined}
             className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-white/10 rounded-t-3xl md:hidden"
             style={{ maxHeight: '90vh' }}
           >
@@ -49,7 +57,7 @@ export default function BottomSheet({ open, onClose, title, children }: BottomSh
             </div>
             {title && (
               <div className="px-5 pb-3 pt-1">
-                <h3 className="text-base font-bold text-foreground">{title}</h3>
+                <h3 id="bottom-sheet-title" className="text-base font-bold text-foreground">{title}</h3>
               </div>
             )}
             <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 'calc(90vh - 60px)' }}>

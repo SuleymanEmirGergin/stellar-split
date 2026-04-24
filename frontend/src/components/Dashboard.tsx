@@ -577,6 +577,8 @@ export default function Dashboard({ walletAddress, onSelectGroup, isDemo }: Prop
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              role="dialog"
+              aria-modal="true"
               aria-labelledby="create-group-modal-title"
               // `relative z-10` explicitly raises the modal card above the
               // sibling `absolute inset-0` backdrop. Without z-10 the backdrop

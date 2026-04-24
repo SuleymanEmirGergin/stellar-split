@@ -69,6 +69,9 @@ export default function NewUserWizard({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wizard-step-title"
         className="relative z-10 bg-[#0e1118]/95 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-8 max-w-sm w-full shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)]"
       >
         <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/[0.06] rounded-full blur-3xl pointer-events-none" />
@@ -98,7 +101,7 @@ export default function NewUserWizard({ onClose }: { onClose: () => void }) {
                 </div>
               ) : null}
             </div>
-            <h2 className="text-xl font-black tracking-tight text-foreground mb-3">{current.title}</h2>
+            <h2 id="wizard-step-title" className="text-xl font-black tracking-tight text-foreground mb-3">{current.title}</h2>
             <p className="text-sm text-foreground/50 mb-8 leading-relaxed">{current.desc}</p>
           </motion.div>
         </AnimatePresence>

@@ -70,6 +70,11 @@ export default defineConfig({
           if (id.includes('recharts') || id.includes('/d3-')) return 'vendor-charts';
           // Animation library
           if (id.includes('framer-motion')) return 'vendor-motion';
+          // Heavy OCR library — loaded lazily, keep in its own chunk so it never
+          // blocks initial page load (tesseract.js is ~4 MB uncompressed).
+          if (id.includes('tesseract.js') || id.includes('tesseract-core')) return 'vendor-ocr';
+          // PDF generation — loaded lazily on export, separate chunk
+          if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
           // Everything else (react, react-dom, router, all other deps) into one chunk
           // to avoid circular dependency issues between react and non-react vendor code.
           return 'vendor';
