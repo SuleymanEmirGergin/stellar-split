@@ -266,7 +266,7 @@ CI pipeline (`.github/workflows/ci.yml`) üç suite'i de paralel koşar ve topla
 | Katman         | Platform                          | URL / Adres                                                         |
 | -------------- | --------------------------------- | ------------------------------------------------------------------- |
 | **Frontend**   | Vercel (auto-deploy from `master`) | [stellar-split.vercel.app](https://stellar-split.vercel.app)        |
-| **Backend**    | Railway (CI-driven)               | _(internal endpoint — SSE / SIWS / analytics)_                      |
+| **Backend**    | Railway (sincere-blessing project) | [`stellar-split-production.up.railway.app`](https://stellar-split-production.up.railway.app/health/live) — health / metrics / SSE / SIWS / analytics |
 | **Contracts**  | Stellar Testnet (CI on `master`)  | `CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW`          |
 | **SPLT Token** | Stellar Testnet                   | [`CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE`](https://stellar.expert/explorer/testnet/contract/CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE) |
 
@@ -436,7 +436,7 @@ stellar contract deploy \
 | **30+ verified active users**     | ⚠️    | [User form](https://forms.gle/oFSNuU6a9NthmfJR7) live · see **Testnet Users** section below         |
 | **Metrics dashboard live**        | ✅    | Public `/analytics/summary` endpoint + `<StatsPanel />` on Dashboard (DAU / WAU / MAU / total volume / 14-day trend) |
 | **Security checklist completed**  | ✅    | [`docs/SECURITY-CHECKLIST.md`](docs/SECURITY-CHECKLIST.md) + [`docs/SECURITY-NOTES.md`](docs/SECURITY-NOTES.md)      |
-| **Monitoring active**             | ✅    | Sentry (DSN wired in [`backend/src/instrument.ts`](backend/src/instrument.ts) — loaded as the first side-effect in `main.ts` per SDK v8 best-practice) + Prometheus `GET /metrics` + Pino structured logs + `/health/live` + `/health/ready`. Screenshot: [`docs/screenshots/monitoring-dashboard.png`](docs/screenshots/monitoring-dashboard.png) |
+| **Monitoring active**             | ✅    | **Live on Railway prod** — [health/live](https://stellar-split-production.up.railway.app/health/live) `200` · [health/ready](https://stellar-split-production.up.railway.app/health/ready) `200 {database: up}` · [metrics](https://stellar-split-production.up.railway.app/metrics) (Prometheus) + Sentry v8 loaded first in [`backend/src/instrument.ts`](backend/src/instrument.ts) + Pino structured logs. Deployment runbook: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
 | **Data indexing implemented**     | ✅    | `SorobanEventPollerService` (5s cron, Redis checkpoint) → Postgres → SSE stream → frontend (see `backend/src/stellar/soroban-event-poller.service.ts`) |
 | **Full documentation**            | ✅    | User guide (`docs/guide/`), architecture (`docs/architecture/`), API spec (`docs/OPEN-API-SPEC.md`), contract API (`docs/CONTRACT-API.md`), security checklist, Swagger UI at `/api/docs` |
 | **Community contribution**        | ✅    | Twitter launch post: [@supportbirik/status/2046997504768782702](https://x.com/supportbirik/status/2046997504768782702?s=20) — daily build updates in the thread, template kept at [`docs/LEVEL6_USER_GUIDE.md`](docs/LEVEL6_USER_GUIDE.md) |
@@ -472,7 +472,12 @@ User signs normally; backend wraps the signed inner tx as a Stellar fee-bump and
 - **Topic decoding**: raw `scValToNative` → typed event shapes (`expense:added`, `settlement:confirmed`, `group:settled`, `reward:minted`, …). 18 event topics mapped.
 - **Sink**: NestJS `EventsService` fan-outs decoded events onto a per-group SSE stream (`GET /groups/:groupId/events`) + persists critical transitions to Postgres (audit log, settlement status).
 - **Frontend**: `useGroupEvents` hook subscribes via EventSource, drives live notifications + cache invalidation.
-- **Endpoint for external consumers**: SSE stream available at `https://api.stellarsplit.app/groups/:groupId/events` (JWT-gated, group-member only).
+- **Endpoint for external consumers**: SSE stream available at `https://stellar-split-production.up.railway.app/groups/:groupId/events` (JWT-gated, group-member only).
+- **Live observability probes** (public, no auth, production Railway — verified 2026-04-24 06:41 UTC):
+  - [`/health/live`](https://stellar-split-production.up.railway.app/health/live) → `200 {memory_heap: up}`
+  - [`/health/ready`](https://stellar-split-production.up.railway.app/health/ready) → `200 {database: up}` — Postgres liveness
+  - [`/metrics`](https://stellar-split-production.up.railway.app/metrics) → Prometheus, `stellarsplit_*` namespace
+  - [`/analytics/summary`](https://stellar-split-production.up.railway.app/analytics/summary) → route live, 60s cache, 30 req/min throttle (full response shape in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md))
 
 </details>
 
