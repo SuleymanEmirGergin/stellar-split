@@ -3,6 +3,7 @@ import { getBalances, getVault, getBadges } from '../lib/contract';
 import { groupKeys } from '../hooks/useGroupQuery';
 import { Trophy, Sprout, ArrowRightLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useI18n } from '../lib/i18n';
 
 interface Props {
   walletAddress: string;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export default function UserAnalytics({ walletAddress, groups }: Props) {
+  const { t } = useI18n();
+
   // Rozetler
   const { data: badges } = useQuery({
     queryKey: groupKeys.badges(walletAddress),
@@ -58,13 +61,13 @@ export default function UserAnalytics({ walletAddress, groups }: Props) {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <ArrowRightLeft size={16} className="text-blue-400" />
-            <span className="text-xs font-bold uppercase tracking-widest">Net Durum</span>
+            <span className="text-xs font-bold uppercase tracking-widest">{t('user_analytics.net_status')}</span>
           </div>
           <div className="text-2xl font-black font-mono flex items-baseline gap-1">
             <span className={netBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}>
               {netBalance > 0 ? '+' : ''}{netBalance.toFixed(2)}
             </span>
-            <span className="text-xs text-muted-foreground">Birim</span>
+            <span className="text-xs text-muted-foreground">{t('user_analytics.unit')}</span>
           </div>
         </div>
       </motion.div>
@@ -80,7 +83,7 @@ export default function UserAnalytics({ walletAddress, groups }: Props) {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <Sprout size={16} className="text-emerald-400" />
-            <span className="text-xs font-bold uppercase tracking-widest">DeFi Kasa Payı</span>
+            <span className="text-xs font-bold uppercase tracking-widest">{t('user_analytics.defi_vault_share')}</span>
           </div>
           <div className="text-2xl font-black font-mono text-emerald-100 flex items-baseline gap-1">
             {totalStaked.toFixed(2)} <span className="text-xs text-muted-foreground">XLM</span>
@@ -99,10 +102,10 @@ export default function UserAnalytics({ walletAddress, groups }: Props) {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2 text-muted-foreground">
             <Trophy size={16} className="text-amber-400" />
-            <span className="text-xs font-bold uppercase tracking-widest">Rozetler</span>
+            <span className="text-xs font-bold uppercase tracking-widest">{t('user_analytics.badges')}</span>
           </div>
           <div className="text-2xl font-black font-mono text-amber-100 flex items-baseline gap-1">
-            {totalBadges} <span className="text-xs text-muted-foreground">Oyunlaştırma</span>
+            {totalBadges} <span className="text-xs text-muted-foreground">{t('user_analytics.gamification')}</span>
           </div>
         </div>
       </motion.div>

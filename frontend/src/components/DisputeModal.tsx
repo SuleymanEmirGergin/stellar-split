@@ -53,6 +53,9 @@ export default function DisputeModal({ expense, onSubmit, onClose, t }: DisputeM
 
         {/* Modal */}
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dispute-modal-title"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -71,7 +74,7 @@ export default function DisputeModal({ expense, onSubmit, onClose, t }: DisputeM
                 <AlertTriangle className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h2 className="font-black text-base tracking-tight">{t('group.dispute_modal_title')}</h2>
+                <h2 id="dispute-modal-title" className="font-black text-base tracking-tight">{t('group.dispute_modal_title')}</h2>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">
                   {t('group.dispute_initiate')}
                 </p>

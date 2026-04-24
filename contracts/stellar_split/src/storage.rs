@@ -259,3 +259,23 @@ pub fn set_reward_token_addr(env: &Env, token: &Address) {
     let key = DataKey::RewardToken;
     env.storage().instance().set(&key, token);
 }
+
+// ── Admin ──
+//
+// Single privileged address for guarded entrypoints (`set_reward_token`, and
+// future admin-only config). Stored in instance storage so it lives with the
+// contract and doesn't require TTL bumps per-address.
+//
+// Write path: `init_admin(admin)` is callable exactly once — subsequent calls
+// panic. Read path: `get_admin(env)` returns `Option<Address>` so callers can
+// reject uninitialised state with a clean error rather than a raw unwrap.
+
+pub fn get_admin_addr(env: &Env) -> Option<Address> {
+    let key = DataKey::Admin;
+    env.storage().instance().get(&key)
+}
+
+pub fn set_admin_addr(env: &Env, admin: &Address) {
+    let key = DataKey::Admin;
+    env.storage().instance().set(&key, admin);
+}
