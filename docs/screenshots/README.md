@@ -1,12 +1,49 @@
-# Ekran görüntüleri (Level 1 gönderim)
+# Screenshot inventory
 
-Bu klasöre aşağıdaki 4 ekran görüntüsünü ekleyin (PNG veya JPG). İsimler tam olarak:
+Canonical screenshot set for the project. All captures are automated via
+Playwright and kept under version control so pull requests can review
+visual changes alongside code.
 
-| Dosya adı | Ne çekilecek |
-|-----------|----------------|
-| `01-wallet-connected.png` | http://localhost:5173 — Cüzdanı Bağla ile bağlandıktan sonra; header'da cüzdan adresi ve bakiye görünsün. |
-| `02-balance.png` | Aynı ekran veya yakın çekim; header'daki **XLM bakiyesi** (örn. "1234.56 XLM") net görünsün. |
-| `03-success-tx.png` | Grup oluşturma / harcama ekleme veya "Grubu takas et" sonrası **başarı toast'ı** veya güncellenmiş liste. |
-| `04-tx-result.png` | İşlem sonucu: TxHistory / ActivityFeed'de **işlem hash'i** veya Stellar Expert linki; ya da başarı/hata mesajı. |
+## Automation
 
-Sonra ana README'deki "📸 Ekran Görüntüleri" bölümündeki tablo bu dosya adlarıyla çalışacak.
+Regenerate the full set:
+
+```bash
+cd frontend
+npx playwright test e2e/screenshots.spec.ts e2e/screenshots-states.spec.ts --project=chromium
+```
+
+Secondary capture scripts:
+
+- `frontend/scripts/capture-metrics-dashboard.mjs` — regenerates
+  `metrics-dashboard.png` against the live `/analytics/summary`
+  endpoint (useful when KPI numbers drift).
+- `frontend/scripts/capture-monitoring-dashboard.mjs` — regenerates
+  `monitoring-dashboard.png` against an authenticated dashboard view.
+
+See [`docs/SCREENSHOT_CHECKLIST.md`](../SCREENSHOT_CHECKLIST.md) for the
+full surface-area checklist that defines what each image must cover and
+when to retake.
+
+## Canonical set (currently committed)
+
+| File | Use |
+|------|------|
+| `landing.png` / `landing-*.png` | README hero + light/dark/mobile variants |
+| `dashboard.png` / `dashboard-*.png` | Authenticated dashboard, desktop + mobile, dark/light |
+| `settle-modal-minflow.png` | Min-flow "10 transfers → 3" value-prop screenshot |
+| `savings-roadmap.png` | Savings Pool roadmap teaser |
+| `splt-reward.png` | Inter-contract mint moment (0 → 100 SPLT) |
+| `activity-feed.png` | Insights + activity feed over Horizon |
+| `mobile-bottomsheet.png` | Mobile settle bottom-sheet FAB (feedback iteration) |
+| `metrics-dashboard.png` | Public `/analytics/summary` KPI strip |
+| `monitoring-dashboard.png` | In-app live `StatsPanel` + ops KPIs |
+| `tests-passing.png` / `ci-passing.png` | CI / test evidence |
+
+## Removed 2026-04-24
+
+`01-wallet-connected.png` through `07-stellar-testnet.png` plus the
+duplicate `03-success-tx1.png` and Windows `desktop.ini` were deleted.
+These were Level 1 tutorial captures from early in the project; the
+README-referenced screenshot set above supersedes them and the old files
+were unreferenced anywhere in source.

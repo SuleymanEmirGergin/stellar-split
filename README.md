@@ -510,7 +510,7 @@ MVP'nin gerçek kullanıcı testlerinden alınan geri bildirimler aşağıdaki k
 | **Google Form (feedback toplama)** | [forms.gle/oFSNuU6a9NthmfJR7](https://forms.gle/oFSNuU6a9NthmfJR7) |
 | **Excel export (tüm yanıtlar)** | [`docs/user-feedback.xlsx`](docs/user-feedback.xlsx) |
 | **Özet doküman (temalar + iterations)** | [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md) |
-| **Form spec (soru içeriği)** | [`docs/GOOGLE_FORM_SPEC.md`](docs/GOOGLE_FORM_SPEC.md) |
+| **Form spec (soru içeriği)** | [`docs/internal/GOOGLE_FORM_SPEC.md`](docs/internal/GOOGLE_FORM_SPEC.md) |
 
 Yüksek seviye metrikler (snapshot, 2026-04-24):
 
@@ -560,17 +560,26 @@ Kullanıcı geri bildirimleri doğrultusunda planlanan ve uygulanan iyileştirme
 
 ## ⚠️ Known Limitations
 
-These are documented trade-offs accepted for the hackathon scope. Each item is tracked and prioritised for post-hackathon iteration.
+Documented trade-offs accepted for the hackathon scope. Most Day 1–4 items have since landed — see the resolved list below for audit trail.
+
+### Still open
 
 | # | Limitation | Impact | Mitigation / Plan |
 |---|-----------|--------|-------------------|
-| 1 | **`set_reward_token` / `set_swap_router` have no admin guard** — any address can call them on the current contract. | Testnet-only risk; mainnet deploy is gated. | Add `instance storage ADMIN + require_auth()` check before mainnet. |
-| 2 | **`compute_yield` uses integer arithmetic without `checked_*` guards** — theoretical overflow on very large stake amounts over very long periods. | No user-facing impact at testnet scale (amounts < 2^63). | Replace with `checked_mul` / `checked_add`; panic on overflow. Tracked: `B2` on internal roadmap. |
-| 3 | **Multi-currency settle (`settle_group_flex`) is partial** — on-chain pool discovery + router invoke works; one sub-invocation auth nesting call remains untuned. | Live XLM↔USDC swap not yet user-facing; `settle_group` (XLM-only) is fully functional. | Auth-tree fix scoped to Day 3–4 (`C1`). Full details: [`docs/MULTI_CURRENCY.md`](docs/MULTI_CURRENCY.md). |
-| 4 | **SPLT token contract is missing SEP-41 transfer/approve/allowance/burn/name/symbol/decimals** — only `initialize`, `mint`, `balance` are implemented. | SPLT is non-transferable at protocol level; UI balance widget works via `balance` call. | Implement full SEP-41 interface for DEX listing readiness before mainnet. |
-| 5 | **Hardcoded Turkish strings in a few UI components** (`UserAnalytics.tsx`, `OnboardingTour.tsx`) — no i18n system yet. | English-first users see Turkish labels in two panels. | `react-i18next` integration scoped to Day 2 (`B3`). |
-| 6 | **Analytics `/summary` shows zeros on a fresh Railway deploy** until `prisma migrate deploy` is run. | KPI strip on landing page shows `0` for all counters. | User task: run `railway run npx prisma migrate deploy`. Sentry alert on P2021. |
-| 7 | **`SorobanEventPollerService` — events missed if RPC is unavailable during a 5-second window** — the Redis checkpoint only advances on a successful poll. | No data loss; events will be replayed from the last successful ledger on recovery. | Add exponential back-off + alerting for consecutive poll failures. |
+| 1 | **SPLT token contract is missing SEP-41 transfer/approve/allowance/burn/name/symbol/decimals** — only `initialize`, `mint`, `balance` are implemented. | SPLT is non-transferable at protocol level; UI balance widget works via `balance` call. | Implement full SEP-41 interface for DEX listing readiness before mainnet. |
+| 2 | **Analytics `/summary` shows zeros on a fresh Railway deploy** until `prisma migrate deploy` is run. | KPI strip on landing page shows `0` for all counters. | User task: run `railway run npx prisma migrate deploy`. Sentry alert on P2021. |
+| 3 | **`SorobanEventPollerService` — events missed if RPC is unavailable during a 5-second window** — the Redis checkpoint only advances on a successful poll. | No data loss; events will be replayed from the last successful ledger on recovery. | Add exponential back-off + alerting for consecutive poll failures. |
+| 4 | **USDC trustline is a user pre-requisite** for multi-currency settle — creditors must execute a one-time `change-trust` before receiving USDC. | Friction for first-time USDC recipients; error message currently surfaces as a generic "trustline entry is missing" from the Soroswap pair. | Pre-flight check in SettleTab that offers a one-click change-trust tx before the settle runs. Tracked as post-hackathon iteration. |
+
+### ✅ Resolved (audit trail)
+
+| Previously tracked | Resolved in | Evidence |
+|---|---|---|
+| `set_reward_token` / `set_swap_router` had no admin guard | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B1 | `init_admin` one-shot + stored-admin equality check; 3 negative tests green. |
+| `compute_yield` + vault math lacked `checked_*` overflow guards | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B2 | All `+=`/`-=`/`*` on `i128` → `checked_add`/`checked_sub`/`checked_mul` with labelled panic messages. |
+| Multi-currency settle (`settle_group_flex`) partial | [#25](https://github.com/SuleymanEmirGergin/stellar-split/pull/25) — Day 3–4 C1 (Path B) | **Live proof tx** [`1f9d0a9c…5bbd0a3`](https://stellar.expert/explorer/testnet/tx/1f9d0a9c1d3655fd6c491af3d2eb20e141098b26c4dcf597abde6672f5bbd0a3) — Alice's 2.5 XLM debt → Bob ~0.574 USDC atomically via Soroswap pair.swap. |
+| Hardcoded Turkish strings in `UserAnalytics` / `OnboardingTour` | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B3 | `useI18n()` migration; 15 new keys × 4 languages (tr/en/de/es). |
+| `DisputeModal` / `PaymentRequestModal` missing `aria-labelledby` | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B4 | Added `role="dialog" + aria-modal + aria-labelledby` matching titles. |
 
 ---
 
