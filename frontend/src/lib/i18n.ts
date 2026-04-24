@@ -761,6 +761,15 @@ const translations = {
     'settle.target_native': 'Aynı (XLM)',
     'settle.target_usdc': 'USDC',
     'settle.target_swap_note': 'Borçlunun XLM\'i Soroswap üzerinden USDC\'ye çevrilir ve alacaklıya USDC teslim edilir — tek transaction.',
+    // USDC trustline pre-flight (Day 5 post-swap UX)
+    'settle.trustline_checking': 'USDC trustline kontrol ediliyor…',
+    'settle.trustline_missing_title': 'USDC trustline eksik',
+    'settle.trustline_missing_desc': 'USDC alabilmek için cüzdanınıza tek seferlik bir trustline işlemi imzalamanız gerekiyor. Bu işlem ağa sadece minimum ücret öder.',
+    'settle.trustline_add_btn': 'USDC trustline ekle',
+    'settle.trustline_adding': 'Trustline işlemi imzalanıyor…',
+    'settle.trustline_ok': 'USDC trustline mevcut — swap teslim edilebilir',
+    'settle.trustline_added': 'USDC trustline eklendi',
+    'settle.trustline_failed': 'Trustline işlemi başarısız',
     // QRCode
     'qr.copy_payment_link': 'Ödeme Linkini Kopyala',
     'qr.copy_group_link': 'Grup Linkini Kopyala',
@@ -1530,6 +1539,15 @@ const translations = {
     'settle.target_native': 'Same (XLM)',
     'settle.target_usdc': 'USDC',
     'settle.target_swap_note': "The debtor's XLM is converted to USDC via Soroswap and delivered to the creditor — all in a single transaction.",
+    // USDC trustline pre-flight (Day 5 post-swap UX)
+    'settle.trustline_checking': 'Checking USDC trustline…',
+    'settle.trustline_missing_title': 'USDC trustline missing',
+    'settle.trustline_missing_desc': "You need a one-time trustline to receive USDC. It's a regular Stellar classic tx — just the network's minimum fee.",
+    'settle.trustline_add_btn': 'Add USDC trustline',
+    'settle.trustline_adding': 'Signing trustline transaction…',
+    'settle.trustline_ok': 'USDC trustline ready — the swap can deliver',
+    'settle.trustline_added': 'USDC trustline added',
+    'settle.trustline_failed': 'Trustline transaction failed',
     // QRCode
     'qr.copy_payment_link': 'Copy Payment Link',
     'qr.copy_group_link': 'Copy Group Link',
@@ -2296,6 +2314,15 @@ const translations = {
     'settle.target_native': 'Gleich (XLM)',
     'settle.target_usdc': 'USDC',
     'settle.target_swap_note': 'Das XLM des Schuldners wird über Soroswap in USDC getauscht und dem Gläubiger als USDC ausgeliefert — alles in einer einzigen Transaktion.',
+    // USDC trustline pre-flight (Day 5 post-swap UX)
+    'settle.trustline_checking': 'USDC-Vertrauenslinie wird geprüft…',
+    'settle.trustline_missing_title': 'USDC-Vertrauenslinie fehlt',
+    'settle.trustline_missing_desc': 'Um USDC zu empfangen, benötigst du eine einmalige Vertrauenslinie. Es ist eine normale Stellar-Classic-Transaktion — nur die minimale Netzwerkgebühr.',
+    'settle.trustline_add_btn': 'USDC-Vertrauenslinie hinzufügen',
+    'settle.trustline_adding': 'Transaktion wird signiert…',
+    'settle.trustline_ok': 'USDC-Vertrauenslinie bereit — der Swap kann ausgeliefert werden',
+    'settle.trustline_added': 'USDC-Vertrauenslinie hinzugefügt',
+    'settle.trustline_failed': 'Vertrauenslinien-Transaktion fehlgeschlagen',
     // QRCode
     'qr.copy_payment_link': 'Zahlungslink kopieren',
     'qr.copy_group_link': 'Gruppenlink kopieren',
@@ -3060,6 +3087,15 @@ const translations = {
     'settle.target_native': 'Igual (XLM)',
     'settle.target_usdc': 'USDC',
     'settle.target_swap_note': 'El XLM del deudor se convierte a USDC vía Soroswap y se entrega al acreedor en USDC — todo en una sola transacción.',
+    // USDC trustline pre-flight (Day 5 post-swap UX)
+    'settle.trustline_checking': 'Comprobando línea de confianza de USDC…',
+    'settle.trustline_missing_title': 'Falta la línea de confianza de USDC',
+    'settle.trustline_missing_desc': 'Necesitas una línea de confianza única para recibir USDC. Es una transacción clásica de Stellar — solo paga la tarifa mínima de red.',
+    'settle.trustline_add_btn': 'Añadir línea de confianza de USDC',
+    'settle.trustline_adding': 'Firmando transacción…',
+    'settle.trustline_ok': 'Línea de confianza lista — el swap puede entregar',
+    'settle.trustline_added': 'Línea de confianza de USDC añadida',
+    'settle.trustline_failed': 'La transacción de línea de confianza falló',
     // QRCode
     'qr.copy_payment_link': 'Copiar enlace de pago',
     'qr.copy_group_link': 'Copiar enlace de grupo',

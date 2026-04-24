@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Zap, QrCode, ArrowRightLeft, CheckCircle2, History, XCircle, ChevronDown, ChevronUp, Copy } from 'lucide-react';
+import { ArrowRight, Zap, QrCode, ArrowRightLeft, CheckCircle2, History, XCircle, ChevronDown, ChevronUp, Copy, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import { type Settlement, type Expense, type EstimatedFee } from '../../lib/contract';
-import { truncateAddress } from '../../lib/stellar';
+import { truncateAddress, hasUsdcTrustline, addUsdcTrustline } from '../../lib/stellar';
 import { formatStroopsWithUsd } from '../../lib/xlmPrice';
 import Avatar from '../Avatar';
 import QRCode from '../QRCode';
@@ -73,6 +73,61 @@ export default function SettleTab({
   const [targetAsset, setTargetAsset] = useState<string | null>(null);
   const usdcContractId = (import.meta.env.VITE_USDC_CONTRACT_ID as string | undefined) ?? '';
   const showTargetPicker = currencyLabel === 'XLM' && !!usdcContractId;
+
+  // ── USDC trustline pre-flight ──
+  // Soroswap pair delivers USDC directly to the creditor; if they don't have
+  // a classic USDC trustline the swap reverts with "trustline entry is missing".
+  // Check the *current user's* trustline when USDC is selected AND the user is
+  // listed as a creditor in the upcoming settle — then offer a one-click fix.
+  // We only check the current user because Freighter can only sign for them;
+  // for other creditors we still surface a generic notice.
+  const [trustlineState, setTrustlineState] = useState<
+    | { status: 'idle' }
+    | { status: 'checking' }
+    | { status: 'missing' }
+    | { status: 'present' }
+    | { status: 'adding' }
+    | { status: 'error'; message: string }
+  >({ status: 'idle' });
+
+  const userIsCreditor = settlements.some((s) => s.to === walletAddress);
+  const shouldCheckTrustline =
+    targetAsset === usdcContractId && !!usdcContractId && userIsCreditor && !isDemo;
+
+  useEffect(() => {
+    if (!shouldCheckTrustline) {
+      setTrustlineState({ status: 'idle' });
+      return;
+    }
+    let cancelled = false;
+    setTrustlineState({ status: 'checking' });
+    hasUsdcTrustline(walletAddress)
+      .then((result) => {
+        if (cancelled) return;
+        if (result === true) setTrustlineState({ status: 'present' });
+        else if (result === false) setTrustlineState({ status: 'missing' });
+        else setTrustlineState({ status: 'idle' }); // unknown — don't block
+      })
+      .catch(() => {
+        if (!cancelled) setTrustlineState({ status: 'idle' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldCheckTrustline, walletAddress]);
+
+  const handleAddTrustline = async () => {
+    setTrustlineState({ status: 'adding' });
+    try {
+      const hash = await addUsdcTrustline(walletAddress);
+      setTrustlineState({ status: 'present' });
+      addToast?.(t('settle.trustline_added') + (hash ? ` (${hash.slice(0, 8)}…)` : ''), 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setTrustlineState({ status: 'error', message });
+      addToast?.(t('settle.trustline_failed') + ': ' + message, 'error');
+    }
+  };
 
   // ── Backend settlement history (JWT mode) ──
   const showBackendHistory = hasJwt && !!groupIdStr;
@@ -267,6 +322,70 @@ export default function SettleTab({
                 </p>
               ) : null}
             </div>
+          )}
+
+          {/* ── Trustline pre-flight (USDC selected + user is creditor) ──
+              The Soroswap pair delivers USDC directly to the creditor's
+              classic account. If there's no USDC trustline the swap reverts.
+              We check the current user's trustline (we can only sign for
+              them) and offer a one-click fix. For the "user is a debtor"
+              case we still show a general note so they remind their
+              creditor. */}
+          {targetAsset === usdcContractId && !isDemo && (
+            <>
+              {trustlineState.status === 'checking' && (
+                <div className="w-full mb-3 rounded-2xl p-3 border border-white/[0.07] bg-white/[0.02] flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 size={14} className="animate-spin" />
+                  {t('settle.trustline_checking')}
+                </div>
+              )}
+              {trustlineState.status === 'missing' && (
+                <div className="w-full mb-3 rounded-2xl p-3 border border-amber-500/30 bg-amber-500/[0.06]">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                        {t('settle.trustline_missing_title')}
+                      </div>
+                      <p className="text-[11px] text-amber-200/80 mt-1 leading-relaxed">
+                        {t('settle.trustline_missing_desc')}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddTrustline}
+                    className="w-full mt-3 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs font-black uppercase tracking-wider hover:bg-amber-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  >
+                    <ShieldCheck size={14} />
+                    {t('settle.trustline_add_btn')}
+                  </button>
+                </div>
+              )}
+              {trustlineState.status === 'adding' && (
+                <div className="w-full mb-3 rounded-2xl p-3 border border-amber-500/30 bg-amber-500/[0.06] flex items-center justify-center gap-2 text-xs font-bold text-amber-200">
+                  <Loader2 size={14} className="animate-spin" />
+                  {t('settle.trustline_adding')}
+                </div>
+              )}
+              {trustlineState.status === 'present' && (
+                <div className="w-full mb-3 rounded-2xl p-3 border border-emerald-500/25 bg-emerald-500/[0.05] flex items-center gap-2 text-xs font-bold text-emerald-300">
+                  <CheckCircle2 size={14} />
+                  {t('settle.trustline_ok')}
+                </div>
+              )}
+              {trustlineState.status === 'error' && (
+                <div className="w-full mb-3 rounded-2xl p-3 border border-rose-500/30 bg-rose-500/[0.06] text-xs text-rose-200">
+                  <div className="flex items-center gap-2 font-bold mb-1">
+                    <XCircle size={14} className="text-rose-400" />
+                    {t('settle.trustline_failed')}
+                  </div>
+                  <p className="text-[11px] text-rose-200/80 leading-relaxed break-words">
+                    {trustlineState.message}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {/* ── Fee sponsorship toggle (Level 6 advanced feature) ──
