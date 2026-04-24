@@ -89,19 +89,36 @@ import { SponsorModule } from './sponsor/sponsor.module';
     }),
 
     // BullMQ
+    // NOTE: BullMQ 5.x (ioredis 5.x) ConnectionOptions does not accept
+    // `{ url }` — we must parse the URL into host/port/auth fields.
+    // Using a tiny helper so the factory stays a pure function without
+    // importing `new URL()` awkwardly inside the class decorator.
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          url: config.get<string>('REDIS_URL', 'redis://localhost:6379'),
-        },
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-          removeOnComplete: 100,
-          removeOnFail: 200,
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const rawUrl = config.get<string>('REDIS_URL', 'redis://localhost:6379');
+        const u = new URL(rawUrl);
+        const isRediss = u.protocol === 'rediss:';
+        return {
+          connection: {
+            host: u.hostname,
+            port: u.port ? parseInt(u.port, 10) : (isRediss ? 6380 : 6379),
+            ...(u.password ? { password: decodeURIComponent(u.password) } : {}),
+            ...(u.username && u.username !== 'default' ? { username: decodeURIComponent(u.username) } : {}),
+            // Enable TLS for rediss:// URLs (Railway / Upstash production)
+            ...(isRediss ? { tls: {} } : {}),
+            // Required by BullMQ when used as a blocking client
+            maxRetriesPerRequest: null,
+          },
+          defaultJobOptions: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 },
+            removeOnComplete: 100,
+            // Keep failed jobs longer for DLQ inspection
+            removeOnFail: false,
+          },
+        };
+      },
     }),
 
     // Feature modules

@@ -12,7 +12,9 @@
 import { useEffect, useRef } from 'react';
 import { getAccessToken } from '../lib/api';
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+// SSE URL uses the same /api/v1 prefix as the rest-api client
+const _SSE_HOST = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+const BASE_URL = `${_SSE_HOST.replace(/\/$/, '')}/api/v1`;
 
 export interface GroupEvent {
   type:

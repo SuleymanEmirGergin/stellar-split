@@ -1,0 +1,189 @@
+groups:
+  - name: stellarsplit.api
+    interval: 30s
+    rules:
+      # ── Availability ────────────────────────────────────────────────────────
+
+      - alert: ApiDown
+        expr: up{job="stellarsplit-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "StellarSplit API is down"
+          description: >
+            The API scrape target {{ $labels.instance }} has been unreachable
+            for more than 1 minute.  Check Railway logs immediately.
+          runbook: "https://github.com/SuleymanEmirGergin/stellar-split/wiki/Runbooks#api-down"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(stellarsplit_http_requests_total{status_code=~"5.."}[5m])
+            /
+            rate(stellarsplit_http_requests_total[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "HTTP 5xx error rate > 5%"
+          description: >
+            {{ printf "%.1f" (mul $value 100) }}% of requests are returning 5xx errors
+            in the last 5 minutes.
+          runbook: "https://github.com/SuleymanEmirGergin/stellar-split/wiki/Runbooks#high-error-rate"
+
+      # ── Latency ─────────────────────────────────────────────────────────────
+
+      - alert: HighP95Latency
+        expr: |
+          histogram_quantile(0.95,
+            rate(stellarsplit_http_request_duration_seconds_bucket[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "P95 response latency > 2 s"
+          description: >
+            The 95th percentile API response time is
+            {{ printf "%.2f" $value }}s — users are experiencing slow responses.
+
+      - alert: HighP99Latency
+        expr: |
+          histogram_quantile(0.99,
+            rate(stellarsplit_http_request_duration_seconds_bucket[5m])
+          ) > 5
+        for: 3m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "P99 response latency > 5 s"
+          description: >
+            The 99th percentile API response time is
+            {{ printf "%.2f" $value }}s — SLA breach imminent.
+
+      # ── Queue / DLQ ─────────────────────────────────────────────────────────
+
+      - alert: DlqJobsAccumulating
+        expr: increase(stellarsplit_dlq_jobs_total[10m]) > 3
+        for: 0m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "DLQ is accumulating failed jobs"
+          description: >
+            {{ $value }} jobs moved to DLQ in the last 10 minutes
+            (queue: {{ $labels.source_queue }}, name: {{ $labels.job_name }}).
+            Investigate recurring-expense or Stellar TX monitor workers.
+          runbook: "https://github.com/SuleymanEmirGergin/stellar-split/wiki/Runbooks#dlq"
+
+      - alert: DlqJobsCritical
+        expr: increase(stellarsplit_dlq_jobs_total[5m]) > 10
+        for: 0m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "DLQ spike — possible worker failure"
+          description: >
+            {{ $value }} DLQ jobs in 5 minutes.  Worker may be in a crash loop.
+            Check: `railway logs --service api | grep DLQ`
+
+      # ── Stellar / On-chain ───────────────────────────────────────────────────
+
+      - alert: SettlementConfirmationSlow
+        expr: |
+          histogram_quantile(0.95,
+            rate(stellarsplit_settlement_confirmation_seconds_bucket[15m])
+          ) > 60
+        for: 5m
+        labels:
+          severity: warning
+          team: blockchain
+        annotations:
+          summary: "Settlement P95 confirmation > 60 s"
+          description: >
+            Stellar transactions are taking unusually long to confirm.
+            Check Stellar network status at https://dashboard.stellar.org
+
+      - alert: StellarHorizonErrors
+        expr: rate(stellarsplit_stellar_horizon_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: blockchain
+        annotations:
+          summary: "Elevated Stellar Horizon errors"
+          description: >
+            {{ printf "%.2f" $value }} Horizon errors/s detected.
+            Check HORIZON_URL configuration and Stellar network health.
+
+      # ── Infrastructure ──────────────────────────────────────────────────────
+
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="stellarsplit-api"}
+            / 1024 / 1024
+          ) > 512
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "API process memory > 512 MB"
+          description: >
+            The API process is using {{ printf "%.0f" $value }} MB of memory.
+            Check for memory leaks or increase Railway memory limit.
+
+      - alert: HighEventLoopLag
+        expr: |
+          stellarsplit_nodejs_eventloop_lag_seconds > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Node.js event loop lag > 100 ms"
+          description: >
+            The event loop is lagging {{ printf "%.0f" (mul $value 1000) }}ms.
+            This typically indicates CPU-bound work blocking I/O.
+
+  - name: stellarsplit.database
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          stellarsplit_prisma_pool_connections_active
+          >= stellarsplit_prisma_pool_connections_total
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Prisma connection pool exhausted"
+          description: >
+            All {{ $value }} database connections are in use.
+            Queries will queue or time out.  Scale up or investigate N+1 queries.
+
+  - name: stellarsplit.security
+    interval: 60s
+    rules:
+      - alert: AuthBruteForce
+        expr: |
+          rate(stellarsplit_http_requests_total{route="/api/v1/auth/challenge",status_code="429"}[5m]) > 1
+        for: 1m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Auth endpoint rate-limited — possible brute-force"
+          description: >
+            More than 1 req/s hitting the auth/challenge endpoint and being
+            throttled.  Review IP allowlist or increase throttler strictness.
