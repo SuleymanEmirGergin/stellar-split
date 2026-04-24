@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { captureException } from '../instrument';
 
 export class TrackEventDto {
   event: string;
@@ -65,8 +66,7 @@ export class AnalyticsService {
   async getSummary(): Promise<AnalyticsSummary> {
     // Cache is a nice-to-have, not a dependency. If Redis is unreachable or
     // flapping, we compute the summary fresh — slower, but the public probe
-    // stays green. Previously an uncaught throw here produced 500 responses
-    // on cold cache whenever Redis had connection issues.
+    // stays green.
     let cached: AnalyticsSummary | null | undefined;
     try {
       cached = await this.cache.get<AnalyticsSummary>(SUMMARY_CACHE_KEY);
@@ -86,6 +86,29 @@ export class AnalyticsService {
     // 14-day trend — include today, so span = 13 days back
     const since14d = new Date(now.getTime() - 14 * day);
 
+    // ── Defensive compute ───────────────────────────────────────────────
+    // /analytics/summary is consumed by the public landing-page KPI strip.
+    // If a Prisma query or raw SQL fails (schema drift, migration pending,
+    // connection pool exhausted, etc.), DO NOT 500 the public endpoint —
+    // degrade to a zeroed summary and forward the error to Sentry so
+    // operators still see it. Each field is computed independently so a
+    // single failing branch doesn't blank the whole response.
+    const safe = async <T>(p: Promise<T>, fallback: T, label: string): Promise<T> => {
+      try {
+        return await p;
+      } catch (err: unknown) {
+        this.logger.error(
+          `analytics.${label} failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        try {
+          captureException(err, { component: 'AnalyticsService.getSummary', branch: label });
+        } catch {
+          /* Sentry off? swallow. */
+        }
+        return fallback;
+      }
+    };
+
     const [
       totalGroups,
       totalMembers,
@@ -97,18 +120,30 @@ export class AnalyticsService {
       mau,
       trendRows,
     ] = await Promise.all([
-      this.prisma.group.count(),
-      this.prisma.user.count({ where: { groupMemberships: { some: {} } } }),
-      this.prisma.expense.count(),
-      this.prisma.settlement.count({ where: { status: 'CONFIRMED' } }),
-      this.prisma.settlement.aggregate({
-        _sum: { amount: true },
-        where: { status: 'CONFIRMED' },
-      }),
-      this.countActiveUsers(since24h),
-      this.countActiveUsers(since7d),
-      this.countActiveUsers(since30d),
-      this.fetchDauTrend(since14d),
+      safe(this.prisma.group.count(), 0, 'totalGroups'),
+      safe(
+        this.prisma.user.count({ where: { groupMemberships: { some: {} } } }),
+        0,
+        'totalMembers',
+      ),
+      safe(this.prisma.expense.count(), 0, 'totalExpenses'),
+      safe(
+        this.prisma.settlement.count({ where: { status: 'CONFIRMED' } }),
+        0,
+        'totalSettled',
+      ),
+      safe(
+        this.prisma.settlement.aggregate({
+          _sum: { amount: true },
+          where: { status: 'CONFIRMED' },
+        }),
+        { _sum: { amount: null as number | null } },
+        'volumeAgg',
+      ),
+      safe(this.countActiveUsers(since24h), 0, 'dau'),
+      safe(this.countActiveUsers(since7d), 0, 'wau'),
+      safe(this.countActiveUsers(since30d), 0, 'mau'),
+      safe(this.fetchDauTrend(since14d), this.zeroDauTrend(), 'dauTrend'),
     ]);
 
     const totalVolumeXlm = volumeAgg._sum.amount ? Number(volumeAgg._sum.amount) : 0;
@@ -133,6 +168,18 @@ export class AnalyticsService {
     }
 
     return summary;
+  }
+
+  /** 14-day trend with all-zero counts — used as defensive fallback. */
+  private zeroDauTrend(): DauTrendPoint[] {
+    const series: DauTrendPoint[] = [];
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(start.getTime() - i * 24 * 60 * 60 * 1000);
+      series.push({ date: this.toIsoDate(d), count: 0 });
+    }
+    return series;
   }
 
   /**
