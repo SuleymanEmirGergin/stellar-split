@@ -63,7 +63,19 @@ export class AnalyticsService {
    * the "activity-based" definition rather than "presence".
    */
   async getSummary(): Promise<AnalyticsSummary> {
-    const cached = await this.cache.get<AnalyticsSummary>(SUMMARY_CACHE_KEY);
+    // Cache is a nice-to-have, not a dependency. If Redis is unreachable or
+    // flapping, we compute the summary fresh — slower, but the public probe
+    // stays green. Previously an uncaught throw here produced 500 responses
+    // on cold cache whenever Redis had connection issues.
+    let cached: AnalyticsSummary | null | undefined;
+    try {
+      cached = await this.cache.get<AnalyticsSummary>(SUMMARY_CACHE_KEY);
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Analytics summary cache read failed — falling back to fresh compute: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      cached = null;
+    }
     if (cached) return cached;
 
     const now = new Date();

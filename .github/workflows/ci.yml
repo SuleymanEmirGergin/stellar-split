@@ -388,36 +388,56 @@ jobs:
     name: Deploy Backend → Railway Staging
     runs-on: ubuntu-latest
     needs: [backend-test, backend-build]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' && vars.RAILWAY_STAGING_SERVICE_ID != ''
+    # Secrets can't be referenced in `if:` directly (GitHub blocks that to
+    # avoid leaking their presence). We read them into env: here, then gate
+    # the real work inside the step with `if: env.RAILWAY_STAGING_SERVICE_ID`.
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    env:
+      RAILWAY_STAGING_SERVICE_ID: ${{ secrets.RAILWAY_STAGING_SERVICE_ID }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Skip if RAILWAY_STAGING_SERVICE_ID is unset
+        if: env.RAILWAY_STAGING_SERVICE_ID == ''
+        run: |
+          echo "::warning::RAILWAY_STAGING_SERVICE_ID not configured — skipping staging deploy"
+
       - name: Install Railway CLI
+        if: env.RAILWAY_STAGING_SERVICE_ID != ''
         run: npm install -g @railway/cli
 
       - name: Trigger Railway staging redeploy
-        run: railway redeploy --service ${{ vars.RAILWAY_STAGING_SERVICE_ID }} --yes
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        if: env.RAILWAY_STAGING_SERVICE_ID != ''
+        run: railway redeploy --service "$RAILWAY_STAGING_SERVICE_ID" --yes
 
   # ── Railway Deploy — Production (master branch) ──
-  # Opt-in via RAILWAY_SERVICE_ID repo variable. When unset, the job skips
-  # cleanly — the existing Railway backend keeps running on its last deploy.
+  # Opt-in via RAILWAY_SERVICE_ID repo secret. When unset, the deploy step
+  # is skipped with a warning — the existing Railway backend keeps running
+  # on its last deploy.
   deploy-railway:
     name: Deploy Backend → Railway
     runs-on: ubuntu-latest
     needs: [backend-test, backend-build]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push' && vars.RAILWAY_SERVICE_ID != ''
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    env:
+      RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Skip if RAILWAY_SERVICE_ID is unset
+        if: env.RAILWAY_SERVICE_ID == ''
+        run: |
+          echo "::warning::RAILWAY_SERVICE_ID not configured — skipping Railway deploy"
+
       - name: Install Railway CLI
+        if: env.RAILWAY_SERVICE_ID != ''
         run: npm install -g @railway/cli
 
       - name: Trigger Railway redeploy
-        run: railway redeploy --service ${{ vars.RAILWAY_SERVICE_ID }} --yes
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        if: env.RAILWAY_SERVICE_ID != ''
+        run: railway redeploy --service "$RAILWAY_SERVICE_ID" --yes
 
   # ── Security audit ──
   security-audit:

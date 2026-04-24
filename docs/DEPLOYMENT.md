@@ -106,21 +106,20 @@ version. Don't rely on npm to hoist peer deps of peer deps.
 
 ### Auto (preferred — after PR merge to `master`)
 
-CI has a `deploy-railway` job that skips when `vars.RAILWAY_SERVICE_ID`
-is unset. Once the repo variable is added, every green master build
-triggers a Railway redeploy.
+CI has a `deploy-railway` job that skips with a `::warning::` when
+`secrets.RAILWAY_SERVICE_ID` is unset. Once both secrets below are added,
+every green master build triggers a Railway redeploy.
 
 **Setup (one-time):**
 
-1. GitHub → repo Settings → Secrets and variables → Actions
-2. **Variables** tab → `New repository variable`
-   - Name: `RAILWAY_SERVICE_ID`
-   - Value: `<Railway service UUID — see Railway UI: Settings → General → Service ID>`
-3. **Secrets** tab → `New repository secret`
-   - Name: `RAILWAY_TOKEN`
-   - Value: `<railway.app → Account Settings → Tokens → New token>`
+1. GitHub → repo Settings → Secrets and variables → Actions → **Secrets** tab
+2. `New repository secret` × 2:
+   - `RAILWAY_SERVICE_ID` = `<Railway UI → Settings → General → Service ID>`
+   - `RAILWAY_TOKEN` = `<railway.app → Account Settings → Tokens → New token>`
 
-After this, the CI `deploy-railway` step runs `railway redeploy --service $RAILWAY_SERVICE_ID --yes` on every master push.
+Both values live in **Secrets** (not Variables) because GitHub forbids referencing secrets inside a `jobs.<id>.if` condition; the workflow expands the secret into an `env:` block at job level, then gates each step with `if: env.RAILWAY_SERVICE_ID != ''`.
+
+After this, the CI `deploy-railway` step runs `railway redeploy --service "$RAILWAY_SERVICE_ID" --yes` on every master push.
 
 ### Manual (fallback — from Railway UI)
 
