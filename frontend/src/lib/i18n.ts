@@ -756,6 +756,11 @@ const translations = {
     'tour.last': 'Bitir',
     'tour.next': 'İleri',
     'tour.skip': 'Atla',
+    // Multi-currency settle (Session 10B)
+    'settle.target_currency_label': 'Alınacak para birimi',
+    'settle.target_native': 'Aynı (XLM)',
+    'settle.target_usdc': 'USDC',
+    'settle.target_swap_note': 'Borçlunun XLM\'i Soroswap üzerinden USDC\'ye çevrilir ve alacaklıya USDC teslim edilir — tek transaction.',
     // QRCode
     'qr.copy_payment_link': 'Ödeme Linkini Kopyala',
     'qr.copy_group_link': 'Grup Linkini Kopyala',
@@ -1520,6 +1525,11 @@ const translations = {
     'tour.last': 'Finish',
     'tour.next': 'Next',
     'tour.skip': 'Skip',
+    // Multi-currency settle (Session 10B)
+    'settle.target_currency_label': 'Receive in',
+    'settle.target_native': 'Same (XLM)',
+    'settle.target_usdc': 'USDC',
+    'settle.target_swap_note': "The debtor's XLM is converted to USDC via Soroswap and delivered to the creditor — all in a single transaction.",
     // QRCode
     'qr.copy_payment_link': 'Copy Payment Link',
     'qr.copy_group_link': 'Copy Group Link',
@@ -2281,6 +2291,11 @@ const translations = {
     'tour.last': 'Fertig',
     'tour.next': 'Weiter',
     'tour.skip': 'Überspringen',
+    // Multi-currency settle (Session 10B)
+    'settle.target_currency_label': 'Empfangen als',
+    'settle.target_native': 'Gleich (XLM)',
+    'settle.target_usdc': 'USDC',
+    'settle.target_swap_note': 'Das XLM des Schuldners wird über Soroswap in USDC getauscht und dem Gläubiger als USDC ausgeliefert — alles in einer einzigen Transaktion.',
     // QRCode
     'qr.copy_payment_link': 'Zahlungslink kopieren',
     'qr.copy_group_link': 'Gruppenlink kopieren',
@@ -3040,6 +3055,11 @@ const translations = {
     'tour.last': 'Terminar',
     'tour.next': 'Siguiente',
     'tour.skip': 'Omitir',
+    // Multi-currency settle (Session 10B)
+    'settle.target_currency_label': 'Recibir en',
+    'settle.target_native': 'Igual (XLM)',
+    'settle.target_usdc': 'USDC',
+    'settle.target_swap_note': 'El XLM del deudor se convierte a USDC vía Soroswap y se entrega al acreedor en USDC — todo en una sola transacción.',
     // QRCode
     'qr.copy_payment_link': 'Copiar enlace de pago',
     'qr.copy_group_link': 'Copiar enlace de grupo',

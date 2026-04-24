@@ -279,3 +279,37 @@ pub fn set_admin_addr(env: &Env, admin: &Address) {
     let key = DataKey::Admin;
     env.storage().instance().set(&key, admin);
 }
+
+// ── Swap Router (Soroswap AMM) ──
+//
+// Global Soroswap-compatible router contract id. Set post-deployment via
+// `set_swap_router` (admin-guarded). Unit tests deliberately leave this
+// unset — multi-currency settlements panic with a clear error and the
+// same-currency path continues to work without the router.
+
+pub fn get_swap_router(env: &Env) -> Option<Address> {
+    let key = DataKey::SwapRouter;
+    env.storage().instance().get(&key)
+}
+
+pub fn set_swap_router_addr(env: &Env, router: &Address) {
+    let key = DataKey::SwapRouter;
+    env.storage().instance().set(&key, router);
+}
+
+// ── Swap Factory (pool discovery + sub-auth) ──
+//
+// Soroswap factory contract id, used to resolve `(token_a, token_b)` → pair
+// address via `get_pair`. The pair address is needed at auth-build time so
+// the recording-mode matcher can pre-authorize `transfer(contract, pool, …)`
+// inside `settle_group_flex`.
+
+pub fn get_swap_factory(env: &Env) -> Option<Address> {
+    let key = DataKey::SwapFactory;
+    env.storage().instance().get(&key)
+}
+
+pub fn set_swap_factory_addr(env: &Env, factory: &Address) {
+    let key = DataKey::SwapFactory;
+    env.storage().instance().set(&key, factory);
+}

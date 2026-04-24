@@ -96,6 +96,7 @@ Happy-path swap (`settle_group_flex` + gerçek Soroswap pool) **integration test
 | **10A** | Contract groundwork: `SwapRouter` DataKey, `set_swap_router`, `settle_group_flex` entrypoint, Soroswap `swap_exact_tokens_for_tokens` invoke, 2 new tests | ✅ **Done** |
 | **10B** | Frontend picker + `settleGroup` extension with `targetAsset` param, SettleTab Native/USDC toggle, i18n × 4 dil | ✅ **Done** |
 | **10C** | Testnet deploy + all 3 wire calls live + Soroswap pool discovery via `get_pair` proven on-chain (12+ diagnostic events). Full swap tx completion pending a Soroban auth sub-invocation refinement (documented below). | 🟡 **Partial — pool discovery live, last-mile auth pending** |
+| **C1**  | **Auth-tree rebuild (Option A, Day 3–4).** Contract codepath restored in source tree after a merge conflict dropped it; `set_swap_router` / `set_swap_factory` now admin-guarded (Day 2 pattern); `settle_group_flex` auth-recording nesting re-structured to match the router → pair → token.transfer chain the recorder walks. 6 new unit tests covering admin guard + router-required panic path. Frontend wire re-applied (SettleTab picker + targetAsset routing + i18n keys × 4 langs). | ✅ **Done (source + tests); on-testnet swap validation pending next deploy** |
 
 ## 🧾 Session 10C — what landed on testnet (2026-04-22)
 

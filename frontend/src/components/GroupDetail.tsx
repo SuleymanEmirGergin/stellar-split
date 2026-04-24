@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3,
@@ -78,6 +78,7 @@ import { sendWebhookNotification, sendSettlementReadyNotification, sendLocalNoti
 import { useNotificationStore } from '../store/useNotificationStore';
 import { getLiveApy } from '../lib/defi';
 import { scanReceiptAI, hasReceiptAI, getMockScannedData, type ScannedData } from '../lib/ai';
+import { suggestCategory, CATEGORY_EMOJI } from '../lib/category-matcher';
 import { useI18n } from '../lib/i18n';
 import { useToast } from './Toast';
 import { TxStatusTimeline, type TxStatus } from './ui/TxStatusTimeline';
@@ -259,6 +260,39 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
   const [expAmount, setExpAmount] = useState('');
   const [expDesc, setExpDesc] = useState('');
   const [expCategory, setExpCategory] = useState<string>('');
+  // AI category suggestion (Demo Day feature): debounced, local, offline.
+  const [debouncedDesc, setDebouncedDesc] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedDesc(expDesc), 200);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [expDesc]);
+  const categorySuggestion = useMemo(() => suggestCategory(debouncedDesc), [debouncedDesc]);
+  // Pulse-animation key: bumps every time the suggested category changes so
+  // framer-motion re-plays the glow effect on the matching chip.
+  const [pulseKey, setPulseKey] = useState(0);
+  const lastSuggestedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (categorySuggestion.confidence > 0 && categorySuggestion.category !== lastSuggestedRef.current) {
+      lastSuggestedRef.current = categorySuggestion.category;
+      setPulseKey(k => k + 1);
+    } else if (categorySuggestion.confidence === 0) {
+      lastSuggestedRef.current = null;
+    }
+  }, [categorySuggestion.category, categorySuggestion.confidence]);
+  // Map richer matcher categories back to the six categories the form persists.
+  const suggestedFormCategory = useMemo(() => {
+    if (categorySuggestion.confidence === 0) return null;
+    const c = categorySuggestion.category;
+    if (c === 'home' || c === 'services' || c === 'travel') {
+      // These are not stored shapes; surface as 'other' for form highlighting.
+      return c === 'travel' ? 'accommodation' : 'other';
+    }
+    return c;
+  }, [categorySuggestion]);
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [adding, setAdding] = useState(false);
   const [expReceipt, setExpReceipt] = useState<string>('');
@@ -471,7 +505,7 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
 
 
-  const handleSettle = useCallback(async (opts?: { sponsor?: boolean }) => {
+  const handleSettle = useCallback(async (opts?: { sponsor?: boolean; targetAsset?: string | null }) => {
     if (!group) return;
     setSettling(true);
     setLastTxStatus('signing');
@@ -1026,8 +1060,26 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
                    <div className="relative">
                      <Receipt className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                      <input data-testid="expense-description-input" aria-label={t('group.what_for')} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-sm font-bold outline-none focus:border-indigo-500/50 transition-all" placeholder={t('group.what_for')} value={expDesc} onChange={e=>setExpDesc(e.target.value)} />
+                     <AnimatePresence>
+                       {suggestedFormCategory && categorySuggestion.confidence > 0 && (
+                         <motion.div
+                           key={`ai-hint-desktop-${pulseKey}`}
+                           initial={{ opacity: 0, y: -4 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -4 }}
+                           transition={{ duration: 0.25 }}
+                           data-testid="ai-category-hint"
+                           className="mt-1.5 ml-1 flex items-center gap-1.5 text-[11px] font-bold text-lime-400"
+                         >
+                           <span aria-hidden>🎯</span>
+                           <span className="text-muted-foreground">{t('group.ai_suggestion') || 'AI suggestion:'}</span>
+                           <span>{CATEGORY_EMOJI[categorySuggestion.category]}</span>
+                           <span>{t(`group.category_${suggestedFormCategory}` as Parameters<typeof t>[0])}</span>
+                         </motion.div>
+                       )}
+                     </AnimatePresence>
                    </div>
-                   
+
                    <div className="relative">
                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                      <input data-testid="expense-amount-input" aria-label={t('group.amount') || 'Amount'} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-xl font-black tabular-nums outline-none focus:border-indigo-500/50 transition-all" placeholder="0.00" value={expAmount} onChange={e=>setExpAmount(e.target.value)} />
@@ -1035,15 +1087,24 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
 
                    <div>
                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block ml-1">{t('group.category')}</label>
-                     <select value={expCategory} onChange={e=>setExpCategory(e.target.value)} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/50 transition-all">
-                       <option value="">—</option>
-                       <option value="food">{t('group.category_food')}</option>
-                       <option value="transport">{t('group.category_transport')}</option>
-                       <option value="accommodation">{t('group.category_accommodation')}</option>
-                       <option value="entertainment">{t('group.category_entertainment')}</option>
-                       <option value="market">{t('group.category_market')}</option>
-                       <option value="other">{t('group.category_other')}</option>
-                     </select>
+                     <motion.div
+                       key={`cat-pulse-desktop-${pulseKey}`}
+                       animate={suggestedFormCategory && categorySuggestion.confidence > 0 && !expCategory
+                         ? { boxShadow: ['0 0 0 0 rgba(163,230,53,0)', '0 0 0 4px rgba(163,230,53,0.35)', '0 0 0 0 rgba(163,230,53,0)'] }
+                         : { boxShadow: '0 0 0 0 rgba(163,230,53,0)' }}
+                       transition={{ duration: 1.0, ease: 'easeOut' }}
+                       className="rounded-2xl"
+                     >
+                       <select value={expCategory} onChange={e=>setExpCategory(e.target.value)} data-testid="expense-category-select" data-ai-suggested={suggestedFormCategory || ''} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/50 transition-all">
+                         <option value="">—</option>
+                         <option value="food">{t('group.category_food')}{suggestedFormCategory === 'food' && !expCategory ? ' ★' : ''}</option>
+                         <option value="transport">{t('group.category_transport')}{suggestedFormCategory === 'transport' && !expCategory ? ' ★' : ''}</option>
+                         <option value="accommodation">{t('group.category_accommodation')}{suggestedFormCategory === 'accommodation' && !expCategory ? ' ★' : ''}</option>
+                         <option value="entertainment">{t('group.category_entertainment')}{suggestedFormCategory === 'entertainment' && !expCategory ? ' ★' : ''}</option>
+                         <option value="market">{t('group.category_market')}{suggestedFormCategory === 'market' && !expCategory ? ' ★' : ''}</option>
+                         <option value="other">{t('group.category_other')}{suggestedFormCategory === 'other' && !expCategory ? ' ★' : ''}</option>
+                       </select>
+                     </motion.div>
                    </div>
 
                    <div className="flex gap-2">
@@ -1164,6 +1225,24 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           <div className="relative">
             <Receipt className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <input data-testid="expense-description-input-mobile" aria-label={t('group.what_for')} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl pl-12 text-sm font-bold outline-none focus:border-indigo-500/50 transition-all" placeholder={t('group.what_for')} value={expDesc} onChange={e => setExpDesc(e.target.value)} />
+            <AnimatePresence>
+              {suggestedFormCategory && categorySuggestion.confidence > 0 && (
+                <motion.div
+                  key={`ai-hint-mobile-${pulseKey}`}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.25 }}
+                  data-testid="ai-category-hint-mobile"
+                  className="mt-1.5 ml-1 flex items-center gap-1.5 text-[11px] font-bold text-lime-400"
+                >
+                  <span aria-hidden>🎯</span>
+                  <span className="text-muted-foreground">{t('group.ai_suggestion') || 'AI suggestion:'}</span>
+                  <span>{CATEGORY_EMOJI[categorySuggestion.category]}</span>
+                  <span>{t(`group.category_${suggestedFormCategory}` as Parameters<typeof t>[0])}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <div className="relative">
             <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
@@ -1171,15 +1250,24 @@ export default function GroupDetail({ walletAddress, groupId, onBack, isDemo, is
           </div>
           <div>
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block ml-1">{t('group.category')}</label>
-            <select value={expCategory} onChange={e => setExpCategory(e.target.value)} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/50 transition-all">
-              <option value="">—</option>
-              <option value="food">{t('group.category_food')}</option>
-              <option value="transport">{t('group.category_transport')}</option>
-              <option value="accommodation">{t('group.category_accommodation')}</option>
-              <option value="entertainment">{t('group.category_entertainment')}</option>
-              <option value="market">{t('group.category_market')}</option>
-              <option value="other">{t('group.category_other')}</option>
-            </select>
+            <motion.div
+              key={`cat-pulse-mobile-${pulseKey}`}
+              animate={suggestedFormCategory && categorySuggestion.confidence > 0 && !expCategory
+                ? { boxShadow: ['0 0 0 0 rgba(163,230,53,0)', '0 0 0 4px rgba(163,230,53,0.35)', '0 0 0 0 rgba(163,230,53,0)'] }
+                : { boxShadow: '0 0 0 0 rgba(163,230,53,0)' }}
+              transition={{ duration: 1.0, ease: 'easeOut' }}
+              className="rounded-2xl"
+            >
+              <select value={expCategory} onChange={e => setExpCategory(e.target.value)} data-testid="expense-category-select-mobile" data-ai-suggested={suggestedFormCategory || ''} className="w-full bg-secondary/50 border border-white/5 p-4 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500/50 transition-all">
+                <option value="">—</option>
+                <option value="food">{t('group.category_food')}{suggestedFormCategory === 'food' && !expCategory ? ' ★' : ''}</option>
+                <option value="transport">{t('group.category_transport')}{suggestedFormCategory === 'transport' && !expCategory ? ' ★' : ''}</option>
+                <option value="accommodation">{t('group.category_accommodation')}{suggestedFormCategory === 'accommodation' && !expCategory ? ' ★' : ''}</option>
+                <option value="entertainment">{t('group.category_entertainment')}{suggestedFormCategory === 'entertainment' && !expCategory ? ' ★' : ''}</option>
+                <option value="market">{t('group.category_market')}{suggestedFormCategory === 'market' && !expCategory ? ' ★' : ''}</option>
+                <option value="other">{t('group.category_other')}{suggestedFormCategory === 'other' && !expCategory ? ' ★' : ''}</option>
+              </select>
+            </motion.div>
           </div>
           <div className="flex gap-2">
             <label htmlFor="f-up" className="flex-1 p-4 bg-indigo-500/5 border border-indigo-500/20 border-dashed rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-400 text-center cursor-pointer hover:bg-indigo-500/10 transition-all flex items-center justify-center gap-2">
