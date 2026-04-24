@@ -13,3 +13,26 @@ soroban-sdk = "22.0.0"
 
 [dev-dependencies]
 soroban-sdk = { version = "22.0.0", features = ["testutils"] }
+
+# ── Release profile: maximise WASM size reduction ──────────────────────────
+# Soroban contracts benefit significantly from size optimisation because
+# on-chain storage and execution fees scale with wasm byte size.
+#
+# opt-level = "z"  → optimise aggressively for size (vs "s" which is moderate)
+# lto = true        → link-time optimisation across crates
+# codegen-units = 1 → single codegen unit (enables cross-function inlining)
+# panic = "abort"   → drop unwind tables (saves ~10–15 KB in typical contracts)
+# overflow-checks   → keep enabled — arithmetic panics are part of our security
+#                     model (we rely on them in settle math; strip = hidden bugs)
+#
+# Additional wasm-opt pass (requires wasm-opt in PATH or via stellar-cli):
+#   stellar contract optimize --wasm target/wasm32-unknown-unknown/release/stellar_split.wasm
+[profile.release]
+opt-level     = "z"
+overflow-checks = true
+debug         = false
+debug-assertions = false
+lto           = true
+codegen-units = 1
+panic         = "abort"
+strip         = "debuginfo"
