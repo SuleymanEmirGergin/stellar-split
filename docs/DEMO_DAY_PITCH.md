@@ -62,10 +62,11 @@ Hackathon Level 6 · Emir Gergin · April 2026
 4. **Settle** — min-flow: 6 potansiyel transfer → **3 gerçek transfer**, tek tx, Stellar Expert'te canlı
 5. **SPLT reward** mint → Dashboard'da anında görünür
 6. **Gasless toggle** — zero-XLM bir hesap bile fee-bump ile settle edebiliyor
+7. **Multi-currency switch** — "Receive in USDC" picker'ı → aynı settle artık on-chain Soroswap swap yapıyor, creditor USDC alıyor
 
-→ **demo video:** youtu.be/ZmqJI9Y7UTc
+→ **demo video:** youtu.be/ZmqJI9Y7UTc _(being refreshed with Path B swap flow)_
 
-**[speaker note]** "Şimdi canlı gidelim. [ekran paylaşımı] — burada 4 kişilik grup, üç harcama, settle'a bastığımda arkada min-flow greedy çalışıp 6 transferi 3'e indiriyor, hepsini tek Soroban tx'inde gönderiyor. Sağ üstte SPLT bakiyesi 0'dan 100'e çıktı — inter-contract mint."
+**[speaker note]** "Şimdi canlı gidelim. [ekran paylaşımı] — burada 4 kişilik grup, üç harcama, settle'a bastığımda arkada min-flow greedy çalışıp 6 transferi 3'e indiriyor, hepsini tek Soroban tx'inde gönderiyor. Sağ üstte SPLT bakiyesi 0'dan 100'e çıktı — inter-contract mint. Şimdi 'Receive in' picker'ında USDC seçeyim — aynı settle butonu Soroswap'a gidip XLM'i USDC'ye çevirip creditor'a gönderiyor, atomik, tek tx. Tx hash'i Slide 6'da."
 
 ---
 
@@ -78,7 +79,7 @@ Hackathon Level 6 · Emir Gergin · April 2026
 | 1 | **Fee sponsorship (gasless)** — Stellar fee-bump wrapper; kullanıcı zero-XLM ile settle edebilir | `backend/src/sponsor/*`, `POST /sponsor/fee-bump`, Settle toggle live |
 | 2 | **Multi-sig social recovery** — guardian-based M-of-N account recovery | `set_guardians` / `initiate_recovery` / `approve_recovery` on contract, `SecurityTab.tsx` UI |
 
-**Bonus:** Multi-currency settle via Soroswap AMM (`settle_group_flex`) — on-chain proof (pool discovery + router invoke), tam tx için 1 auth-tuning kaldı. `docs/MULTI_CURRENCY.md`.
+**Bonus:** **Multi-currency settle via Soroswap AMM** (`settle_group_flex`) — **LIVE on testnet**. Alice'in XLM borcu → Bob'a anında USDC, tek transaction, router bypass + direct pair.swap. Proof tx: [`1f9d0a9c…bbd0a3`](https://stellar.expert/explorer/testnet/tx/1f9d0a9c1d3655fd6c491af3d2eb20e141098b26c4dcf597abde6672f5bbd0a3). `docs/MULTI_CURRENCY.md`.
 
 **[speaker note]** "Level 6 sadece 1 advanced feature istiyor — biz 2 tane yolladık. Fee sponsorship sayesinde kullanıcının cüzdanında XLM olmasa bile settle yapılabiliyor. Social recovery ise cüzdan kaybı senaryosunda guardian M-of-N ile erişimi geri veriyor."
 
@@ -90,19 +91,22 @@ Hackathon Level 6 · Emir Gergin · April 2026
 
 | Signal | Number |
 |---|---|
-| Test suite | **1293 tests** yeşil (frontend 880 + backend 389 + contract 24) |
-| Commits on master | **100+** |
-| Active testnet users | **30+** (Google Form + on-chain verified) |
-| Contracts deployed | 2 (main + SPLT) + wired to Soroswap router/factory |
+| Test suite | **1298+ tests** yeşil (frontend 880 + backend 389 + contract 38) |
+| Commits on master | **110+** |
+| Active testnet users | 3 doğrulanmış + acquisition in progress (target: 30+) |
+| Contracts deployed | 2 (main + SPLT) + live Soroswap pair integration |
 | Live endpoints | Vercel frontend + Railway backend + SSE event stream |
+| **Atomic multi-currency swap** | **✅ LIVE** — [tx `1f9d0a9c…bbd0a3`](https://stellar.expert/explorer/testnet/tx/1f9d0a9c1d3655fd6c491af3d2eb20e141098b26c4dcf597abde6672f5bbd0a3) |
+
+**Live contract:** [`CAH5AFV3…QOBF`](https://stellar.expert/explorer/testnet/contract/CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF) — Path B (router-bypass) implementation; contract calls Soroswap pair's `swap` directly after pre-transferring source asset, atomic XLM→USDC settlement proven end-to-end.
 
 **Observability:** Sentry + Prometheus `/metrics` + Pino + `/health/live|ready` + public `/analytics/summary` dashboard (DAU/WAU/MAU, 14-day volume trend).
 
-**Security:** [`docs/SECURITY-CHECKLIST.md`](SECURITY-CHECKLIST.md) — SIWS, JWT rotation, HttpOnly refresh, rate limits, input validation, secret handling.
+**Security:** [`docs/SECURITY-CHECKLIST.md`](SECURITY-CHECKLIST.md) — SIWS, JWT rotation, HttpOnly refresh, rate limits, input validation, secret handling. Admin-guarded config entrypoints + `checked_*` arithmetic throughout vault/pool math.
 
-**Data indexing:** `SorobanEventPollerService` (5s cron, Redis checkpoint) → decoded **21 event topics** → Postgres + SSE fan-out.
+**Data indexing:** `SorobanEventPollerService` (5s cron, Redis checkpoint) → decoded **25 event topics** (group/expense/settle/vault/pool/recovery/admin/swap) → Postgres + SSE fan-out.
 
-**[speaker note]** "Bu bir hackathon demo'su gibi görünmüyor çünkü değil. 1293 test, CI/CD, Sentry, Prometheus, public metrics dashboard, security checklist, data indexer — hepsi canlı."
+**[speaker note]** "Bu bir hackathon demo'su gibi görünmüyor çünkü değil. 1298 test, CI/CD, Sentry, Prometheus, public metrics dashboard, security checklist, data indexer — hepsi canlı. Multi-currency settle'ı da testnet üzerinde atomik tamamlıyoruz; tx hash'i Slide 6 tablosunda — juri Stellar Expert'ten doğrulayabilir."
 
 ---
 
