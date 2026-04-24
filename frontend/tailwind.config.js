@@ -90,9 +90,54 @@ export default {
         sm: "calc(var(--radius) - 4px)",
         brick: "28px",
         pill: "9999px",
+        // ── Birik semantic radii (mirror of tokens.ts `radius`) ──
+        chip:  "8px",
+        btn:   "12px",
+        card:  "16px",
+        panel: "24px",
+        modal: "32px",
+      },
+      spacing: {
+        // ── Birik spacing scale (mirror of tokens.ts `space`) ──
+        "space-xs":  "4px",
+        "space-sm":  "8px",
+        "space-md":  "16px",
+        "space-lg":  "24px",
+        "space-xl":  "40px",
+        "space-2xl": "64px",
       },
       boxShadow: {
-        chunk: "0 20px 60px -20px rgba(196, 255, 77, 0.4)",
+        chunk:  "0 20px 60px -20px rgba(196, 255, 77, 0.4)",
+        // ── Birik semantic shadows (mirror of tokens.ts `shadow`) ──
+        card:   "0 4px 24px -4px rgba(0,0,0,0.4)",
+        modal:  "0 32px 64px -16px rgba(0,0,0,0.7)",
+        brand:  "0 20px 60px -20px rgba(196,255,77,0.4)",
+        indigo: "0 8px 32px -8px rgba(99,102,241,0.35)",
+        toast:  "0 8px 24px rgba(0,0,0,0.5)",
+      },
+      // ── Birik glass colors (mirror of tokens.ts `glass`) ──
+      // Usage: bg-glass-faint, bg-glass-subtle, etc.
+      // Note: these use CSS rgba so they appear after Tailwind merges.
+      // For dynamic opacity, keep using bg-white/[0.xx] directly.
+      backgroundColor: {
+        "glass-faint":    "rgba(255,255,255,0.02)",
+        "glass-subtle":   "rgba(255,255,255,0.04)",
+        "glass-medium":   "rgba(255,255,255,0.07)",
+        "glass-emphasis": "rgba(255,255,255,0.12)",
+      },
+      transitionDuration: {
+        // ── Birik duration tokens (mirror of tokens.ts `duration`) ──
+        micro: "80ms",
+        fast:  "150ms",
+        base:  "250ms",
+        slow:  "400ms",
+        lazy:  "600ms",
+      },
+      transitionTimingFunction: {
+        // ── Birik easing tokens (mirror of tokens.ts `ease`) ──
+        snappy: "cubic-bezier(0.25,0.46,0.45,0.94)",
+        smooth: "cubic-bezier(0.22,1,0.36,1)",
+        spring: "cubic-bezier(0.34,1.56,0.64,1)",
       },
       keyframes: {
         shimmer: {

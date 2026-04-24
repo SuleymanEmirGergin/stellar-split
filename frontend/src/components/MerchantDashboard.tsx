@@ -249,12 +249,15 @@ export function MerchantDashboard({ merchantId, onBack }: Props) {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="merchant-qr-modal-title"
               className="bg-card/90 border border-white/10 rounded-[40px] shadow-2xl overflow-hidden w-full max-w-xl flex flex-col md:flex-row relative"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-8 md:w-1/2 space-y-6 border-b md:border-b-0 md:border-r border-white/5">
                 <div>
-                  <h2 className="text-2xl font-black tracking-tight mb-2">Generate Brick</h2>
+                  <h2 id="merchant-qr-modal-title" className="text-2xl font-black tracking-tight mb-2">Generate Brick</h2>
                   <p className="text-muted-foreground text-sm font-medium">Create a "Scan to Split" QR for your customers.</p>
                 </div>
 

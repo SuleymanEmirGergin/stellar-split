@@ -113,6 +113,9 @@ function CreatePoolModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="savings-create-title"
         className="relative w-full max-w-md bg-[#0e1118]/95 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -121,7 +124,7 @@ function CreatePoolModal({
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/20 flex items-center justify-center">
               <PiggyBank className="w-5 h-5 text-emerald-400" />
             </div>
-            <h2 className="font-black text-base tracking-tight">{t('savings.create_title')}</h2>
+            <h2 id="savings-create-title" className="font-black text-base tracking-tight">{t('savings.create_title')}</h2>
           </div>
           <button
             type="button"
@@ -450,6 +453,9 @@ function ContributeModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="savings-contribute-title"
         className="relative w-full max-w-md bg-[#0e1118]/95 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -459,7 +465,7 @@ function ContributeModal({
               <Coins className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="font-black text-base tracking-tight">{t('savings.contribute_title')}</h2>
+              <h2 id="savings-contribute-title" className="font-black text-base tracking-tight">{t('savings.contribute_title')}</h2>
               <p className="text-[10px] text-muted-foreground mt-0.5">{pool.title}</p>
             </div>
           </div>

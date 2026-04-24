@@ -112,7 +112,8 @@ async function callOpenAIVision(imageBase64: string): Promise<ScannedData> {
   };
 }
 
-import Tesseract from 'tesseract.js';
+// NOTE: Tesseract is NOT imported at the top level — it's loaded on-demand in
+// runLocalOCR() via dynamic import to keep the initial bundle lean (~4 MB saved).
 
 function parseAmountFromText(text: string): number | null {
   const lines = text.split('\n').filter(l => l.trim().length > 0);
@@ -163,6 +164,9 @@ function extractLargestAmount(text: string): number | null {
 }
 
 async function runLocalOCR(imageBase64: string): Promise<ScannedData> {
+  // Dynamic import keeps Tesseract out of the initial bundle (~4 MB).
+  // It's only loaded when the user actually scans a receipt.
+  const { default: Tesseract } = await import('tesseract.js');
   const { data: { text } } = await Tesseract.recognize(
     imageBase64,
     'eng+tur',

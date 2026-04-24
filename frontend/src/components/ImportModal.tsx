@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, FileText, AlertTriangle, CheckCircle2, ChevronRight, ArrowRight, Building2 } from 'lucide-react';
 import { parseWithFormat, BANK_OPTIONS, type ImportedExpense, type ImportResult, type BankFormat } from '../lib/import';
@@ -20,6 +20,13 @@ type Step = 'upload' | 'preview' | 'importing' | 'done';
 export default function ImportModal({ groupMembers, onImport, onClose, t }: ImportModalProps) {
   const [step, setStep] = useState<Step>('upload');
   const [dragOver, setDragOver] = useState(false);
+
+  // Escape key to close
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const [parseResult, setParseResult] = useState<ImportResult | null>(null);
   const [mapping, setMapping] = useState<MemberMapping>({});
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -106,6 +113,9 @@ export default function ImportModal({ groupMembers, onImport, onClose, t }: Impo
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="import-modal-title"
           className="relative w-full max-w-lg bg-[#0e1118]/95 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
@@ -116,7 +126,7 @@ export default function ImportModal({ groupMembers, onImport, onClose, t }: Impo
                 <Upload className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <h2 className="font-black text-base tracking-tight">{t('import.title')}</h2>
+                <h2 id="import-modal-title" className="font-black text-base tracking-tight">{t('import.title')}</h2>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">
                   Splitwise · Tricount · Banks · CSV
                 </p>
