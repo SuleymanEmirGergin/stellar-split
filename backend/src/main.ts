@@ -1,3 +1,8 @@
+// IMPORTANT: `./instrument` must be the VERY FIRST import — it calls
+// Sentry.init() at module-load time, before NestJS patches Node internals.
+// Per https://docs.sentry.io/platforms/javascript/guides/nestjs/
+import './instrument';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -9,11 +14,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
-import { initSentry } from './common/observability/sentry';
 
 async function bootstrap() {
-  // Initialize Sentry before anything else (no-op if SENTRY_DSN is not set)
-  initSentry();
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
