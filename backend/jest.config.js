@@ -22,6 +22,12 @@ const config = {
     '^@app/(.*)$': '<rootDir>/$1',
     '^@common/(.*)$': '<rootDir>/common/$1',
   },
+  // Transform ESM-only packages that ship `export` syntax in their dist bundles
+  // (@aws-sdk/* went ESM-first after v3.600; Jest must transpile them through
+  // ts-jest instead of treating them as pre-built CJS).
+  transformIgnorePatterns: [
+    'node_modules/(?!(@aws-sdk|@smithy|uuid)/)',
+  ],
   collectCoverageFrom: [
     '**/*.(t|j)s',
     '!**/*.module.ts',
