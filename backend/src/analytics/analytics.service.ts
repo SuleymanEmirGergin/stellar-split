@@ -132,12 +132,14 @@ export class AnalyticsService {
         0,
         'totalSettled',
       ),
-      safe(
+      // Prisma typing for `_sum.amount` is Decimal | null; the fallback uses
+      // the same shape via a type assertion since `null` is legal at runtime.
+      safe<{ _sum: { amount: unknown } }>(
         this.prisma.settlement.aggregate({
           _sum: { amount: true },
           where: { status: 'CONFIRMED' },
         }),
-        { _sum: { amount: null as number | null } },
+        { _sum: { amount: null } },
         'volumeAgg',
       ),
       safe(this.countActiveUsers(since24h), 0, 'dau'),
