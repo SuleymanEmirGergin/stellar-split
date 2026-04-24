@@ -45,6 +45,81 @@ would have broken judges' already-open tabs).
 **Severity after fix:** Negligible — the auto-reload is silent from the
 user's perspective and the debounce prevents loops.
 
+**Post-fix verification (2026-04-24, production):**
+- Bundle `index-DFuvcm1H.js` contains the three critical strings:
+  `Failed to fetch dynamically imported` (detector), `stellarsplit_chunk_reload_ts`
+  (debounce key), `updating_title` (i18n key)
+- Navigation to `/group/0` after the fix no longer emits
+  `[ERROR] TypeError: Failed to fetch dynamically imported module` in
+  the console — only the unrelated `[WARNING] SPLT balance fetch failed`
+  (pre-existing, tracked separately in `BUG-SPLT-TIMEBOUNDS` below).
+
+---
+
+### BUG-WALLET-REFRESH — Hard refresh loses wallet state even when Freighter is unlocked
+
+**Observed 2026-04-24** during automated smoke test.
+
+**Symptom:**
+- User has a dashboard session with wallet connected, balance visible.
+- User presses Ctrl+Shift+R (hard refresh) or the Chrome MCP browser tool
+  issues a full navigation → page reloads.
+- After reload: `walletAddress` state in `useAppStore` is empty, the page
+  renders as Landing even though the Freighter extension is still unlocked.
+- Header balance pill sometimes still shows the old balance (stale snapshot)
+  while the app thinks the wallet is disconnected.
+
+**Probable root cause:**
+`App.tsx` calls `getFreighterAddress()` inside a mount-time `useEffect`,
+awaits the Freighter reply, and only then calls `setWalletAddress`. In some
+reload paths the subsequent SIWS silent-refresh (`authApi.refresh()`) races
+and the wallet address never gets committed before the auth-guard
+`useEffect`s run and redirect to `/`. The header balance chip reads from a
+different hook (`useWalletBalance`) that polls Horizon directly and isn't
+gated on the same state, so the two sources de-sync visibly.
+
+**Severity:** Medium — affects repeatable testing flows (agent or E2E),
+and any user who hard-refreshes after the Vercel cache TTL expires. Normal
+soft-reload (F5) often works.
+
+**Workaround:**
+- Click the "Connect wallet" button to re-run the full connect flow (it
+  synchronously writes the wallet address before any redirect fires).
+
+**Follow-up:**
+- Move `setWalletAddress` to a synchronous effect that reads from
+  `localStorage` first (with the Freighter address as a cache), then
+  reconciles asynchronously.
+- Alternatively, persist `walletAddress` in `useAppStore` with Zustand's
+  `persist` middleware so it survives reload without a Freighter round-trip.
+
+---
+
+### BUG-SPLT-TIMEBOUNDS — SPLT balance fetch logs a warning every 20s
+
+**Observed continuously in console.**
+
+**Symptom:**
+Every 20 seconds the SPLT balance poll logs:
+```
+[WARNING] SPLT balance fetch failed: Error: TimeBounds has to be set
+          or you must call setTimeout(TimeoutInfinite).
+```
+The balance still displays correctly (it seems to eventually resolve via a
+different code path), so this is cosmetic — but the warning noise makes it
+harder to spot real issues in the console.
+
+**Probable root cause:**
+When building a read-only simulation for `balance(address)` the code that
+constructs the transaction does not call `.setTimeout(TimeoutInfinite)`,
+which the Stellar SDK now requires even for simulate-only transactions.
+
+**Severity:** Low (cosmetic).
+
+**Follow-up:** Locate the read-only transaction builder in
+`src/lib/contract.ts` (specifically the SPLT balance path) and add
+`.setTimeout(TimeoutInfinite)` before `.build()`.
+
 ---
 
 ### BUG-DEMO-01 — Demo mode group detail navigation redirects to dashboard
