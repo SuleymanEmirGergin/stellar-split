@@ -266,7 +266,7 @@ CI pipeline (`.github/workflows/ci.yml`) üç suite'i de paralel koşar ve topla
 | Katman         | Platform                          | URL / Adres                                                         |
 | -------------- | --------------------------------- | ------------------------------------------------------------------- |
 | **Frontend**   | Vercel (auto-deploy from `master`) | [stellar-split.vercel.app](https://stellar-split.vercel.app)        |
-| **Backend**    | Railway (CI-driven)               | _(internal endpoint — SSE / SIWS / analytics)_                      |
+| **Backend**    | Railway (CI-driven)               | [`stellar-split-production.up.railway.app`](https://stellar-split-production.up.railway.app/health/live) — health / metrics / SSE / SIWS / analytics |
 | **Contracts**  | Stellar Testnet (CI on `master`)  | `CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW`          |
 | **SPLT Token** | Stellar Testnet                   | [`CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE`](https://stellar.expert/explorer/testnet/contract/CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE) |
 
@@ -472,7 +472,8 @@ User signs normally; backend wraps the signed inner tx as a Stellar fee-bump and
 - **Topic decoding**: raw `scValToNative` → typed event shapes (`expense:added`, `settlement:confirmed`, `group:settled`, `reward:minted`, …). 18 event topics mapped.
 - **Sink**: NestJS `EventsService` fan-outs decoded events onto a per-group SSE stream (`GET /groups/:groupId/events`) + persists critical transitions to Postgres (audit log, settlement status).
 - **Frontend**: `useGroupEvents` hook subscribes via EventSource, drives live notifications + cache invalidation.
-- **Endpoint for external consumers**: SSE stream available at `https://api.stellarsplit.app/groups/:groupId/events` (JWT-gated, group-member only).
+- **Endpoint for external consumers**: SSE stream available at `https://stellar-split-production.up.railway.app/groups/:groupId/events` (JWT-gated, group-member only).
+- **Live observability probes** (public, no auth): [`/health/live`](https://stellar-split-production.up.railway.app/health/live), [`/health/ready`](https://stellar-split-production.up.railway.app/health/ready) (Postgres liveness-checked), [`/metrics`](https://stellar-split-production.up.railway.app/metrics) (Prometheus format, `stellarsplit_*` namespace).
 
 </details>
 
