@@ -12,7 +12,7 @@ Her slaytın sonunda **[speaker note]** 2–3 cümle konuşma önerisi.
 # Birik
 ### Group expense splitting on Stellar — seconds to settle, sub-cent fees, fully on-chain
 
-**Live:** stellar-split.vercel.app · **Contract:** `CDJJ2P7C…T5H`
+**Live:** stellar-split.vercel.app · **Contract:** [`CDTQVQRO…Z6LW`](https://stellar.expert/explorer/testnet/contract/CDTQVQROF6WMB6BG35F4TQ5L7E5SZ6TASMG74DVG7DVACEATHLLTZ6LW)
 Hackathon Level 6 · Emir Gergin · April 2026
 
 **[speaker note]** "Selam, ben Emir. Birik, Stellar üzerinde grup harcamalarını saniyelerde, neredeyse bedava uzlaştıran bir MVP. Bugün 5 dakikada problemden canlı demo'ya kadar her şeyi göstereceğim."
@@ -100,7 +100,7 @@ Hackathon Level 6 · Emir Gergin · April 2026
 
 **Security:** [`docs/SECURITY-CHECKLIST.md`](SECURITY-CHECKLIST.md) — SIWS, JWT rotation, HttpOnly refresh, rate limits, input validation, secret handling.
 
-**Data indexing:** `SorobanEventPollerService` (5s cron, Redis checkpoint) → decoded 18 event topics → Postgres + SSE fan-out.
+**Data indexing:** `SorobanEventPollerService` (5s cron, Redis checkpoint) → decoded **21 event topics** → Postgres + SSE fan-out.
 
 **[speaker note]** "Bu bir hackathon demo'su gibi görünmüyor çünkü değil. 1293 test, CI/CD, Sentry, Prometheus, public metrics dashboard, security checklist, data indexer — hepsi canlı."
 

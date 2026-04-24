@@ -6,14 +6,41 @@ import { map } from 'rxjs/operators';
 
 export interface GroupEvent {
   type:
+    // ── Core group lifecycle ──────────────────────────────────────────────
+    | 'group:created'
+    | 'group:settled'
+    // ── Expenses ─────────────────────────────────────────────────────────
     | 'expense:added'
     | 'expense:cancelled'
+    // ── Settlements ──────────────────────────────────────────────────────
     | 'settlement:confirmed'
     | 'settlement:failed'
+    // ── Members ──────────────────────────────────────────────────────────
     | 'member:joined'
     | 'member:left'
-    | 'recurring:triggered'
-    | 'token:minted';
+    // ── Tokens & rewards ─────────────────────────────────────────────────
+    | 'token:minted'
+    | 'reward:minted'
+    | 'referral:rewarded'
+    // ── Admin / config ───────────────────────────────────────────────────
+    | 'admin:reward_token_set'
+    // ── Social recovery ──────────────────────────────────────────────────
+    | 'recovery:guardians_set'
+    | 'recovery:initiated'
+    | 'recovery:approved'
+    // ── DeFi vault ───────────────────────────────────────────────────────
+    | 'vault:staked'
+    | 'vault:withdrawn'
+    | 'vault:yield_donated'
+    // ── Savings pool ─────────────────────────────────────────────────────
+    | 'pool:created'
+    | 'pool:contributed'
+    | 'pool:goal_reached'
+    | 'pool:released'
+    // ── Gamification ─────────────────────────────────────────────────────
+    | 'badge:awarded'
+    // ── Infrastructure ───────────────────────────────────────────────────
+    | 'recurring:triggered';
   groupId: string;
   payload: Record<string, unknown>;
   ts: number;
