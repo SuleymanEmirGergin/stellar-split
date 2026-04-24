@@ -105,4 +105,7 @@ pub enum DataKey {
     Admin,                  // Global: contract admin address (set once via init_admin)
     SwapRouter,             // Global: Soroswap (or compatible) AMM router contract id
     SwapFactory,            // Global: Soroswap factory contract id (pool discovery + sub-auth)
+    /// Emergency circuit-breaker: when true, all state-mutating entrypoints panic.
+    /// Only the stored admin can flip this via `pause` / `unpause`.
+    Paused,
 }

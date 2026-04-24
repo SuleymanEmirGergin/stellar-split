@@ -317,3 +317,21 @@ pub fn set_swap_factory_addr(env: &Env, factory: &Address) {
     let key = DataKey::SwapFactory;
     env.storage().instance().set(&key, factory);
 }
+
+// ── Emergency Pause (circuit-breaker) ──
+//
+// Stored in instance storage so it is cheap to read on every call.
+// When set to `true` all state-mutating entrypoints must panic with
+// "contract is paused".  Only the stored admin may flip this flag.
+
+/// Returns `true` if the contract is currently paused.
+pub fn is_paused(env: &Env) -> bool {
+    let key = DataKey::Paused;
+    env.storage().instance().get(&key).unwrap_or(false)
+}
+
+/// Sets the paused flag. Call only from admin-guarded entrypoints.
+pub fn set_paused(env: &Env, paused: bool) {
+    let key = DataKey::Paused;
+    env.storage().instance().set(&key, &paused);
+}

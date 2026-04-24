@@ -755,3 +755,197 @@ fn test_set_swap_router_fails_when_admin_uninitialised() {
     // init_admin was never called — same-shaped guard as set_reward_token.
     client.set_swap_router(&someone, &router);
 }
+
+// ═══════════════════════════════════════════════════
+//  EMERGENCY PAUSE TESTS
+// ═══════════════════════════════════════════════════
+
+#[test]
+#[should_panic(expected = "contract is paused")]
+fn test_pause_blocks_create_group() {
+    let (env, client, token) = setup_contract();
+    let admin = Address::generate(&env);
+    let creator = Address::generate(&env);
+    let member2 = Address::generate(&env);
+
+    client.init_admin(&admin);
+    client.pause(&admin);
+    assert_eq!(client.is_paused_query(), true);
+
+    // Must panic
+    let members = vec![&env, creator.clone(), member2.clone()];
+    client.create_group(&creator, &String::from_str(&env, "Trip"), &members, &token);
+}
+
+#[test]
+fn test_unpause_restores_create_group() {
+    let (env, client, token) = setup_contract();
+    let admin = Address::generate(&env);
+    let creator = Address::generate(&env);
+    let member2 = Address::generate(&env);
+
+    client.init_admin(&admin);
+    client.pause(&admin);
+    client.unpause(&admin);
+
+    assert_eq!(client.is_paused_query(), false);
+
+    // After unpause, create_group must succeed
+    let members = vec![&env, creator.clone(), member2.clone()];
+    let gid = client.create_group(&creator, &String::from_str(&env, "Trip"), &members, &token);
+    assert_eq!(gid, 0);
+}
+
+#[test]
+#[should_panic(expected = "only admin can pause")]
+fn test_pause_only_admin_can_pause() {
+    let (env, client, _token) = setup_contract();
+    let admin = Address::generate(&env);
+    let intruder = Address::generate(&env);
+
+    client.init_admin(&admin);
+    // Non-admin must panic
+    client.pause(&intruder);
+}
+
+#[test]
+#[should_panic(expected = "contract is paused")]
+fn test_pause_blocks_add_expense() {
+    let (env, client, token) = setup_contract();
+    let admin = Address::generate(&env);
+    let creator = Address::generate(&env);
+    let member2 = Address::generate(&env);
+
+    // Setup group first (before pause)
+    let members = vec![&env, creator.clone(), member2.clone()];
+    let gid = client.create_group(&creator, &String::from_str(&env, "G"), &members, &token);
+
+    client.init_admin(&admin);
+    client.pause(&admin);
+
+    // Must panic
+    client.add_expense(
+        &gid,
+        &creator,
+        &1000_i128,
+        &vec![&env, creator.clone(), member2.clone()],
+        &String::from_str(&env, "Dinner"),
+        &String::from_str(&env, "food"),
+    );
+}
+
+#[test]
+fn test_is_paused_query_starts_false() {
+    let (_env, client, _token) = setup_contract();
+    assert_eq!(client.is_paused_query(), false);
+}
+
+// ═══════════════════════════════════════════════════
+//  PROPERTY / INVARIANT TESTS (balance conservation)
+// ═══════════════════════════════════════════════════
+//
+// These test that the key mathematical invariant holds across a range of
+// inputs: "the sum of all balances must always equal zero".
+// Soroban test env doesn't have proptest, so we drive multiple cases manually.
+
+#[test]
+fn test_balance_sum_always_zero_2_members() {
+    let (env, client, token) = setup_contract();
+    let alice = Address::generate(&env);
+    let bob   = Address::generate(&env);
+    let members = vec![&env, alice.clone(), bob.clone()];
+    let gid = client.create_group(&alice, &String::from_str(&env, "G"), &members, &token);
+
+    // Use amounts evenly divisible by 2 so integer-division rounding is zero.
+    // The contract uses floor(amount/n) per-share; the rounding remainder
+    // goes to the payer, causing sum = amount mod n.  For n=2 and even
+    // amounts the remainder is 0 → sum must be exactly 0.
+    for amount in [100_i128, 500, 2, 1_000_000, 8] {
+        client.add_expense(
+            &gid,
+            &alice,
+            &amount,
+            &vec![&env, alice.clone(), bob.clone()],
+            &String::from_str(&env, "exp"),
+            &String::from_str(&env, "other"),
+        );
+        let balances = client.get_balances(&gid);
+        let alice_bal = balances.get(alice.clone()).unwrap_or(0);
+        let bob_bal   = balances.get(bob.clone()).unwrap_or(0);
+        assert_eq!(alice_bal + bob_bal, 0_i128,
+            "balance sum must be zero for even amount={}", amount);
+    }
+
+    // Invariant for odd amounts: sum = amount mod 2 (rounding remainder)
+    client.add_expense(
+        &gid,
+        &alice,
+        &999_i128,
+        &vec![&env, alice.clone(), bob.clone()],
+        &String::from_str(&env, "odd"),
+        &String::from_str(&env, "other"),
+    );
+    let balances = client.get_balances(&gid);
+    let alice_bal = balances.get(alice.clone()).unwrap_or(0);
+    let bob_bal   = balances.get(bob.clone()).unwrap_or(0);
+    // Remainder is at most n-1 = 1
+    let sum = alice_bal + bob_bal;
+    assert!(sum == 0 || sum == 1,
+        "balance sum for odd amount must be 0 or 1 (rounding), got {}", sum);
+}
+
+#[test]
+fn test_balance_sum_always_zero_3_members() {
+    let (env, client, token) = setup_contract();
+    let a = Address::generate(&env);
+    let b = Address::generate(&env);
+    let c = Address::generate(&env);
+    let members = vec![&env, a.clone(), b.clone(), c.clone()];
+    let gid = client.create_group(&a, &String::from_str(&env, "G3"), &members, &token);
+
+    let amounts = [300_i128, 900, 1_200, 150, 600];
+    for amount in amounts {
+        client.add_expense(
+            &gid,
+            &a,
+            &amount,
+            &vec![&env, a.clone(), b.clone(), c.clone()],
+            &String::from_str(&env, "exp"),
+            &String::from_str(&env, "other"),
+        );
+    }
+    let balances = client.get_balances(&gid);
+    let sum: i128 = [a.clone(), b.clone(), c.clone()]
+        .iter()
+        .map(|addr| balances.get(addr.clone()).unwrap_or(0))
+        .sum();
+    assert_eq!(sum, 0_i128, "3-member balance sum must be zero");
+}
+
+#[test]
+fn test_settlement_reduces_imbalance() {
+    // Verify that compute_settlements returns the minimum number of transfers
+    // that resolves all debts for a simple 2-member case.
+    let (env, client, token) = setup_contract();
+    let alice = Address::generate(&env);
+    let bob   = Address::generate(&env);
+    let members = vec![&env, alice.clone(), bob.clone()];
+    let gid = client.create_group(&alice, &String::from_str(&env, "G"), &members, &token);
+
+    client.add_expense(
+        &gid,
+        &alice,
+        &1000_i128,
+        &vec![&env, alice.clone(), bob.clone()],
+        &String::from_str(&env, "hotel"),
+        &String::from_str(&env, "stay"),
+    );
+
+    let settlements = client.compute_settlements(&gid);
+    // Only 1 transfer needed: bob owes alice 500
+    assert_eq!(settlements.len(), 1);
+    let s = settlements.get(0).unwrap();
+    assert_eq!(s.from, bob);
+    assert_eq!(s.to,   alice);
+    assert_eq!(s.amount, 500_i128);
+}

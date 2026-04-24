@@ -22,6 +22,8 @@ use storage::{
     // router-based hop (silenced via `#[allow(dead_code)]` on the getter).
     set_swap_router_addr,
     get_swap_factory, set_swap_factory_addr,
+    // Emergency pause circuit-breaker
+    is_paused, set_paused,
 };
 use types::{Expense, Group, Settlement, GuardianConfig, RecoveryRequest, Vault, SavingsPool};
 
@@ -33,6 +35,17 @@ const MIN_MEMBERS: u32 = 2;
 #[contract]
 pub struct StellarSplitContract;
 
+// ── Internal guard ──────────────────────────────────────────────────────────
+// Called at the top of every state-mutating entrypoint. Returns immediately
+// when the contract is running normally; panics with a clear message when the
+// emergency pause flag is set, preventing any ledger writes.
+#[inline(always)]
+fn check_not_paused(env: &Env) {
+    if is_paused(env) {
+        panic!("contract is paused — contact admin to unpause");
+    }
+}
+
 #[contractimpl]
 impl StellarSplitContract {
     // ─────────────────────────────────────────────
@@ -43,6 +56,7 @@ impl StellarSplitContract {
     /// Validasyonlar: isim uzunluğu, minimum 2 üye, duplicate üye kontrolü.
     /// Döndürdüğü değer: group_id
     pub fn create_group(env: Env, creator: Address, name: String, members: Vec<Address>, token: Address) -> u64 {
+        check_not_paused(&env);
         creator.require_auth();
 
         // ── Validasyonlar ──
@@ -121,6 +135,7 @@ impl StellarSplitContract {
         description: String,
         category: String,
     ) -> u64 {
+        check_not_paused(&env);
         payer.require_auth();
 
         // Grup var mı + settled kontrolü
@@ -202,6 +217,7 @@ impl StellarSplitContract {
 
     /// Son eklenen harcamayı iptal eder. Sadece o harcamayı ekleyen (payer) çağırabilir; grup settle edilmemiş olmalı.
     pub fn cancel_last_expense(env: Env, group_id: u64, caller: Address) {
+        check_not_paused(&env);
         caller.require_auth();
 
         if is_group_settled(&env, group_id) {
@@ -240,6 +256,7 @@ impl StellarSplitContract {
 
     /// Gruba yeni üye ekler. Sadece mevcut üyeler çağırabilir; grup settle edilmemiş olmalı.
     pub fn add_member(env: Env, group_id: u64, caller: Address, new_member: Address) {
+        check_not_paused(&env);
         caller.require_auth();
 
         if is_group_settled(&env, group_id) {
@@ -275,6 +292,7 @@ impl StellarSplitContract {
 
     /// Gruptan üye çıkarır. Sadece mevcut üyeler çağırabilir; en az 2 üye kalmalı.
     pub fn remove_member(env: Env, group_id: u64, caller: Address, member_to_remove: Address) {
+        check_not_paused(&env);
         caller.require_auth();
 
         if is_group_settled(&env, group_id) {
@@ -372,6 +390,7 @@ impl StellarSplitContract {
         group_id: u64,
         settler: Address,
     ) -> Vec<Settlement> {
+        check_not_paused(&env);
         settler.require_auth();
 
         // Zaten settle edilmişse kabul etme
@@ -457,6 +476,54 @@ impl StellarSplitContract {
     /// Kayıtlı admin adresini döner (testler + UI için).
     pub fn get_admin(env: Env) -> Option<Address> {
         get_admin_addr(&env)
+    }
+
+    // ─────────────────────────────────────────────
+    //  EMERGENCY PAUSE (circuit-breaker)
+    // ─────────────────────────────────────────────
+
+    /// Halts all state-mutating entrypoints.
+    ///
+    /// Only the stored admin may call this.  Designed for use when an
+    /// exploit or critical bug is discovered — stops damage while a fix is
+    /// prepared.  Read-only entrypoints (get_group, get_balances, etc.)
+    /// remain callable so users can audit state during the freeze.
+    ///
+    /// Emit `contract_paused` event for indexers / monitoring.
+    pub fn pause(env: Env, admin: Address) {
+        admin.require_auth();
+        let stored_admin = get_admin_addr(&env)
+            .expect("contract not initialised — call init_admin first");
+        if admin != stored_admin {
+            panic!("only admin can pause the contract");
+        }
+        set_paused(&env, true);
+        env.events().publish(
+            (Symbol::new(&env, "contract_paused"), admin),
+            true,
+        );
+    }
+
+    /// Resumes normal operation after a `pause`.
+    ///
+    /// Only the stored admin may call this.  Emits `contract_unpaused` event.
+    pub fn unpause(env: Env, admin: Address) {
+        admin.require_auth();
+        let stored_admin = get_admin_addr(&env)
+            .expect("contract not initialised — call init_admin first");
+        if admin != stored_admin {
+            panic!("only admin can unpause the contract");
+        }
+        set_paused(&env, false);
+        env.events().publish(
+            (Symbol::new(&env, "contract_unpaused"), admin),
+            false,
+        );
+    }
+
+    /// Returns the current pause state (readable without auth).
+    pub fn is_paused_query(env: Env) -> bool {
+        is_paused(&env)
     }
 
     /// Reward token contract adresini kaydeder.
@@ -583,6 +650,7 @@ impl StellarSplitContract {
         settler: Address,
         destination_asset: Option<Address>,
     ) -> Vec<Settlement> {
+        check_not_paused(&env);
         settler.require_auth();
 
         if is_group_settled(&env, group_id) {
@@ -772,6 +840,7 @@ impl StellarSplitContract {
     /// (unit test / ön-setup deployment durumu). Referral kaydı yine de
     /// tutulur — ikinci çağrıda panic edeceği için idempotency korunur.
     pub fn register_referral(env: Env, inviter: Address, newcomer: Address) {
+        check_not_paused(&env);
         newcomer.require_auth();
 
         if inviter == newcomer {
