@@ -20,6 +20,9 @@ jest.mock('ioredis', () => ({
   default: jest.fn().mockImplementation(() => ({
     get: mockRedisGet,
     set: mockRedisSet,
+    // The poller now subscribes to the `error` event so it can rate-limit
+    // ECONNREFUSED log spam. Mock `.on` as a no-op so tests don't blow up.
+    on: jest.fn(),
   })),
 }));
 

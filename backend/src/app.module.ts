@@ -23,6 +23,7 @@ import { GuardiansModule } from './guardians/guardians.module';
 import { WorkersModule } from './workers/workers.module';
 import { EventsModule } from './events/events.module';
 import { AuditModule } from './audit/audit.module';
+import { buildRedisConnectionOptions, parseRedisUrl } from './common/config/redis-config';
 import { MetricsModule } from './metrics/metrics.module';
 import { UsersModule } from './users/users.module';
 import { GovernanceModule } from './governance/governance.module';
@@ -73,19 +74,46 @@ import { SponsorModule } from './sponsor/sponsor.module';
       }),
     }),
 
-    // Redis cache — global, TTL 60s default (key-level TTL overrides this)
+    // Redis cache — global, TTL 60s default (key-level TTL overrides this).
+    // Reads REDIS_URL via parseRedisUrl so it picks up Railway's reference
+    // variable (which only injects REDIS_URL, not the legacy REDIS_HOST /
+    // REDIS_PORT pair). When the connection ever fails on bootstrap we
+    // fall back to in-memory caching so a missing Redis can't take the
+    // whole app offline.
     CacheModule.registerAsync({
       isGlobal: true,
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => ({
-        store: await redisStore({
-          socket: {
-            host: config.get<string>('REDIS_HOST', 'localhost'),
-            port: config.get<number>('REDIS_PORT', 6379),
-          },
-        }),
-        ttl: 60 * 1000, // 60 seconds in ms
-      }),
+      useFactory: async (config: ConfigService) => {
+        const rawUrl = config.get<string>('REDIS_URL', '');
+        if (!rawUrl) {
+          // Memory store — no socket. Cache still works, just isn't shared
+          // across replicas. Better than crashing on bootstrap.
+          return { ttl: 60 * 1000 };
+        }
+        try {
+          const parsed = parseRedisUrl(rawUrl);
+          return {
+            store: await redisStore({
+              socket: {
+                host: parsed.host,
+                port: parsed.port,
+                // Stop reconnecting after 5 failed attempts — same cap as
+                // the BullMQ + soroban-event-poller paths use, so a missing
+                // Redis doesn't generate three independent retry storms.
+                reconnectStrategy: (retries: number) =>
+                  retries > 5 ? false : Math.min(retries * 200, 2000),
+              },
+              ...(parsed.password ? { password: parsed.password } : {}),
+              ...(parsed.username ? { username: parsed.username } : {}),
+            }),
+            ttl: 60 * 1000,
+          };
+        } catch {
+          // URL parse failed or redisStore handshake threw — degrade to
+          // in-memory rather than aborting bootstrap.
+          return { ttl: 60 * 1000 };
+        }
+      },
     }),
 
     // BullMQ
@@ -93,23 +121,17 @@ import { SponsorModule } from './sponsor/sponsor.module';
     // `{ url }` — we must parse the URL into host/port/auth fields.
     // Using a tiny helper so the factory stays a pure function without
     // importing `new URL()` awkwardly inside the class decorator.
+    // BullMQ root config. The connection options now come from the shared
+    // Redis helper (common/config/redis-config) so the resilience tweaks
+    // (capped retryStrategy, lazyConnect, enableOfflineQueue=false) apply
+    // here too — without them a missing Redis was floor-flooding the event
+    // loop hard enough to time out Railway's healthcheck proxy.
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const rawUrl = config.get<string>('REDIS_URL', 'redis://localhost:6379');
-        const u = new URL(rawUrl);
-        const isRediss = u.protocol === 'rediss:';
         return {
-          connection: {
-            host: u.hostname,
-            port: u.port ? parseInt(u.port, 10) : (isRediss ? 6380 : 6379),
-            ...(u.password ? { password: decodeURIComponent(u.password) } : {}),
-            ...(u.username && u.username !== 'default' ? { username: decodeURIComponent(u.username) } : {}),
-            // Enable TLS for rediss:// URLs (Railway / Upstash production)
-            ...(isRediss ? { tls: {} } : {}),
-            // Required by BullMQ when used as a blocking client
-            maxRetriesPerRequest: null,
-          },
+          connection: buildRedisConnectionOptions(rawUrl, 'bullmq'),
           defaultJobOptions: {
             attempts: 3,
             backoff: { type: 'exponential', delay: 2000 },

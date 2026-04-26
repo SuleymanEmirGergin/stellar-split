@@ -4,6 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import * as StellarSdk from '@stellar/stellar-sdk';
 import Redis from 'ioredis';
 import { EventsService } from '../events/events.service';
+import { parseRedisUrl } from '../common/config/redis-config';
 
 const LAST_LEDGER_KEY = 'soroban:last_ledger';
 
@@ -72,6 +73,9 @@ export class SorobanEventPollerService {
   private readonly rpcServer: StellarSdk.rpc.Server;
   private readonly redis: Redis;
   private readonly contractIds: string[];
+  /** When Redis can't be reached, throttle log spam to one warning per minute. */
+  private lastRedisErrorWarnAt = 0;
+  private readonly REDIS_WARN_COOLDOWN_MS = 60_000;
 
   constructor(
     private readonly config: ConfigService,
@@ -80,8 +84,37 @@ export class SorobanEventPollerService {
     const rpcUrl = config.get<string>('SOROBAN_RPC_URL', 'https://soroban-testnet.stellar.org');
     this.rpcServer = new StellarSdk.rpc.Server(rpcUrl);
 
+    // Build a resilient Redis client. Three knobs matter beyond defaults:
+    //  - retryStrategy capped at 5 attempts so an unreachable Redis stops
+    //    looping and stops spamming the event loop with reconnects;
+    //  - enableOfflineQueue=false so commands fail fast (the cron job
+    //    catches the error and continues to the next tick);
+    //  - lazyConnect so process bootstrap doesn't block on the handshake.
     const redisUrl = config.get<string>('REDIS_URL', 'redis://localhost:6379');
-    this.redis = new Redis(redisUrl);
+    const parsed = parseRedisUrl(redisUrl);
+    this.redis = new Redis({
+      host: parsed.host,
+      port: parsed.port,
+      ...(parsed.password ? { password: parsed.password } : {}),
+      ...(parsed.username ? { username: parsed.username } : {}),
+      ...(parsed.tls ? { tls: {} } : {}),
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times: number) => (times > 5 ? null : Math.min(times * 200, 2000)),
+      enableOfflineQueue: false,
+      lazyConnect: true,
+    });
+    // Without an explicit `error` listener, ioredis prints
+    // `[ioredis] Unhandled error event: …` with a full stack trace per
+    // reconnect attempt. Rate-limit it to one warning per minute.
+    this.redis.on('error', (err: Error) => {
+      const now = Date.now();
+      if (now - this.lastRedisErrorWarnAt < this.REDIS_WARN_COOLDOWN_MS) return;
+      this.lastRedisErrorWarnAt = now;
+      this.logger.warn(
+        { err: err?.message ?? String(err) },
+        'Redis connection error (subsequent errors suppressed for 60 s)',
+      );
+    });
 
     const ids = [
       config.get<string>('SOROBAN_CONTRACT_ID'),
@@ -163,7 +196,16 @@ export class SorobanEventPollerService {
         await this.redis.set(LAST_LEDGER_KEY, String(maxLedger));
       }
     } catch (err) {
-      this.logger.warn({ err: String(err) }, 'Soroban event poll failed');
+      // Throttle the same way as the Redis error listener — when Redis is
+      // unreachable this catch fires every 5 s with the same message.
+      const now = Date.now();
+      if (now - this.lastRedisErrorWarnAt >= this.REDIS_WARN_COOLDOWN_MS) {
+        this.lastRedisErrorWarnAt = now;
+        this.logger.warn(
+          { err: String(err) },
+          'Soroban event poll failed (subsequent failures suppressed for 60 s)',
+        );
+      }
     }
   }
 }
