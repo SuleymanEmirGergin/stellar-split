@@ -43,12 +43,14 @@ USER appuser
 
 EXPOSE 3001
 
-# Healthcheck uses the same PORT the app listens on (Railway injects PORT;
-# locally defaults to 3001 via the shell fallback). Container-internal, so
-# localhost is fine here — Railway's external healthcheck is separate and
-# hits the 0.0.0.0 bind set up in main.ts.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget -qO- "http://localhost:${PORT:-3001}/health/live" || exit 1
+# NOTE: Docker-level HEALTHCHECK intentionally removed.
+# Railway runs its own external healthcheck (see railway.toml's
+# `healthcheckPath`) and a container-internal HEALTHCHECK that disagrees
+# with it produces a confusing "container unhealthy" state where the
+# external proxy refuses to route traffic even when the app is fine.
+# If we ever go back to plain Docker hosting, restore something like:
+#   HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
+#     CMD wget -qO- "http://localhost:${PORT:-3001}/health/live" || exit 1
 
 # Start the server directly. Schema migrations run separately:
 #   - In CI / development: `npm run db:migrate` against the test DB
