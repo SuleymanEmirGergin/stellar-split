@@ -62,6 +62,7 @@
     "nestjs-pino": "^4.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "perfect-debounce": "^2.1.0",
     "pino": "^9.0.0",
     "pino-http": "^10.0.0",
     "prom-client": "^15.1.3",
