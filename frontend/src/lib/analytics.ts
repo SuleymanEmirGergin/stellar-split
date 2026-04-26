@@ -83,7 +83,11 @@ export type EventName =
   // Navigation / UI
   | 'tab_switched'
   | 'referral_tab_opened'
-  | 'settings_opened';
+  | 'settings_opened'
+  // Reliability / health (recoverable error telemetry)
+  | 'error_boundary_caught'   // any uncaught render exception caught by ErrorBoundary
+  | 'chunk_reload_triggered'  // stale lazy chunk → auto hard-reload fired
+  | 'tab_error_caught';       // single-tab failure isolated by TabErrorBoundary
 
 /** Countable events persisted locally */
 type CountableEvent =

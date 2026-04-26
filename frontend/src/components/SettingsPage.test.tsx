@@ -7,6 +7,8 @@ import { SettingsPage } from './SettingsPage';
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...p }: React.HTMLAttributes<HTMLDivElement>) => <div {...p}>{children}</div>,
+    // FeatureFlagsPanel uses motion.li for the staggered flag rows.
+    li: ({ children, ...p }: React.LiHTMLAttributes<HTMLLIElement>) => <li {...p}>{children}</li>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -56,8 +58,12 @@ vi.mock('lucide-react', () => {
   const Icon = ({ 'data-testid': tid }: { 'data-testid'?: string }) => (
     <svg data-testid={tid} />
   );
+  // Keep this list in sync with the icons SettingsPage (and any panels it
+  // composes — currently FeatureFlagsPanel) imports from lucide-react.
   const icons = ['User', 'Palette', 'Shield', 'Bell', 'Download', 'Trash2', 'Sun', 'Moon',
-    'CheckCircle', 'AlertTriangle', 'Loader2', 'Cloud', 'Link'];
+    'CheckCircle', 'AlertTriangle', 'Loader2', 'Cloud', 'Link',
+    // FeatureFlagsPanel uses these:
+    'Flag', 'Copy', 'Check', 'ToggleRight', 'ToggleLeft', 'Info'];
   return Object.fromEntries(icons.map(name => [name, Icon]));
 });
 

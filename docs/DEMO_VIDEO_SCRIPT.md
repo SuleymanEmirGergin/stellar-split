@@ -8,12 +8,12 @@ The old demo at [`youtu.be/ZmqJI9Y7UTc`](https://youtu.be/ZmqJI9Y7UTc) showed sa
 
 ## Pre-recording checklist
 
-- [ ] Contract `CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF` is the one wired in Vercel env
+- [ ] Contract `CAUKBMO5OAWHDDWAR3WHDYBJSJDTQUAD53L3JDD53DFIYTAVPW3DDAOA` is the one wired in Vercel env
 - [ ] Freighter is on testnet and two accounts exist (presenter + creditor), both with friendbot-funded XLM
 - [ ] Creditor account **does not yet** have a USDC trustline (so the pre-flight UX kicks in on camera — if it already does, remove the line via `stellar tx new change-trust --limit 0 --line USDC:GBBD47IF…`)
 - [ ] Browser: Chromium in an incognito profile with Freighter unlocked; no dev-tools overlay; window resized to 1400×900 to match the app's max-width
 - [ ] Tab 1: `https://stellar-split.vercel.app/dashboard`
-- [ ] Tab 2: `https://stellar.expert/explorer/testnet/contract/CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF` (for showing the tx at the end)
+- [ ] Tab 2: `https://stellar.expert/explorer/testnet/contract/CAUKBMO5OAWHDDWAR3WHDYBJSJDTQUAD53L3JDD53DFIYTAVPW3DDAOA` (for showing the tx at the end)
 - [ ] OBS scene: screen capture + webcam overlay in bottom-right, 200×200 circle-mask
 - [ ] Clear the `stellarsplit_joyride_done_v2` localStorage flag so the onboarding tour isn't in the way
 
@@ -46,7 +46,7 @@ Full-screen still showing:
 
 ```
 🔗 stellar-split.vercel.app
-📝 CAH5AFV3…QOBF  on Stellar Expert
+📝 CAUKBMO5…DDAOA  on Stellar Expert
 📹 Proof tx: 1f9d0a9c…bbd0a3
 ```
 

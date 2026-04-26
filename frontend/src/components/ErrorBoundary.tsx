@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { i18n } from '../lib/i18n';
+import { track } from '../lib/analytics';
 
 interface Props {
   children: ReactNode;
@@ -72,11 +73,32 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('[Birik] ErrorBoundary caught:', error, info.componentStack);
 
+    const isStaleChunk = isLazyChunkError(error);
+
+    // Always emit a telemetry event — these are the only data points
+    // we have about uncaught render exceptions in the wild. Payload is
+    // minimal (no PII, just shape) so we can ship it through our standard
+    // analytics pipeline without privacy review.
+    try {
+      track('error_boundary_caught', {
+        name: error?.name ?? 'Error',
+        message: String(error?.message ?? '').slice(0, 200),
+        isStaleChunk,
+        path: typeof window !== 'undefined' ? window.location.pathname : '',
+      });
+    } catch { /* analytics must never break recovery */ }
+
     // Stale lazy-chunk: the entry bundle references a chunk hash that the
     // server no longer has (Vercel rolled a new build while this tab was
     // open). Hard-reload to pick up the fresh chunk manifest — but only
     // if we haven't already reloaded very recently, to avoid looping.
-    if (isLazyChunkError(error) && shouldAutoReloadNow()) {
+    if (isStaleChunk && shouldAutoReloadNow()) {
+      try {
+        track('chunk_reload_triggered', {
+          path: typeof window !== 'undefined' ? window.location.pathname : '',
+        });
+      } catch { /* noop */ }
+
       // Let React finish tearing down the subtree before navigating. A
       // microtask is enough — we don't want to block paint of the soft
       // "Refreshing…" fallback below.

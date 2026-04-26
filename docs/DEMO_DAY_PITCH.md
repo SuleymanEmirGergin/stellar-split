@@ -98,7 +98,7 @@ Hackathon Level 6 · Emir Gergin · April 2026
 | Live endpoints | Vercel frontend + Railway backend + SSE event stream |
 | **Atomic multi-currency swap** | **✅ LIVE** — [tx `1f9d0a9c…bbd0a3`](https://stellar.expert/explorer/testnet/tx/1f9d0a9c1d3655fd6c491af3d2eb20e141098b26c4dcf597abde6672f5bbd0a3) |
 
-**Live contract:** [`CAH5AFV3…QOBF`](https://stellar.expert/explorer/testnet/contract/CAH5AFV3ESN563TBT3OSL32SPMSWLP5W2FJZLOHGQXG4IUG63LMFQOBF) — Path B (router-bypass) implementation; contract calls Soroswap pair's `swap` directly after pre-transferring source asset, atomic XLM→USDC settlement proven end-to-end.
+**Live contract:** [`CAUKBMO5…DDAOA`](https://stellar.expert/explorer/testnet/contract/CAUKBMO5OAWHDDWAR3WHDYBJSJDTQUAD53L3JDD53DFIYTAVPW3DDAOA) — Path B (router-bypass) implementation; contract calls Soroswap pair's `swap` directly after pre-transferring source asset, atomic XLM→USDC settlement proven end-to-end.
 
 **Observability:** Sentry + Prometheus `/metrics` + Pino + `/health/live|ready` + public `/analytics/summary` dashboard (DAU/WAU/MAU, 14-day volume trend).
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PiggyBank,
   Plus,
@@ -12,7 +12,6 @@ import {
   Loader2,
   Coins,
   Trophy,
-  AlertTriangle,
 } from 'lucide-react';
 import { savingsApi, type BackendSavingsPool } from '../lib/api';
 import { createSavingsPool as createPoolOnChain, contributeToPool as contributePoolOnChain } from '../lib/contract';
@@ -20,6 +19,10 @@ import { truncateAddress } from '../lib/stellar';
 import { useI18n } from '../lib/i18n';
 import { useToast } from './Toast';
 import Confetti from './Confetti';
+import SavingsStatsHero from './savings/SavingsStatsHero';
+import SavingsLeaderboard from './savings/SavingsLeaderboard';
+import StatusFilterChips, { type SavingsFilterStatus } from './savings/StatusFilterChips';
+import { useSavingsPools } from './savings/useSavingsPools';
 
 interface SavingsPoolProps {
   groupId: string;
@@ -549,13 +552,21 @@ function ContributeModal({
   );
 }
 
-// ─── Main SavingsPool Component ───────────────────────────────────────────────
+// ─── Main SavingsPool Component (orchestrator) ────────────────────────────────
+//
+// Refactored 2026-04-26 per docs/design/savings-redesign.md.
+// The previous flat layout (3 stacked sections per status) is now:
+//   [SavingsStatsHero] → [SavingsLeaderboard] → [StatusFilterChips] → [PoolCard list]
+// PoolCard / CreatePoolModal / ContributeModal are unchanged — only the
+// outer composition is new. Data goes through a single useSavingsPools()
+// hook that derives stats once and feeds them to every child.
 export default function SavingsPool({ groupId, walletAddress, currencyLabel: _currencyLabel }: SavingsPoolProps) {
   const { t } = useI18n();
   const { addToast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [contributingTo, setContributingTo] = useState<BackendSavingsPool | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [filter, setFilter] = useState<SavingsFilterStatus>('ALL');
 
   // Auto-dismiss confetti after 4s
   useEffect(() => {
@@ -565,12 +576,7 @@ export default function SavingsPool({ groupId, walletAddress, currencyLabel: _cu
   }, [showConfetti]);
 
   const qc = useQueryClient();
-
-  const { data: pools = [], isLoading } = useQuery<BackendSavingsPool[]>({
-    queryKey: ['savings', groupId],
-    queryFn: () => savingsApi.listByGroup(groupId),
-    refetchInterval: 30_000,
-  });
+  const { pools, stats, isLoading } = useSavingsPools(groupId);
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => savingsApi.cancel(id),
@@ -580,107 +586,115 @@ export default function SavingsPool({ groupId, walletAddress, currencyLabel: _cu
     },
   });
 
-  const activePools = pools.filter((p) => p.status === 'ACTIVE');
-  const completedPools = pools.filter((p) => p.status === 'COMPLETED');
-  const cancelledPools = pools.filter((p) => p.status === 'CANCELLED');
+  // The hero needs the group's currency label even before any pools exist
+  // (the empty hero renders a CTA without amounts). Derive from the first
+  // pool when we have one, fall back to XLM otherwise — matches the
+  // CreatePoolModal default.
+  const heroCurrency: 'XLM' | 'USDC' = pools[0]?.currency ?? 'XLM';
+
+  // Filter pools for the list. ALL keeps everything, otherwise filter by status.
+  const filteredPools = filter === 'ALL' ? pools : pools.filter((p) => p.status === filter);
+
+  // Sort filtered list: active first, then completed, then cancelled, by createdAt desc.
+  const sortedPools = [...filteredPools].sort((a, b) => {
+    const order = { ACTIVE: 0, COMPLETED: 1, CANCELLED: 2 };
+    if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const isEmpty = !isLoading && pools.length === 0;
+
+  // Filtered-but-not-empty-overall — happens when the user picks a status
+  // chip that has no rows (e.g. CANCELLED on a healthy group).
+  const filteredEmpty = !isLoading && pools.length > 0 && filteredPools.length === 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Confetti active={showConfetti} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-black tracking-tight flex items-center gap-2">
-            <PiggyBank className="text-emerald-400" size={20} />
-            {t('savings.tab_title')}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{t('savings.tab_subtitle')}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-xs shadow-[0_4px_16px_rgba(16,185,129,0.25)] transition-all"
-        >
-          <Plus size={14} />
-          {t('savings.new_pool_btn')}
-        </button>
-      </div>
-
-      {/* Loading */}
+      {/* Loading skeleton — keeps the hero shape so there's no layout shift */}
       {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 size={28} className="animate-spin text-muted-foreground" />
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!isLoading && pools.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
-            <PiggyBank size={32} className="text-emerald-400/40" />
+        <div className="space-y-5">
+          <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl p-6 animate-pulse">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="bg-white/[0.04] rounded-2xl p-4 h-24" />
+              ))}
+            </div>
           </div>
-          <p className="font-black text-sm">{t('savings.empty_title')}</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">{t('savings.empty_desc')}</p>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="mt-4 flex items-center gap-2 px-6 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl text-sm font-black hover:bg-emerald-500/20 transition-all"
-          >
-            <Plus size={14} />
-            {t('savings.new_pool_btn')}
-          </button>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 size={24} className="animate-spin text-muted-foreground" />
+          </div>
         </div>
       )}
 
-      {/* Active Pools */}
-      {activePools.length > 0 && (
+      {/* Hero — renders empty variant when there are zero pools */}
+      {!isLoading && (
+        <SavingsStatsHero
+          totalCurrent={stats.totalCurrent}
+          totalGoal={stats.totalGoal}
+          overallPct={stats.overallPct}
+          activeCount={stats.activeCount}
+          currency={heroCurrency}
+          onCreatePool={() => setShowCreate(true)}
+          isEmpty={isEmpty}
+        />
+      )}
+
+      {/* Leaderboard — auto-hides when 0 contributors */}
+      {!isLoading && (
+        <SavingsLeaderboard contributors={stats.contributors} currency={heroCurrency} />
+      )}
+
+      {/* Filter + filtered list. Hidden entirely when there are no pools at all
+          — the empty-state hero already handles the "create your first pool"
+          CTA, no need to repeat it. */}
+      {!isLoading && pools.length > 0 && (
         <div className="space-y-4">
-          {activePools.map((pool) => (
-            <PoolCard
-              key={pool.id}
-              pool={pool}
-              walletAddress={walletAddress}
-              onContribute={(p) => setContributingTo(p)}
-              onCancel={(id) => cancelMutation.mutate(id)}
-            />
-          ))}
-        </div>
-      )}
+          <StatusFilterChips
+            status={filter}
+            counts={{
+              ALL: pools.length,
+              ACTIVE: stats.activeCount,
+              COMPLETED: stats.completedCount,
+              CANCELLED: stats.cancelledCount,
+            }}
+            onChange={setFilter}
+          />
 
-      {/* Completed Pools */}
-      {completedPools.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-400/60 flex items-center gap-2">
-            <Check size={10} /> {t('savings.completed_section')}
-          </h4>
-          {completedPools.map((pool) => (
-            <PoolCard
-              key={pool.id}
-              pool={pool}
-              walletAddress={walletAddress}
-              onContribute={() => undefined}
-              onCancel={() => undefined}
-            />
-          ))}
-        </div>
-      )}
+          {/* Filtered-empty fallback (e.g. filter=CANCELLED but there are 0 cancelled) */}
+          {filteredEmpty && (
+            <div className="bg-white/[0.025] border border-dashed border-white/[0.08] rounded-2xl py-10 text-center">
+              <p className="font-black text-xs text-foreground/80">
+                {filter === 'ACTIVE'
+                  ? t('savings.filtered_empty_active')
+                  : filter === 'COMPLETED'
+                  ? t('savings.filtered_empty_completed')
+                  : t('savings.filtered_empty_cancelled')}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">{t('savings.filtered_empty_hint')}</p>
+            </div>
+          )}
 
-      {/* Cancelled Pools */}
-      {cancelledPools.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 flex items-center gap-2">
-            <AlertTriangle size={10} /> {t('savings.cancelled_section')}
-          </h4>
-          {cancelledPools.map((pool) => (
-            <PoolCard
-              key={pool.id}
-              pool={pool}
-              walletAddress={walletAddress}
-              onContribute={() => undefined}
-              onCancel={() => undefined}
-            />
-          ))}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {sortedPools.map((pool) => (
+              <motion.div
+                key={pool.id}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+              >
+                <PoolCard
+                  pool={pool}
+                  walletAddress={walletAddress}
+                  onContribute={(p) => setContributingTo(p)}
+                  onCancel={(id) => cancelMutation.mutate(id)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { i18n } from '../lib/i18n';
+import { track } from '../lib/analytics';
 
 interface Props {
   /** Tab identifier — used as the React key so a tab change resets the boundary. */
@@ -47,6 +48,13 @@ export default class TabErrorBoundary extends Component<Props, State> {
       error,
       info.componentStack,
     );
+    try {
+      track('tab_error_caught', {
+        tab: this.props.tabKey,
+        name: error?.name ?? 'Error',
+        message: String(error?.message ?? '').slice(0, 200),
+      });
+    } catch { /* analytics must never break recovery */ }
   }
 
   /**

@@ -25,6 +25,7 @@ import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
 import { BalanceMetric } from './components/ui/BalanceMetric';
 import { FeedbackWidget } from './components/FeedbackWidget';
+import { RouteSkeleton, type RouteSkeletonVariant } from './components/ui/RouteSkeleton';
 import { useFlag } from './lib/featureFlags';
 import { track } from './lib/analytics';
 // Route-level code splitting: these components are only loaded when their route is visited
@@ -625,7 +626,26 @@ function AppContent() {
             transition={{ duration: 0.2, ease: [0.33, 1, 0.68, 1] }}
             className="min-h-0"
           >
-          <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><Zap size={24} className="animate-spin text-birik" /></div>}>
+          <Suspense
+            fallback={
+              <RouteSkeleton
+                variant={
+                  // Pick the closest matching skeleton shape so the lazy
+                  // chunk's slow fetch (~200-500ms on first visit) doesn't
+                  // collapse layout. Falls back to "generic" for unknown
+                  // routes so adding a new lazy import never crashes
+                  // Suspense — see components/ui/RouteSkeleton.tsx.
+                  ((): RouteSkeletonVariant => {
+                    if (isGroup) return 'groupDetail';
+                    if (isReferral) return 'referral';
+                    if (isReputation) return 'reputation';
+                    if (isDashboard || pathname === '/') return 'dashboard';
+                    return 'generic';
+                  })()
+                }
+              />
+            }
+          >
             {pathname === '/' && (
               !walletAddress ? (
                 <Landing onConnect={handleConnect} onPasskey={toggleDemoMode} freighterAvailable={freighterAvailable} connecting={connecting} isDemo={demoMode} onTryDemo={toggleDemoMode} />

@@ -14,6 +14,7 @@ import {
   Loader2,
   Cloud,
   Link,
+  Flag,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { maskAddress } from '../lib/format';
@@ -22,6 +23,7 @@ import { useToast } from './Toast';
 import { useI18n } from '../lib/i18n';
 import { useMotionEnabled } from '../lib/motion';
 import { usePushSubscription } from '../hooks/usePushSubscription';
+import { FeatureFlagsPanel } from './FeatureFlagsPanel';
 
 interface SettingsPageProps {
   dark: boolean;
@@ -439,6 +441,12 @@ export function SettingsPage({ dark, toggleTheme, onDisconnect }: SettingsPagePr
             placeholder="https://hooks.slack.com/services/..."
           />
         </div>
+      </SectionCard>
+
+      {/* Feature flags — read-only audit panel sourced from VITE_FF_* env vars.
+          Useful during demo / debug to confirm what's wired in this build. */}
+      <SectionCard icon={Flag} title={t('settings.feature_flags_title')}>
+        <FeatureFlagsPanel />
       </SectionCard>
     </div>
   );
