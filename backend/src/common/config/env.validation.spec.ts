@@ -32,10 +32,20 @@ describe('validateEnv()', () => {
     expect(() => validateEnv(env)).toThrow('DATABASE_URL');
   });
 
-  it('throws when REDIS_URL is missing', () => {
+  it('does NOT throw when REDIS_URL is missing — degrades gracefully', () => {
+    // REDIS_URL is optional since 2026-04-26: the app boots without it and
+    // runs in a degraded mode (in-memory cache, queue-backed features fail
+    // fast). This avoids the env-validation-crash → restart-loop → "FAILED"
+    // deployment pattern when Railway misroutes the variable.
     const env = { ...VALID_ENV };
     delete env['REDIS_URL'];
-    expect(() => validateEnv(env)).toThrow('REDIS_URL');
+    expect(() => validateEnv(env)).not.toThrow();
+    expect(validateEnv(env).REDIS_URL).toBe('');
+  });
+
+  it('still rejects a malformed REDIS_URL (not a redis:// URL)', () => {
+    const env = { ...VALID_ENV, REDIS_URL: 'gondola.proxy.rlwy.net:10964' };
+    expect(() => validateEnv(env)).toThrow(/REDIS_URL.*must be a redis/);
   });
 
   it('throws when JWT_SECRET is missing', () => {

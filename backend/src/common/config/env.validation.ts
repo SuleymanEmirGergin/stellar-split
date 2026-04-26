@@ -62,7 +62,32 @@ export function validateEnv(config: Record<string, unknown>): EnvVars {
   const port = config['PORT'] ? requiredInt('PORT', 1, 65535) : 3001;
   const frontendUrl = requiredUrl('FRONTEND_URL');
   const databaseUrl = requiredUrl('DATABASE_URL');
-  const redisUrl = requiredUrl('REDIS_URL');
+
+  // REDIS_URL is OPTIONAL — the app boots without it and degrades gracefully:
+  //   - CacheModule falls back to in-memory cache (see app.module.ts)
+  //   - BullMQ queues capture errors instead of taking the event loop down
+  //     (see common/config/redis-config.ts — capped retry, lazy connect,
+  //     enableOfflineQueue=false)
+  //   - Soroban event poller logs one warning per minute and skips ticks
+  // Treating it as required used to crash the whole process during a
+  // misconfigured deploy (env validation throws → restart loop → Railway
+  // marks deploy "FAILED" → "Application not found" 404). Better to stay
+  // up in degraded mode and surface the missing connection on /health/ready.
+  let redisUrl = String(config['REDIS_URL'] ?? '').trim();
+  if (redisUrl) {
+    if (
+      !redisUrl.startsWith('redis://') &&
+      !redisUrl.startsWith('rediss://')
+    ) {
+      errors.push(`  REDIS_URL — must be a redis:// or rediss:// URL (got: "${redisUrl}")`);
+      redisUrl = '';
+    }
+  } else if (nodeEnv === 'production') {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[StellarSplit] REDIS_URL not set — running in degraded mode: CacheModule will use in-memory storage and queue-backed features will fail-fast. /health/ready will report "redis:down".',
+    );
+  }
 
   const jwtSecret = required('JWT_SECRET');
   if (jwtSecret) {
