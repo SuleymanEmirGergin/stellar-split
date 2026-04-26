@@ -4,7 +4,19 @@ dockerfilePath = "backend/Dockerfile"
 watchPatterns = ["backend/**"]
 
 [deploy]
-releaseCommand = "npx prisma migrate deploy"
+# `releaseCommand` removed 2026-04-26.
+# Prisma 6 introduced a c12-based config loader that pulls in a chain of
+# ESM-only transitive deps (c12 → perfect-debounce → jiti → …) which
+# Railway's `npm ci --omit=dev` strips out aggressively. Each missing
+# package took down the release step with a fresh ERR_MODULE_NOT_FOUND,
+# producing a Whac-a-Mole pattern (we'd add one, hit the next).
+#
+# The Dockerfile CMD already runs `prisma migrate deploy || continuing`
+# at container start, so the schema still lands when needed — just on
+# the first request boundary rather than as a separate Railway phase.
+# This keeps deployments clean while we figure out the proper Prisma 6
+# packaging story (likely: pin transitive deps explicitly OR move the
+# migrate step into a one-shot job pod outside the main container).
 healthcheckPath = "/health/live"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

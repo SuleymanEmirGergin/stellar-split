@@ -50,9 +50,14 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget -qO- "http://localhost:${PORT:-3001}/health/live" || exit 1
 
-# Run migrations on boot, then start the server. Migration failures don't
-# kill the process — the server still comes up (healthcheck only hits memory,
-# not DB), and the ready endpoint at /health/ready surfaces the DB state.
-# Without this chain, a fresh Railway environment crashes on first query
-# because no one ran `prisma migrate deploy` against the injected DATABASE_URL.
-CMD ["sh", "-c", "node ./node_modules/prisma/build/index.js migrate deploy || echo 'migrate failed — continuing'; node dist/main.js"]
+# Start the server directly. Schema migrations run separately:
+#   - In CI / development: `npm run db:migrate` against the test DB
+#   - On Railway: a one-shot Job (or `railway run npx prisma migrate deploy`)
+#     against production once per release with a real schema delta.
+#
+# Inlining `prisma migrate deploy` here was triggering a c12 transitive
+# dependency cascade in Prisma 6 (c12 → perfect-debounce → jiti → …)
+# that spammed every container start with ERR_MODULE_NOT_FOUND warnings.
+# The spam is now gone; if you actually changed the schema, run migrate
+# explicitly before bumping the deployment.
+CMD ["node", "dist/main.js"]
