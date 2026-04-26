@@ -19,9 +19,49 @@ const e2eWallet =
 
 const DEMO_KEY = 'stellarsplit_demo_mode';
 
+// ── Wallet persistence ────────────────────────────────────────────────────────
+//
+// We persist the connected Stellar address in localStorage so that a hard
+// refresh (Ctrl+Shift+R / DNS retry / browser cache miss) doesn't drop the
+// user back onto Landing while waiting for Freighter to respond.
+//
+// IMPORTANT: this is a public Stellar address — not a secret. It carries no
+// privacy risk. The actual signing capability stays inside the Freighter
+// extension; we only persist the address to avoid the brief UI flash where
+// the app thinks it's disconnected.
+//
+// On mount, App.tsx still calls `getFreighterAddress()` to reconcile —
+// if Freighter is gone, locked, or returns a different address, it
+// overwrites the persisted value via setWalletAddress(). This keeps the
+// cache from going stale.
+const WALLET_KEY = 'stellarsplit_wallet_address';
+
+function readPersistedWallet(): string {
+  if (e2eWallet) return e2eWallet; // E2E override always wins.
+  if (typeof window === 'undefined') return '';
+  try {
+    return localStorage.getItem(WALLET_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writePersistedWallet(address: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (address) localStorage.setItem(WALLET_KEY, address);
+    else localStorage.removeItem(WALLET_KEY);
+  } catch {
+    /* localStorage unavailable (Safari private mode, full disk) — ignore */
+  }
+}
+
 export const useAppStore = create<AppState>((set) => ({
-  walletAddress: e2eWallet,
-  setWalletAddress: (address) => set({ walletAddress: address }),
+  walletAddress: readPersistedWallet(),
+  setWalletAddress: (address) => {
+    writePersistedWallet(address);
+    set({ walletAddress: address });
+  },
   backendUser: null,
   setBackendUser: (user) => set({ backendUser: user }),
   demoMode: typeof window !== 'undefined' && localStorage.getItem(DEMO_KEY) === 'true',

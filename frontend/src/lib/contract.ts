@@ -1289,14 +1289,21 @@ export async function getSPLTBalance(userAddress: string): Promise<number> {
   try {
     const spltContract = new StellarSdk.Contract(SPLT_CONTRACT_ID);
     const account = await server.getAccount(userAddress);
-    const txBuilder = new StellarSdk.TransactionBuilder(account, {
+    const tx = new StellarSdk.TransactionBuilder(account, {
       fee: StellarSdk.BASE_FEE,
       networkPassphrase: NETWORK_PASSPHRASE,
-    });
-    txBuilder.addOperation(spltContract.call('balance', StellarSdk.Address.fromString(userAddress).toScVal()));
-    const tx = txBuilder.build();
+    })
+      .addOperation(
+        spltContract.call('balance', StellarSdk.Address.fromString(userAddress).toScVal()),
+      )
+      // TimeBounds is required by recent stellar-sdk releases even for
+      // simulate-only transactions. Omitting it produced a benign-but-noisy
+      // "TimeBounds has to be set" warning every 20s in the console
+      // (BUG-SPLT-TIMEBOUNDS) — see docs/KNOWN_LIMITATIONS.md.
+      .setTimeout(StellarSdk.TimeoutInfinite)
+      .build();
     const simulated = await server.simulateTransaction(tx);
-    
+
     if (rpc.Api.isSimulationSuccess(simulated) && simulated.result) {
       return Number(StellarSdk.scValToNative(simulated.result.retval));
     }

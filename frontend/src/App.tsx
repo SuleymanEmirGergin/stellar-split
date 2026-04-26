@@ -19,6 +19,7 @@ import {
 import { isFreighterInstalled, connectFreighter, getFreighterAddress } from './lib/stellar';
 import { signInWithStellar, signOut } from './lib/siws';
 import { setAccessToken, usersApi, authApi } from './lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { maskAddress } from './lib/format';
 import { useMotionEnabled } from './lib/motion';
 import { ToastProvider, useToast } from './components/Toast';
@@ -143,12 +144,20 @@ function AppContent() {
     if (typeof window !== 'undefined' && (window as unknown as { __PLAYWRIGHT_E2E_WALLET__?: string }).__PLAYWRIGHT_E2E_WALLET__) {
       return (window as unknown as { __PLAYWRIGHT_E2E_WALLET__: string }).__PLAYWRIGHT_E2E_WALLET__;
     }
-    return null;
+    // Hydrate from the persisted wallet (Zustand store reads localStorage in
+    // its initializer). This makes hard refresh / mid-session redeploy keep
+    // the dashboard rendered instead of flashing Landing while the async
+    // Freighter round-trip is pending. The mount effect below still runs
+    // getFreighterAddress() to reconcile — if Freighter is gone or returns
+    // a different address, it overwrites this initial value.
+    const persisted = useAppStore.getState().walletAddress;
+    return persisted || null;
   });
   const [freighterAvailable, setFreighterAvailable] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const demoMode = useAppStore(s => s.demoMode);
   const storeDemoMode = useAppStore(s => s.setDemoMode);
+  const queryClient = useQueryClient();
   const walletBalance = useWalletBalance(walletAddress, demoMode);
   const spltBalance = useSPLTBalance(walletAddress, demoMode);
   const { addToast } = useToast();
@@ -411,8 +420,17 @@ function AppContent() {
   const toggleDemoMode = useCallback(() => {
     const newMode = !demoMode;
     storeDemoMode(newMode);
+    // Invalidate all data caches that key on the demo flag — without this
+    // the dashboard kept showing demo balances/groups for ~30s after the
+    // toggle and demo→testnet transitions left the page partially blank
+    // until a hard refresh (BUG-DEMO-02). Resetting + refetching aligns
+    // the rendered state with the new mode immediately.
+    queryClient.invalidateQueries({ queryKey: ['groups'] });
+    queryClient.invalidateQueries({ queryKey: ['balances'] });
+    queryClient.invalidateQueries({ queryKey: ['backendGroups'] });
+    queryClient.invalidateQueries({ queryKey: ['publicMetrics'] });
     addToast(newMode ? '🛡️ Demo Modu Aktif' : '🌐 Canlı Mod Aktif', 'info');
-  }, [demoMode, storeDemoMode, addToast]);
+  }, [demoMode, storeDemoMode, addToast, queryClient]);
 
   const goHome = useCallback(() => {
     navigate(walletAddress ? '/dashboard' : '/');
