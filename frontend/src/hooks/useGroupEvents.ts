@@ -12,8 +12,12 @@
 import { useEffect, useRef } from 'react';
 import { getAccessToken } from '../lib/api';
 
-// SSE URL uses the same /api/v1 prefix as the rest-api client
-const _SSE_HOST = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+// SSE URL uses the same /api/v1 prefix as the rest-api client. Production
+// fallback matches src/lib/api.ts so SSE works without an explicit env var.
+const _SSE_DEFAULT_HOST = import.meta.env.MODE === 'production'
+  ? 'https://stellar-split-production.up.railway.app'
+  : 'http://localhost:3001';
+const _SSE_HOST = (import.meta.env.VITE_API_URL as string | undefined) ?? _SSE_DEFAULT_HOST;
 const BASE_URL = `${_SSE_HOST.replace(/\/$/, '')}/api/v1`;
 
 export interface GroupEvent {

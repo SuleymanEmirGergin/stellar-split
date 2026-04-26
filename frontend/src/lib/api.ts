@@ -7,8 +7,13 @@
  * - Auto-refresh: on 401, attempts one silent token refresh then retries
  */
 
-// Raw host — the version prefix is baked in so callers use plain paths (/groups).
-const _HOST = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+// Raw host. Production fallback points at the live Railway deployment so an
+// unconfigured Vercel build still talks to the right backend; local dev
+// overrides via .env (typically `VITE_API_URL=http://localhost:3001`).
+const _DEFAULT_HOST = import.meta.env.MODE === 'production'
+  ? 'https://stellar-split-production.up.railway.app'
+  : 'http://localhost:3001';
+const _HOST = (import.meta.env.VITE_API_URL as string | undefined) ?? _DEFAULT_HOST;
 // Strip trailing slash from env var in case it was set with one.
 const BASE_URL = `${_HOST.replace(/\/$/, '')}/api/v1`;
 
