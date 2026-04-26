@@ -70,12 +70,21 @@ async function bootstrap() {
 
   // API versioning — URI-based: /api/v1/groups, /api/v2/groups …
   // Health (/health/live, /health/ready) and Metrics (/metrics) are excluded
-  // from the global prefix so Railway health checks and Prometheus scraping
-  // continue to work without config changes.
+  // from the global prefix so Railway healthchecks and Prometheus scraping
+  // can hit them without config changes.
+  //
+  // We list every health route explicitly because path-to-regexp v6+
+  // (shipped with the latest NestJS) no longer accepts the legacy
+  // unnamed-wildcard syntax `health/(.*)`. Listing each path is more
+  // verbose but unambiguous — and the auto-convert NestJS prints to
+  // stderr produced a regex Railway's healthcheck proxy couldn't reach,
+  // taking the whole deployment down with "Application not found" 404s
+  // even though /health/live was technically wired in the Nest router.
   app.setGlobalPrefix('api', {
     exclude: [
       { path: 'health', method: RequestMethod.ALL },
-      { path: 'health/(.*)', method: RequestMethod.ALL },
+      { path: 'health/live', method: RequestMethod.ALL },
+      { path: 'health/ready', method: RequestMethod.ALL },
       { path: 'metrics', method: RequestMethod.ALL },
     ],
   });
