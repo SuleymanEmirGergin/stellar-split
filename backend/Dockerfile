@@ -23,6 +23,12 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Default PORT to 8080 — matches Railway's auto-domain routing convention.
+# When Railway *does* inject PORT (which it should, but doesn't always for
+# older projects), that injection wins because env vars at runtime
+# override Dockerfile ENV. So this is a safety net, not a competing
+# source of truth.
+ENV PORT=8080
 
 # Install only production deps
 COPY backend/package*.json ./
@@ -41,7 +47,7 @@ COPY --from=builder /app/prisma ./prisma
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-EXPOSE 3001
+EXPOSE 8080
 
 # NOTE: Docker-level HEALTHCHECK intentionally removed.
 # Railway runs its own external healthcheck (see railway.toml's

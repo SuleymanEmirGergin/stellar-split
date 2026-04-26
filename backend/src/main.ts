@@ -185,9 +185,20 @@ Auth endpoints are throttled to **10 requests / 60 s** per IP.`,
   // Nest/Express bind is localhost only — the process is up but the Railway
   // healthcheck against /health/live gets "service unavailable" because the
   // listener isn't reachable from the container's external network.
-  const port = process.env.PORT ?? 3001;
+  // Default to 8080 — matches Railway's auto-domain routing convention.
+  // The Dockerfile also sets ENV PORT=8080 as a belt-and-braces guard for
+  // older Railway projects that don't auto-inject the variable. If Railway
+  // (or any other host) does inject PORT, that value wins because the env
+  // takes precedence over the JS fallback.
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
   await app.listen(port, '0.0.0.0');
-  app.get(Logger).log(`StellarSplit API listening on 0.0.0.0:${port}`);
+  // Plain console.log instead of nestjs-pino's Logger so this line shows
+  // up in Railway logs even if the LoggerModule has been pruned during
+  // bootstrap. The previous "Mapped { … }" lines stop short of confirming
+  // the actual `listen` call returned, which made it impossible to tell
+  // from logs alone whether the deploy was healthcheck-bound or stuck.
+  // eslint-disable-next-line no-console
+  console.log(`[Bootstrap] StellarSplit API listening on 0.0.0.0:${port}`);
 }
 
 bootstrap().catch((err) => {
