@@ -2,7 +2,7 @@
 
 **Project**: Birik (StellarSplit) — group expense splitting on Stellar + Soroban
 **Current level complete**: L1–L4 (mini-dApp ✅ · tests 1,293 passing ✅ · CI/CD ✅ · mobile responsive ✅ · inter-contract call ✅ · custom token ✅ · savings pool ✅)
-**Repo**: https://github.com/SuleymanEmirGergin/stellar-split
+**Repo**: https://github.com/SuleymanEmirGergin/Birik
 **Live**: https://stellar-split.vercel.app
 
 ---

@@ -3,9 +3,9 @@
 **Saniyeler içinde, neredeyse sıfır ücretle, tam şeffaf grup harcaması takibi ve uzlaşması.**
 _Group expense splitting on Stellar/Soroban with min-flow settlement, reward tokens, and an on-chain savings pool._
 
-[![CI](https://github.com/SuleymanEmirGergin/stellar-split/actions/workflows/ci.yml/badge.svg)](https://github.com/SuleymanEmirGergin/stellar-split/actions/workflows/ci.yml)
+[![CI](https://github.com/SuleymanEmirGergin/Birik/actions/workflows/ci.yml/badge.svg)](https://github.com/SuleymanEmirGergin/Birik/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-1293_passing-success)](#testing--testler)
-[![Commits](https://img.shields.io/github/commit-activity/t/SuleymanEmirGergin/stellar-split)](https://github.com/SuleymanEmirGergin/stellar-split/commits)
+[![Commits](https://img.shields.io/github/commit-activity/t/SuleymanEmirGergin/Birik)](https://github.com/SuleymanEmirGergin/Birik/commits)
 [![Stellar](https://img.shields.io/badge/Stellar-Soroban-7C3AED)](https://soroban.stellar.org)
 [![Vercel](https://img.shields.io/badge/Vercel-deployed-000)](https://stellar-split.vercel.app)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
@@ -305,7 +305,7 @@ Sıfırdan başlayan biri için adım adım kurulum:
 ### 2. Clone the repo
 
 ```bash
-git clone https://github.com/SuleymanEmirGergin/stellar-split
+git clone https://github.com/SuleymanEmirGergin/Birik
 cd stellar-split
 ```
 
@@ -544,7 +544,7 @@ Kullanıcı geri bildirimleri doğrultusunda planlanan ve uygulanan iyileştirme
 
 | # | Feedback'ten gelen madde | Yapılan değişiklik | Commit |
 |---|--------------------------|--------------------|--------|
-| 1 | _"UI/UX harika olsa da ana sayfada ufak bir yerde, bütün ekranı kaplamıyor — keşke full ekran olsa"_ (Daghaniyo, 2026-04-24) | In-app `<main>` max-width `1200px → 1600px` + xl/2xl fluid padding; Dashboard/Group/Settings/Reputation wide display'lerde tam viewport kullanıyor. Landing + mobile unchanged. | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
+| 1 | _"UI/UX harika olsa da ana sayfada ufak bir yerde, bütün ekranı kaplamıyor — keşke full ekran olsa"_ (Daghaniyo, 2026-04-24) | In-app `<main>` max-width `1200px → 1600px` + xl/2xl fluid padding; Dashboard/Group/Settings/Reputation wide display'lerde tam viewport kullanıyor. Landing + mobile unchanged. | [`38a3a83`](https://github.com/SuleymanEmirGergin/Birik/commit/38a3a83) |
 
 ### Planned (bir sonraki iteration için — 2026-04-24 feedback wave'inden)
 
@@ -575,11 +575,11 @@ Documented trade-offs accepted for the hackathon scope. Most Day 1–4 items hav
 
 | Previously tracked | Resolved in | Evidence |
 |---|---|---|
-| `set_reward_token` / `set_swap_router` had no admin guard | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B1 | `init_admin` one-shot + stored-admin equality check; 3 negative tests green. |
-| `compute_yield` + vault math lacked `checked_*` overflow guards | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B2 | All `+=`/`-=`/`*` on `i128` → `checked_add`/`checked_sub`/`checked_mul` with labelled panic messages. |
-| Multi-currency settle (`settle_group_flex`) partial | [#25](https://github.com/SuleymanEmirGergin/stellar-split/pull/25) — Day 3–4 C1 (Path B) | **Live proof tx** [`1f9d0a9c…5bbd0a3`](https://stellar.expert/explorer/testnet/tx/1f9d0a9c1d3655fd6c491af3d2eb20e141098b26c4dcf597abde6672f5bbd0a3) — Alice's 2.5 XLM debt → Bob ~0.574 USDC atomically via Soroswap pair.swap. |
-| Hardcoded Turkish strings in `UserAnalytics` / `OnboardingTour` | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B3 | `useI18n()` migration; 15 new keys × 4 languages (tr/en/de/es). |
-| `DisputeModal` / `PaymentRequestModal` missing `aria-labelledby` | [#22](https://github.com/SuleymanEmirGergin/stellar-split/pull/22) — Day 2 B4 | Added `role="dialog" + aria-modal + aria-labelledby` matching titles. |
+| `set_reward_token` / `set_swap_router` had no admin guard | [#22](https://github.com/SuleymanEmirGergin/Birik/pull/22) — Day 2 B1 | `init_admin` one-shot + stored-admin equality check; 3 negative tests green. |
+| `compute_yield` + vault math lacked `checked_*` overflow guards | [#22](https://github.com/SuleymanEmirGergin/Birik/pull/22) — Day 2 B2 | All `+=`/`-=`/`*` on `i128` → `checked_add`/`checked_sub`/`checked_mul` with labelled panic messages. |
+| Multi-currency settle (`settle_group_flex`) partial | [#25](https://github.com/SuleymanEmirGergin/Birik/pull/25) — Day 3–4 C1 (Path B) | **Live proof tx** [`1f9d0a9c…5bbd0a3`](https://stellar.expert/explorer/testnet/tx/1f9d0a9c1d3655fd6c491af3d2eb20e141098b26c4dcf597abde6672f5bbd0a3) — Alice's 2.5 XLM debt → Bob ~0.574 USDC atomically via Soroswap pair.swap. |
+| Hardcoded Turkish strings in `UserAnalytics` / `OnboardingTour` | [#22](https://github.com/SuleymanEmirGergin/Birik/pull/22) — Day 2 B3 | `useI18n()` migration; 15 new keys × 4 languages (tr/en/de/es). |
+| `DisputeModal` / `PaymentRequestModal` missing `aria-labelledby` | [#22](https://github.com/SuleymanEmirGergin/Birik/pull/22) — Day 2 B4 | Added `role="dialog" + aria-modal + aria-labelledby` matching titles. |
 
 ---
 
@@ -598,9 +598,9 @@ Documented trade-offs accepted for the hackathon scope. Most Day 1–4 items hav
 
 ## 🤝 Contributing / Katkıda Bulunma
 
-- **Issues:** [github.com/SuleymanEmirGergin/stellar-split/issues](https://github.com/SuleymanEmirGergin/stellar-split/issues)
+- **Issues:** [github.com/SuleymanEmirGergin/Birik/issues](https://github.com/SuleymanEmirGergin/Birik/issues)
 - **Pull requests:** `master` branch'ine PR açın; CI yeşil dönmeli.
-- **Contributors:** [github.com/SuleymanEmirGergin/stellar-split/graphs/contributors](https://github.com/SuleymanEmirGergin/stellar-split/graphs/contributors)
+- **Contributors:** [github.com/SuleymanEmirGergin/Birik/graphs/contributors](https://github.com/SuleymanEmirGergin/Birik/graphs/contributors)
 
 ---
 

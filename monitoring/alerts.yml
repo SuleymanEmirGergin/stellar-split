@@ -15,7 +15,7 @@ groups:
           description: >
             The API scrape target {{ $labels.instance }} has been unreachable
             for more than 1 minute.  Check Railway logs immediately.
-          runbook: "https://github.com/SuleymanEmirGergin/stellar-split/wiki/Runbooks#api-down"
+          runbook: "https://github.com/SuleymanEmirGergin/Birik/wiki/Runbooks#api-down"
 
       - alert: HighErrorRate
         expr: |
@@ -33,7 +33,7 @@ groups:
           description: >
             {{ printf "%.1f" (mul $value 100) }}% of requests are returning 5xx errors
             in the last 5 minutes.
-          runbook: "https://github.com/SuleymanEmirGergin/stellar-split/wiki/Runbooks#high-error-rate"
+          runbook: "https://github.com/SuleymanEmirGergin/Birik/wiki/Runbooks#high-error-rate"
 
       # ── Latency ─────────────────────────────────────────────────────────────
 
@@ -81,7 +81,7 @@ groups:
             {{ $value }} jobs moved to DLQ in the last 10 minutes
             (queue: {{ $labels.source_queue }}, name: {{ $labels.job_name }}).
             Investigate recurring-expense or Stellar TX monitor workers.
-          runbook: "https://github.com/SuleymanEmirGergin/stellar-split/wiki/Runbooks#dlq"
+          runbook: "https://github.com/SuleymanEmirGergin/Birik/wiki/Runbooks#dlq"
 
       - alert: DlqJobsCritical
         expr: increase(stellarsplit_dlq_jobs_total[5m]) > 10

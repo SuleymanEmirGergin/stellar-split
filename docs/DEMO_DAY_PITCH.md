@@ -146,7 +146,7 @@ Hackathon Level 6 · Emir Gergin · April 2026
 
 ### Birik = Splitwise × Stellar × DeFi primitives
 
-**Try it:** stellar-split.vercel.app · **Contact:** emirgergin21@gmail.com · **GitHub:** SuleymanEmirGergin/stellar-split
+**Try it:** stellar-split.vercel.app · **Contact:** emirgergin21@gmail.com · **GitHub:** SuleymanEmirGergin/Birik
 
 **[speaker note]** "90 gün içinde mainnet'e çıkıyoruz. Benim ihtiyacım: Soroswap tarafında bir mentor, mainnet pilotu için köprü, ve topluluğa duyurmak için amplification. Teşekkürler, sorularınıza açığım."
 

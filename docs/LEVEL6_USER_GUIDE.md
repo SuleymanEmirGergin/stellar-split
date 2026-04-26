@@ -221,7 +221,7 @@ README'ye şunu ekle:
 
 **Feedback verisi**: [docs/user-onboarding.xlsx](docs/user-onboarding.xlsx)  
 **Detaylı roadmap**: [docs/ROADMAP_FROM_FEEDBACK.md](docs/ROADMAP_FROM_FEEDBACK.md)  
-**İlk uygulama commit'i**: [abc123def](https://github.com/SuleymanEmirGergin/stellar-split/commit/abc123def)
+**İlk uygulama commit'i**: [abc123def](https://github.com/SuleymanEmirGergin/Birik/commit/abc123def)
 ```
 
 ### 4.4 Commit linki kısmı

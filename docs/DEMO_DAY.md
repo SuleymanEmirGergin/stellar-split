@@ -144,7 +144,7 @@ No sign-up. No KYC. No central database.
 
 **Tweet 5 (CTA):**
 Try it: [link]
-Code: github.com/SuleymanEmirGergin/stellar-split
+Code: github.com/SuleymanEmirGergin/Birik
 
 Built for [hackathon name] · April 2026
 
@@ -193,5 +193,5 @@ Birik is a decentralized group expense-splitting dApp built on Stellar/Soroban:
 
 ### Links
 - Demo: [https://stellarsplit.app](https://stellarsplit.app)
-- GitHub: [https://github.com/SuleymanEmirGergin/stellar-split](https://github.com/SuleymanEmirGergin/stellar-split)
+- GitHub: [https://github.com/SuleymanEmirGergin/Birik](https://github.com/SuleymanEmirGergin/Birik)
 - Contract (testnet): See `VITE_CONTRACT_ID` in frontend env

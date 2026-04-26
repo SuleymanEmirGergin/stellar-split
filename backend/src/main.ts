@@ -142,7 +142,7 @@ Every response is wrapped:
 Auth endpoints are throttled to **10 requests / 60 s** per IP.`,
       )
       .setVersion('1.0')
-      .setContact('StellarSplit', 'https://github.com/SuleymanEmirGergin/stellar-split', '')
+      .setContact('StellarSplit', 'https://github.com/SuleymanEmirGergin/Birik', '')
       .setLicense('MIT', 'https://opensource.org/licenses/MIT')
       .addServer('http://localhost:3001/api/v1', 'Local development')
       .addServer('https://api.stellarsplit.app/api/v1', 'Production')

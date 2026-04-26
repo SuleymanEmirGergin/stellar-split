@@ -59,11 +59,11 @@ Bu doküman, Birik MVP'sinin testnet kullanıcılarından alınan geri bildiriml
 
 | # | Feedback | Yapılan değişiklik | Commit |
 |---|----------|--------------------|--------|
-| 1 | "Mobilde settle butonu zor bulunuyordu" (Tuğba) | Mobile bottom-sheet'e Settle FAB eklendi; Dashboard alt çubuğuna sticky CTA konuldu | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
-| 2 | "Webhook kurulumu zor" (Doğa) | Discord ve Slack için preset template'ler + tek tıkla yapılandırma akışı eklendi | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
-| 3 | "Tek para birimi kısıtlı" (Daghaniyo) | Multi-currency settle via Soroswap AMM (`settle_group_flex`) — on-chain proof; `docs/MULTI_CURRENCY.md` | [`38a3a83`](https://github.com/SuleymanEmirGergin/stellar-split/commit/38a3a83) |
+| 1 | "Mobilde settle butonu zor bulunuyordu" (Tuğba) | Mobile bottom-sheet'e Settle FAB eklendi; Dashboard alt çubuğuna sticky CTA konuldu | [`38a3a83`](https://github.com/SuleymanEmirGergin/Birik/commit/38a3a83) |
+| 2 | "Webhook kurulumu zor" (Doğa) | Discord ve Slack için preset template'ler + tek tıkla yapılandırma akışı eklendi | [`38a3a83`](https://github.com/SuleymanEmirGergin/Birik/commit/38a3a83) |
+| 3 | "Tek para birimi kısıtlı" (Daghaniyo) | Multi-currency settle via Soroswap AMM (`settle_group_flex`) — on-chain proof; `docs/MULTI_CURRENCY.md` | [`38a3a83`](https://github.com/SuleymanEmirGergin/Birik/commit/38a3a83) |
 
-> 📝 Commit link formatı: `https://github.com/SuleymanEmirGergin/stellar-split/commit/<SHA>`
+> 📝 Commit link formatı: `https://github.com/SuleymanEmirGergin/Birik/commit/<SHA>`
 
 ---
 

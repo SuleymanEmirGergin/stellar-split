@@ -21,7 +21,7 @@ StellarSplit, **Stellar/Soroban** üzerinde çalışan bir mini-dApp ile borçla
 ## Demo & Repo
 
 - **Canlı demo:** [stellar-split.vercel.app](https://stellar-split.vercel.app) _(Vercel/Netlify linkini buraya yazın)_
-- **Repo:** [GitHub — SuleymanEmirGergin/stellar-split](https://github.com/SuleymanEmirGergin/stellar-split)
+- **Repo:** [GitHub — SuleymanEmirGergin/Birik](https://github.com/SuleymanEmirGergin/Birik)
 - **Demo video (1 dk):** _(YouTube/Loom linki)_
 
 ## Testnet Contract

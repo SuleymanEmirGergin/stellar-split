@@ -204,7 +204,7 @@ Next up: multi-currency settle via path payments + real yield on idle group savi
 
 Star the repo, break the demo, tell me what sucks.
 
-github.com/SuleymanEmirGergin/stellar-split
+github.com/SuleymanEmirGergin/Birik
 
 cc @StellarOrg @SorobanOfficial
 
@@ -350,7 +350,7 @@ Full write-up with architecture diagrams + lessons learned from 30 days:
 
 dev.to/plutazom/how-we-built-birik-group-expense-splitting-on-stellar-in-30-days-1aog
 
-Repo: github.com/SuleymanEmirGergin/stellar-split
+Repo: github.com/SuleymanEmirGergin/Birik
 
 cc @StellarOrg @SorobanOfficial
 
@@ -518,7 +518,7 @@ Currently testnet — no real money moves, break it all you want. Before mainnet
 ### Q5: "Where's the code?"
 ```
 MIT, public, full stack:
-github.com/SuleymanEmirGergin/stellar-split
+github.com/SuleymanEmirGergin/Birik
 
 Contract: contracts/stellar_split/src/
 Frontend: frontend/src/

@@ -3,11 +3,11 @@ title: "How we built Birik — group expense splitting on Stellar in 30 days"
 published: false
 description: "1,293 tests, 94 commits, min-flow settlements on-chain, inter-contract SPLT reward minting, SIWS auth — a teardown of what it actually takes to ship a full Soroban dApp in a month."
 tags: stellar, rust, react, blockchain
-cover_image: https://raw.githubusercontent.com/SuleymanEmirGergin/stellar-split/master/docs/screenshots/landing-desktop-dark.png
+cover_image: https://raw.githubusercontent.com/SuleymanEmirGergin/Birik/master/docs/screenshots/landing-desktop-dark.png
 canonical_url:
 ---
 
-> **TL;DR** — We shipped **Birik** — a Splitwise-style group expense app on Stellar/Soroban — in 30 days: 1,293 tests, 94 commits, min-flow settlements on-chain, inter-contract SPLT reward minting, SIWS auth, full CI/CD. This post is the honest version: what worked, what surprised us, what we'd do differently. Live demo: [stellar-split.vercel.app](https://stellar-split.vercel.app) · Repo: [github.com/SuleymanEmirGergin/stellar-split](https://github.com/SuleymanEmirGergin/stellar-split).
+> **TL;DR** — We shipped **Birik** — a Splitwise-style group expense app on Stellar/Soroban — in 30 days: 1,293 tests, 94 commits, min-flow settlements on-chain, inter-contract SPLT reward minting, SIWS auth, full CI/CD. This post is the honest version: what worked, what surprised us, what we'd do differently. Live demo: [stellar-split.vercel.app](https://stellar-split.vercel.app) · Repo: [github.com/SuleymanEmirGergin/Birik](https://github.com/SuleymanEmirGergin/Birik).
 
 ---
 
@@ -65,7 +65,7 @@ The thing nobody tells you going in: **Soroban testnet is really fast to iterate
 
 Three layers, one shared feature story. CI (GitHub Actions) gates a merge on the full 1,293-test matrix going green.
 
-![Birik dashboard](https://raw.githubusercontent.com/SuleymanEmirGergin/stellar-split/master/docs/screenshots/dashboard.png)
+![Birik dashboard](https://raw.githubusercontent.com/SuleymanEmirGergin/Birik/master/docs/screenshots/dashboard.png)
 
 ---
 
@@ -77,7 +77,7 @@ The hardest "easy" part of a group expense app: when you know everyone's net bal
 
 The naive answer is O(N²): every debtor pays every creditor they owe. For a group of 6, that's up to 15 pairwise transfers. We can do a lot better with a greedy pairing.
 
-[`contracts/stellar_split/src/settle.rs`](https://github.com/SuleymanEmirGergin/stellar-split/blob/master/contracts/stellar_split/src/settle.rs):
+[`contracts/stellar_split/src/settle.rs`](https://github.com/SuleymanEmirGergin/Birik/blob/master/contracts/stellar_split/src/settle.rs):
 
 ```rust
 pub fn compute_optimal_settlements(env: &Env, balances: &Map<Address, i128>) -> Vec<Settlement> {
@@ -106,7 +106,7 @@ pub fn compute_optimal_settlements(env: &Env, balances: &Map<Address, i128>) -> 
 
 Guarantee: for N non-zero-balance members, at most **N-1** transfers. For our "Settle Demo" group of 4, this turns what could be 6 pairwise transfers into 2. The UI surfaces this visually:
 
-![Settle modal with min-flow rows](https://raw.githubusercontent.com/SuleymanEmirGergin/stellar-split/master/docs/screenshots/settle-modal-minflow.png)
+![Settle modal with min-flow rows](https://raw.githubusercontent.com/SuleymanEmirGergin/Birik/master/docs/screenshots/settle-modal-minflow.png)
 
 Running it on-chain isn't just "cool" — it's the _correctness_ argument. The client can't lie about whom you owe.
 
@@ -117,7 +117,7 @@ When a user taps _Mark Group as Settled_, two things happen in one transaction:
 1. The contract loops `token_client.transfer(from, to, amount)` through the computed settlements.
 2. The main contract then **calls into a second contract** — our custom SEP-41 `stellar_split_token` — to mint 100 SPLT to the settler as a reward.
 
-[`contracts/stellar_split/src/lib.rs:395-400`](https://github.com/SuleymanEmirGergin/stellar-split/blob/master/contracts/stellar_split/src/lib.rs):
+[`contracts/stellar_split/src/lib.rs:395-400`](https://github.com/SuleymanEmirGergin/Birik/blob/master/contracts/stellar_split/src/lib.rs):
 
 ```rust
 let reward_amount = 100_i128; // 100 SPLT
@@ -132,7 +132,7 @@ The first time we got this working was a genuinely good moment. `env.invoke_cont
 
 A toast confirms the reward on the client:
 
-![Settlement complete + reward toast](https://raw.githubusercontent.com/SuleymanEmirGergin/stellar-split/master/docs/screenshots/splt-reward.png)
+![Settlement complete + reward toast](https://raw.githubusercontent.com/SuleymanEmirGergin/Birik/master/docs/screenshots/splt-reward.png)
 
 On the backend side, we emit a `reward_minted` event so analytics and the SSE bus can pick it up.
 
@@ -160,11 +160,11 @@ This shipped in ~200 lines of backend code. The only thing that hurt us was cook
 - **Backend tests (389, `jest`):** NestJS controllers + services + auth guards + queue processors. Wallet-address-based authorization is easy to get wrong in subtle ways; we lean on test coverage rather than careful code review alone.
 - **Frontend tests (880 unit + ~60 Playwright e2e, `vitest` + `playwright`):** component rendering, `useX` hooks, i18n translations across 4 languages, form validation, demo-mode flows. The e2e layer catches routing and state-seeding bugs that unit tests can't.
 
-All three suites are gated in [`.github/workflows/ci.yml`](https://github.com/SuleymanEmirGergin/stellar-split/blob/master/.github/workflows/ci.yml) — nothing merges unless everything is green.
+All three suites are gated in [`.github/workflows/ci.yml`](https://github.com/SuleymanEmirGergin/Birik/blob/master/.github/workflows/ci.yml) — nothing merges unless everything is green.
 
 A small concrete example: in the last week of the build, a contributor accidentally removed a translation key. The CI frontend test suite caught it (we compile with TypeScript strict, and the `t('key.foo')` type derived from the translations object went red). Total fix time: ~3 minutes. Without that, we'd have shipped a broken dropdown in 2 languages.
 
-![Activity / insights dashboard](https://raw.githubusercontent.com/SuleymanEmirGergin/stellar-split/master/docs/screenshots/activity-feed.png)
+![Activity / insights dashboard](https://raw.githubusercontent.com/SuleymanEmirGergin/Birik/master/docs/screenshots/activity-feed.png)
 
 ---
 
@@ -186,7 +186,7 @@ It would've been easy to let this be a desktop dApp. But the actual use case is 
 
 A small detail we're proud of: the **bottom sheet** with tab categories opens from the FAB, so the dashboard works one-handed. Every major action is reachable without scrolling.
 
-![Mobile bottom sheet](https://raw.githubusercontent.com/SuleymanEmirGergin/stellar-split/master/docs/screenshots/mobile-bottomsheet.png)
+![Mobile bottom sheet](https://raw.githubusercontent.com/SuleymanEmirGergin/Birik/master/docs/screenshots/mobile-bottomsheet.png)
 
 ---
 
@@ -204,7 +204,7 @@ We shipped the core. What we want to do in the next phase:
 
 - **Live demo (testnet):** [stellar-split.vercel.app](https://stellar-split.vercel.app) — press `D` on the landing page for demo mode, no wallet needed
 - **Contract on Stellar Expert:** [`CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K`](https://stellar.expert/explorer/testnet/contract/CBQENHYCVSOK3CHZ6NRT6BI34W2ERPSRUNXHI6X5X33DTDCDWX27YN7K)
-- **Repo:** [github.com/SuleymanEmirGergin/stellar-split](https://github.com/SuleymanEmirGergin/stellar-split)
+- **Repo:** [github.com/SuleymanEmirGergin/Birik](https://github.com/SuleymanEmirGergin/Birik)
 - **Testnet beta feedback form (2 min):** [forms.gle/oFSNuU6a9NthmfJR7](https://forms.gle/oFSNuU6a9NthmfJR7)
 
 If you try it and find a bug, ship us an issue. If you're building on Soroban and any of this was useful, we'd love to hear what you ran into — tag us [@StellarOrg](https://twitter.com/StellarOrg) on the retweet.

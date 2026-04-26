@@ -18,7 +18,7 @@ tests, daily Postgres backups, Prometheus alerts, emergency-pause circuit-breake
 |---|---|
 | **Live demo** | https://stellar-split.vercel.app |
 | **Demo video** | https://youtu.be/ZmqJI9Y7UTc |
-| **Repository** | https://github.com/SuleymanEmirGergin/stellar-split |
+| **Repository** | https://github.com/SuleymanEmirGergin/Birik |
 | **Main contract (testnet)** | `CAUKBMO5OAWHDDWAR3WHDYBJSJDTQUAD53L3JDD53DFIYTAVPW3DDAOA` |
 | **SPLT reward token** | `CBPN3COESIYKJSBSGE474E55TAMCH7GDMV6MP5N43CI4XBGVTNGM3APE` |
 | **Backend API** | https://stellar-split-production.up.railway.app |

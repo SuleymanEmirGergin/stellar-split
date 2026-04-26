@@ -14,7 +14,7 @@ Bu dosya, `forms.google.com` üzerinde oluşturulacak formun birebir spec'idir. 
 > Birik'i test ettiğiniz için teşekkürler! 🙌
 > Bu formu doldurmanız ~2 dakika sürer. Yanıtlarınız MVP'yi geliştirmemize doğrudan katkı sağlayacak.
 > Canlı demo: https://stellar-split.vercel.app
-> Test adresleri: https://github.com/SuleymanEmirGergin/stellar-split/blob/master/docs/TEST_ADDRESSES.md
+> Test adresleri: https://github.com/SuleymanEmirGergin/Birik/blob/master/docs/TEST_ADDRESSES.md
 
 ---
 
