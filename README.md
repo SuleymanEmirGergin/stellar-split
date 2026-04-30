@@ -487,15 +487,15 @@ User signs normally; backend wraps the signed inner tx as a Stellar fee-bump and
 
 Birik'i test eden gerçek kullanıcıların Stellar Testnet cüzdan adresleri. Her adres [Stellar Expert](https://stellar.expert/explorer/testnet/) üzerinde doğrulanabilir.
 
-| # | Ad / Rumuz | Stellar Expert linki (Testnet) |
-|---|-----------|--------------------------------|
-| 1 | Tuğba | [`GASWXOC7…PWULLP`](https://stellar.expert/explorer/testnet/account/GASWXOC7I2T7YVJZBIZWGFND55SJGPXOWC7PKNHPWLRNY6236FPWULLP) |
-| 2 | Doğa | [`GBYORHYN…NEMIAF`](https://stellar.expert/explorer/testnet/account/GBYORHYNZPZMEZ2Z7B6SY7DN4PYM3PKJHSCV2IT4CIO5LTXRC4NEMIAF) |
-| 3 | Daghaniyo | [`GAOZA3UD…QRJQI`](https://stellar.expert/explorer/testnet/account/GAOZA3UDJVZCBZWYFBAU7SKF4BJCUJEFOI7SL7Y7W75N5YF64OXQRJQI) |
-| 4 | _(pending — onboarding in progress)_ | _(TBA)_ |
-| 5 | _(pending — onboarding in progress)_ | _(TBA)_ |
+| # | Ad / Rumuz | Stellar Expert linki (Testnet) | Rating |
+|---|-----------|--------------------------------|:------:|
+| 1 | Tuğba | [`GASWXOC7…PWULLP`](https://stellar.expert/explorer/testnet/account/GASWXOC7I2T7YVJZBIZWGFND55SJGPXOWC7PKNHPWLRNY6236FPWULLP) | 5 / 5 |
+| 2 | Dogi  | [`GBYORHYN…NEMIAF`](https://stellar.expert/explorer/testnet/account/GBYORHYNZPZMEZ2Z7B6SY7DN4PYM3PKJHSCV2IT4CIO5LTXRC4NEMIAF) | 5 / 5 |
+| 3 | Daghaniyo | [`GAOZA3UD…QRJQI`](https://stellar.expert/explorer/testnet/account/GAOZA3UDJVZCBZWYFBAU7SKF4BJCUJEFOI7SL7Y7W75N5YF64OXQRJQI) | 5 / 5 |
+| 4 | Emir  | [`GBF4BV4I…T6F7D`](https://stellar.expert/explorer/testnet/account/GBF4BV4IHSVRSGTVA3DYYTLM2X6BKY4DD7OWCVRTA3ZMPJRDGTZT6F7D) | 5 / 5 |
+| 5 | Sıla  | [`GBHWCD2U…7P65L`](https://stellar.expert/explorer/testnet/account/GBHWCD2UA6SOWVWEA6DJVMCHXMRJ3HTH3VODXID3WVQ6L2SB4ZQ7P65L) | 5 / 5 |
 
-> **Canlı durum (2026-04-24):** 3 doğrulanmış testnet kullanıcısı + 10 kişilik onboarding wave yarın (2026-04-25) bekleniyor. Toplam hedef 30+ için ikinci wave 2026-04-28 planlı. Her adres Stellar Expert üzerinden incelenebilir — hesap oluşturma + ilk on-chain etkileşim proofs.
+> **5+ verifiable testnet users ✅** — every wallet above can be inspected on Stellar Expert (account creation + on-chain interactions verifiable). Form responses + ratings exported to [`docs/user-feedback.xlsx`](docs/user-feedback.xlsx).
 
 > 📝 Genişletilmiş liste, ortalamalar ve NPS skoru için: [`docs/USER_FEEDBACK.md`](docs/USER_FEEDBACK.md)
 
@@ -516,18 +516,21 @@ Yüksek seviye metrikler (snapshot, 2026-04-24):
 
 | Metrik | Değer |
 |--------|-------|
-| Toplam respondent | **3** (canlı Form yanıtı) + 10 kişilik wave bekleniyor |
-| Ortalama rating (1–5) | **5.0 / 5** (3/3 respondent maksimum) |
-| Recommend (1–5) | **4.33 / 5** (5, 4, 4) |
+| Toplam respondent | **5** doğrulanmış Form yanıtı |
+| Ortalama product rating (1–5) | **5.0 / 5** (5/5 respondent maksimum) |
+| Ortalama UX rating (1–5) | **4.6 / 5** (5, 4, 4, 5, 5) |
+| NPS — recommend score (1–10) | **9.8 / 10** (10, 9, 10, 10, 10) |
 | Bug report | **0** ("hayır" — hiçbir respondent critical bug bildirmedi) |
 
 ### 📝 Öne çıkan feedback temaları
 
 | Respondent | En çok kullandığı akış | Pozitif | Geliştirme önerisi |
 |---|---|---|---|
-| Tuğba | Grup oluşturma / Harcama ekleme / Bakiye | UX şematiği net | "UX bir tık daha açıklayıcı olabilir" |
-| Doğa | Bakiye görüntüleme / QR / link ile davet | "altın hesabı" — onboarding akıcı | — |
-| Daghaniyo | Grup oluşturma / Harcama ekleme | "UX/UI görüntüleri gayet iyiydi" | "Grup kurma işi çok zordu" · "Savings pools gelse süper olur" · "Ana sayfa full ekran olmalı" |
+| Tuğba | Grup oluşturma / Harcama ekleme / Bakiye / Settle / Savings / Recurring | UX şematiği net | "UX bir tık daha açıklayıcı olabilir" |
+| Dogi  | Bakiye görüntüleme / QR / link ile davet | "kâfi" — onboarding akıcı | "altın hesabı" özelliği |
+| Daghaniyo | Grup oluşturma / Harcama ekleme / Bakiye | "UX/UI görüntüleri gayet iyiydi" | "Grup kurma işi çok zordu" · "Savings pools gelse süper olur" · "Ana sayfa full ekran olmalı" |
+| Emir  | Tüm akışlar (10/10 özellik) | "hepsi mükemmel" | — |
+| Sıla  | Grup oluşturma | "hızlı ve kolayca öğrenilebiliyor" | "mobil uygulama olabilir" |
 
 **Üç tematik sinyal:**
 1. **Grup oluşturma akışı** yorumlayıcı (bir kullanıcı "çok zordu" dedi) — form adımlarını azaltma / wizard revize gerekli.
